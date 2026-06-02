@@ -19,7 +19,7 @@ const CONFIG = {
   BRAND_LDU_DISPLAY: ['Apple', 'Samsung', 'Oppo', 'Xiaomi', 'Huawei'],
 
   // Brand toko (untuk filter & summary compliance)
-  BRAND_TOKO: ['Erafone', 'iBox', 'Samsung Store', 'Xiaomi Store', 'Megastore', 'Lainnya'],
+  BRAND_TOKO: ['Erafone', 'iBox', 'Samsung Store', 'Xiaomi Store', 'Huawei Store', 'Honor Store', 'Megastore', 'Lainnya'],
 
   // Warna per brand toko
   BRAND_TOKO_COLORS: {
@@ -27,6 +27,8 @@ const CONFIG = {
     'iBox':          '#6d28d9',
     'Samsung Store': '#1428A0',
     'Xiaomi Store':  '#FF6900',
+    'Huawei Store':  '#cf0a2c',
+    'Honor Store':   '#0066cc',
     'Megastore':     '#0f766e',
     'Lainnya':       '#64748b'
   },
@@ -38,6 +40,8 @@ const CONFIG = {
     if (n.includes('IBOX') || n.includes('I-BOX')) return 'iBox';
     if (n.includes('SAMSUNG') || n.startsWith('SES') || n.startsWith('SPS')) return 'Samsung Store';
     if (n.includes('XIAOMI'))   return 'Xiaomi Store';
+    if (n.includes('HUAWEI'))   return 'Huawei Store';
+    if (n.includes('HONOR'))    return 'Honor Store';
     if (n.includes('MEGASTORE')) return 'Megastore';
     return 'Lainnya';
   },
