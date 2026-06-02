@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERA-PLANOGRAM Dashboard · Region 5</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-badge">ERA</div>
+        <div>
+          <div class="site-title">ERA-PLANOGRAM</div>
+          <div class="site-sub">Live Demo Unit Dashboard · Region 5</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-outline" onclick="refreshData()">🔄 Refresh</button>
+        <button class="btn btn-primary" onclick="exportAllExcel()">📥 Export All</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- SUMMARY CARDS -->
+  <div class="section">
+    <div class="section-title">Ringkasan Keseluruhan</div>
+    <div class="cards-grid" id="summary-cards">
+      <div class="card"><div class="state-cell"><span class="spinner"></span></div></div>
+    </div>
+  </div>
+
+  <!-- BRAND COMPLIANCE -->
+  <div class="section">
+    <div class="section-title">Compliance per Brand Toko</div>
+    <div class="brand-cards" id="brand-compliance-cards">
+      <div class="brand-card" style="color:var(--gray-400)">Memuat...</div>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="section">
+    <div class="filter-bar">
+      <select id="filter-brand" onchange="applyFilters()">
+        <option value="">Semua Brand Toko</option>
+        <option value="erafone">Erafone</option>
+        <option value="ibox">iBox</option>
+        <option value="samsung store">Samsung Store</option>
+        <option value="xiaomi store">Xiaomi Store</option>
+        <option value="megastore">Megastore</option>
+        <option value="lainnya">Lainnya</option>
+      </select>
+      <select id="filter-status" onchange="applyFilters()">
+        <option value="">Semua Status</option>
+        <option value="Submitted">Sudah Submit</option>
+        <option value="Pending">Belum Submit</option>
+      </select>
+      <input type="text" id="search-store" placeholder="🔍 Cari nama toko atau Plant Code..." oninput="applyFilters()">
+      <span class="filter-count" id="filter-count">-</span>
+      <button class="btn btn-outline" onclick="exportFilteredExcel()">📥 Export Filtered</button>
+    </div>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div class="section">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Plant Code</th>
+            <th>Nama Toko</th>
+            <th>Brand</th>
+            <th>Status</th>
+            <th>Apple</th>
+            <th>Samsung</th>
+            <th>Oppo</th>
+            <th>Xiaomi</th>
+            <th>Huawei</th>
+            <th>Total LDU</th>
+            <th>Last Submit</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="12" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital ·
+    <span id="last-updated" style="color:var(--blue)"></span>
+  </footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/export.js"></script>
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
