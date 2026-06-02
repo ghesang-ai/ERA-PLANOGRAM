@@ -3,6 +3,7 @@
 
 window._eraAllData      = [];
 window._eraFilteredData = [];
+window._eraViewMode     = 'summary'; // 'summary' | 'full'
 var _refreshTimer = null;
 
 function escHtml(s) {
@@ -46,14 +47,55 @@ async function fetchData(params) {
   }
 }
 
+function getColspan() {
+  return window._eraViewMode === 'full' ? (4 + CONFIG.BRAND_LDU_COLUMNS.length + 3) : 12;
+}
+
 function showLoading() {
   var tbody = document.getElementById('table-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="12" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="' + getColspan() + '" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr>';
 }
 
 function showError(msg) {
   var tbody = document.getElementById('table-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="12" class="state-cell">⚠️ ' + msg + '</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="' + getColspan() + '" class="state-cell">⚠️ ' + msg + '</td></tr>';
+}
+
+function setView(mode) {
+  window._eraViewMode = mode;
+
+  var btnSummary = document.getElementById('btn-summary-view');
+  var btnFull    = document.getElementById('btn-full-view');
+  var tableWrap  = document.getElementById('table-wrap');
+
+  if (btnSummary) btnSummary.classList.toggle('active', mode === 'summary');
+  if (btnFull)    btnFull.classList.toggle('active', mode === 'full');
+  if (tableWrap)  tableWrap.classList.toggle('full-view', mode === 'full');
+
+  renderTableHead();
+  renderTable(window._eraFilteredData);
+}
+
+function renderTableHead() {
+  var thead = document.getElementById('table-head');
+  if (!thead) return;
+
+  var fixedCols = '<th>Plant Code</th><th>Nama Toko</th><th>Brand</th><th>Status</th>';
+  var brandCols, lastCols;
+
+  if (window._eraViewMode === 'full') {
+    brandCols = CONFIG.BRAND_LDU_COLUMNS.map(function(col) {
+      return '<th class="col-brand-full">' + escHtml(col) + '</th>';
+    }).join('');
+    lastCols = '<th>Total LDU</th><th>Last Submit</th><th>Aksi</th>';
+  } else {
+    brandCols = CONFIG.BRAND_LDU_DISPLAY.map(function(col) {
+      return '<th>' + escHtml(col) + '</th>';
+    }).join('');
+    lastCols = '<th>Total LDU</th><th>Last Submit</th><th>Aksi</th>';
+  }
+
+  thead.innerHTML = '<tr>' + fixedCols + brandCols + lastCols + '</tr>';
 }
 
 function renderSummaryCards(data) {
@@ -116,13 +158,17 @@ function renderTable(data) {
   var tbody = document.getElementById('table-body');
   if (!tbody) return;
 
+  var colspan    = getColspan();
   var filterCount = document.getElementById('filter-count');
   if (filterCount) filterCount.textContent = data.length + ' toko';
 
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="state-cell">Tidak ada data sesuai filter</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="' + colspan + '" class="state-cell">Tidak ada data sesuai filter</td></tr>';
     return;
   }
+
+  var isFull = window._eraViewMode === 'full';
+  var cols   = isFull ? CONFIG.BRAND_LDU_COLUMNS : CONFIG.BRAND_LDU_DISPLAY;
 
   tbody.innerHTML = data.map(function(row) {
     var status     = row['Status'] || 'Pending';
@@ -131,9 +177,10 @@ function renderTable(data) {
     var totalLDU   = CONFIG.calcTotalLDU(row);
     var isPending  = status !== 'Submitted';
 
-    var brandCols = CONFIG.BRAND_LDU_DISPLAY.map(function(col) {
+    var brandCols = cols.map(function(col) {
       var val = parseInt(row[col]) || 0;
-      return '<td class="col-num">' + (val > 0 ? val : '<span style="color:var(--gray-200)">0</span>') + '</td>';
+      var cellClass = isFull ? 'col-num col-brand-full' : 'col-num';
+      return '<td class="' + cellClass + '">' + (val > 0 ? val : '<span style="color:var(--gray-200)">0</span>') + '</td>';
     }).join('');
 
     return '<tr class="' + (isPending ? 'row-pending' : '') + '">\

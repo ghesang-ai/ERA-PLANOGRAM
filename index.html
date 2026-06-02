@@ -67,9 +67,16 @@
 
   <!-- DATA TABLE -->
   <div class="section">
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
+    <div class="table-header-bar">
+      <span class="table-title">Data Toko</span>
+      <div class="view-toggle">
+        <button class="toggle-btn active" id="btn-summary-view" onclick="setView('summary')">📊 Summary View</button>
+        <button class="toggle-btn" id="btn-full-view" onclick="setView('full')">🗂 Full View (32 Brand)</button>
+      </div>
+    </div>
+    <div class="table-wrap" id="table-wrap">
+      <table class="data-table" id="main-table">
+        <thead id="table-head">
           <tr>
             <th>Plant Code</th>
             <th>Nama Toko</th>
