@@ -100,12 +100,13 @@ function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) throw new Error('Sheet tidak ditemukan: ' + SHEET_NAME);
     const allData = sheet.getDataRange().getValues();
     const headers = allData[0].map(function(h) { return h.toString().trim(); });
 
     const params = (e && e.parameter) ? e.parameter : {};
     const filterStore  = (params.store  || '').toUpperCase().trim();
-    const filterStatus = (params.status || '').trim();
+    const filterStatus = (params.status || '').toLowerCase().trim();
 
     const result = [];
     for (let i = 1; i < allData.length; i++) {
@@ -119,7 +120,7 @@ function doGet(e) {
 
       // Apply filters
       if (filterStore  && obj['Plant Code'].toString().toUpperCase() !== filterStore)  continue;
-      if (filterStatus && obj['Status'] !== filterStatus) continue;
+      if (filterStatus && (obj['Status'] || '').toLowerCase() !== filterStatus) continue;
 
       result.push(obj);
     }
