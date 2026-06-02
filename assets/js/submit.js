@@ -251,25 +251,42 @@ function submitForm() {
   });
 
   // POST to Apps Script
+  // mode: 'no-cors' diperlukan karena Apps Script redirect POST → response opaque
+  // Kita verifikasi keberhasilan via doGet setelah POST selesai
   fetch(CONFIG.API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // text/plain avoids CORS preflight
-    body: JSON.stringify(payload),
-    redirect: 'follow'
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  })
+  .then(function() {
+    // Response opaque (no-cors) — verifikasi via doGet apakah data tersimpan
+    btnText.textContent = '⏳ Memverifikasi...';
+    return new Promise(function(resolve) { setTimeout(resolve, 2000); });
+  })
+  .then(function() {
+    var verifyUrl = new URL(CONFIG.API_URL);
+    verifyUrl.searchParams.set('store', _verifiedStore['Plant Code']);
+    return fetch(verifyUrl.toString());
   })
   .then(function(r) { return r.json(); })
   .then(function(json) {
     btnSubmit.disabled = false;
     btnText.textContent = '📤 Kirim Data LDU';
 
-    if (json.status === 'success') {
+    var saved = json.status === 'success' &&
+                Array.isArray(json.data) &&
+                json.data.length > 0 &&
+                json.data[0]['Status'] === 'Submitted';
+
+    if (saved) {
       var total = Object.values(_lduValues).reduce(function(s, v) { return s + v; }, 0);
       document.getElementById('success-sub').textContent =
         _verifiedStore['Store Name'] + ' · ' + total + ' unit LDU berhasil disimpan.';
       document.getElementById('success-overlay').style.display = 'flex';
       updateProgress(3);
     } else {
-      showToast('Gagal menyimpan: ' + (json.message || 'Error tidak diketahui'));
+      showToast('Data mungkin belum tersimpan. Coba ulangi atau hubungi admin.');
     }
   })
   .catch(function(err) {
