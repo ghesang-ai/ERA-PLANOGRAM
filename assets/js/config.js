@@ -2,7 +2,7 @@
 
 const CONFIG = {
   // Ganti dengan URL Apps Script Web App Anda setelah deploy
-  API_URL: 'https://script.google.com/macros/s/AKfycbzdthnNSMJXw2aU1qCgFZ9xKD71DGkr5yRFXS1RrRGzieBfWKqVcEKn3L0IX6GyvoBC/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbzdthnNSMJXw2aU1qCgFZ9xKD71DGkr5yRFXS1RrRGzieBfWKqVcEKn3LOlX6GyvoBC/exec',
 
   // Daftar semua kolom brand LDU (urutan sesuai Google Form)
   BRAND_LDU_COLUMNS: [
