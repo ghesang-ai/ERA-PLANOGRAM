@@ -1,6 +1,13 @@
 // assets/js/store-detail.js
 // Requires: CONFIG (config.js), exportStoreExcel (export.js)
 
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Initialize global data store (main.js not loaded on this page)
+window._eraAllData = [];
+
 async function loadStoreDetail() {
   var params = new URLSearchParams(window.location.search);
   var plantCode = params.get('code');
@@ -12,9 +19,13 @@ async function loadStoreDetail() {
 
   document.title = 'Detail Toko ' + plantCode + ' — ERA-PLANOGRAM';
 
+  var exportBtn = document.getElementById('export-btn');
+  if (exportBtn) exportBtn.disabled = true;
+
   try {
-    var url = CONFIG.API_URL + '?store=' + encodeURIComponent(plantCode);
-    var res  = await fetch(url);
+    var urlObj = new URL(CONFIG.API_URL);
+    urlObj.searchParams.set('store', plantCode);
+    var res  = await fetch(urlObj.toString());
     var json = await res.json();
 
     if (json.status !== 'success' || json.data.length === 0) {
@@ -40,13 +51,13 @@ function renderStoreDetail(row, plantCode) {
   var brandToko  = CONFIG.detectBrandToko(row['Store Name']);
 
   document.getElementById('detail-header').innerHTML = '\
-    <div class="detail-store-name">' + (row['Store Name'] || plantCode) + '</div>\
+    <div class="detail-store-name">' + escHtml(row['Store Name'] || plantCode) + '</div>\
     <div class="detail-meta">\
-      <span>📍 Plant Code: <strong>' + plantCode + '</strong></span>\
-      <span>🏷️ Brand: <strong>' + brandToko + '</strong></span>\
-      <span>🗺️ ' + (row['Region'] || '-') + '</span>\
-      <span>Status: <span class="badge ' + badgeClass + '">' + status + '</span></span>\
-      <span>Last Submit: <strong>' + lastSubmit + '</strong></span>\
+      <span>📍 Plant Code: <strong>' + escHtml(plantCode) + '</strong></span>\
+      <span>🏷️ Brand: <strong>' + escHtml(brandToko) + '</strong></span>\
+      <span>🗺️ ' + escHtml(row['Region'] || '-') + '</span>\
+      <span>Status: <span class="badge ' + badgeClass + '">' + escHtml(status) + '</span></span>\
+      <span>Last Submit: <strong>' + escHtml(lastSubmit) + '</strong></span>\
       <span>Total LDU: <strong style="color:var(--blue)">' + totalLDU + ' unit</strong></span>\
     </div>';
 
@@ -55,7 +66,7 @@ function renderStoreDetail(row, plantCode) {
     var zero = val === 0 ? ' zero' : '';
     return '\
       <div class="ldu-card">\
-        <div class="ldu-card-brand">' + col + '</div>\
+        <div class="ldu-card-brand">' + escHtml(col) + '</div>\
         <div class="ldu-card-count' + zero + '">' + val + '</div>\
       </div>';
   }).join('');
@@ -64,6 +75,7 @@ function renderStoreDetail(row, plantCode) {
 
   var exportBtn = document.getElementById('export-btn');
   if (exportBtn) {
+    exportBtn.disabled = false;
     exportBtn.onclick = function() {
       exportStoreExcel(plantCode, row['Store Name']);
     };

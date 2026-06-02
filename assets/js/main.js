@@ -5,6 +5,10 @@ window._eraAllData      = [];
 window._eraFilteredData = [];
 var _refreshTimer = null;
 
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 async function fetchData(params) {
   params = params || {};
   var url = new URL(CONFIG.API_URL);
@@ -13,10 +17,15 @@ async function fetchData(params) {
   showLoading();
 
   try {
+    if (CONFIG.API_URL === 'YOUR_SCRIPT_URL_HERE') {
+      showError('Konfigurasi belum selesai: isi CONFIG.API_URL di assets/js/config.js dengan URL Apps Script Web App Anda.');
+      return;
+    }
     var res  = await fetch(url.toString());
     var json = await res.json();
 
     if (json.status !== 'success') throw new Error(json.message || 'API error');
+    if (!Array.isArray(json.data)) throw new Error('Format data tidak valid dari API');
 
     window._eraAllData      = json.data;
     window._eraFilteredData = json.data.slice();
@@ -26,7 +35,10 @@ async function fetchData(params) {
     applyFilters();
 
     var el = document.getElementById('last-updated');
-    if (el) el.textContent = 'Update: ' + new Date(json.lastUpdated).toLocaleString('id-ID');
+    if (el) {
+      var updatedDate = json.lastUpdated ? new Date(json.lastUpdated) : null;
+      el.textContent = 'Update: ' + (updatedDate && !isNaN(updatedDate) ? updatedDate.toLocaleString('id-ID') : 'Baru saja');
+    }
 
   } catch (err) {
     showError('Gagal memuat data. Cek koneksi atau API URL di config.js.<br><small>' + err.message + '</small>');
@@ -36,12 +48,12 @@ async function fetchData(params) {
 
 function showLoading() {
   var tbody = document.getElementById('table-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="12" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr>';
 }
 
 function showError(msg) {
   var tbody = document.getElementById('table-body');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="state-cell">⚠️ ' + msg + '</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="12" class="state-cell">⚠️ ' + msg + '</td></tr>';
 }
 
 function renderSummaryCards(data) {
@@ -108,7 +120,7 @@ function renderTable(data) {
   if (filterCount) filterCount.textContent = data.length + ' toko';
 
   if (data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" class="state-cell">Tidak ada data sesuai filter</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="state-cell">Tidak ada data sesuai filter</td></tr>';
     return;
   }
 
@@ -125,10 +137,10 @@ function renderTable(data) {
     }).join('');
 
     return '<tr class="' + (isPending ? 'row-pending' : '') + '">\
-      <td><code>' + (row['Plant Code'] || '-') + '</code></td>\
-      <td class="col-store">' + (row['Store Name'] || '-') + '</td>\
-      <td>' + CONFIG.detectBrandToko(row['Store Name']) + '</td>\
-      <td><span class="badge ' + badgeClass + '">' + status + '</span></td>\
+      <td><code>' + escHtml(row['Plant Code']) + '</code></td>\
+      <td class="col-store">' + escHtml(row['Store Name']) + '</td>\
+      <td>' + escHtml(CONFIG.detectBrandToko(row['Store Name'])) + '</td>\
+      <td><span class="badge ' + badgeClass + '">' + escHtml(status) + '</span></td>\
       ' + brandCols + '\
       <td class="col-total">' + (totalLDU > 0 ? totalLDU : '-') + '</td>\
       <td style="color:var(--gray-600);font-size:12px">' + lastSubmit + '</td>\
