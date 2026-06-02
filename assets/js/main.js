@@ -109,19 +109,19 @@ function renderSummaryCards(data) {
   var totalLDU  = data.reduce(function(s, d) { return s + CONFIG.calcTotalLDU(d); }, 0);
 
   container.innerHTML = '\
-    <div class="card card--highlight">\
+    <div class="card card--submit">\
       <div class="card-icon">🏪</div>\
       <div class="card-value">' + submitted + '<span class="card-total">/' + total + '</span></div>\
       <div class="card-label">Toko Sudah Submit</div>\
-      <div class="card-bar"><div class="card-bar-fill" style="width:' + pct + '%;background:var(--blue)"></div></div>\
-      <div class="card-pct">' + pct + '% Compliance</div>\
+      <div class="card-bar"><div class="card-bar-fill" style="width:' + pct + '%"></div></div>\
+      <div class="card-pct">' + pct + '% Compliance Rate</div>\
     </div>\
-    <div class="card">\
+    <div class="card card--pending">\
       <div class="card-icon">⏳</div>\
-      <div class="card-value" style="color:var(--red)">' + pending + '</div>\
-      <div class="card-label">Belum Submit</div>\
+      <div class="card-value">' + pending + '</div>\
+      <div class="card-label">Toko Belum Submit</div>\
     </div>\
-    <div class="card">\
+    <div class="card card--ldu">\
       <div class="card-icon">📱</div>\
       <div class="card-value">' + totalLDU.toLocaleString("id-ID") + '</div>\
       <div class="card-label">Total Unit LDU</div>\
@@ -142,9 +142,9 @@ function renderBrandComplianceCards(data) {
     var color     = CONFIG.BRAND_TOKO_COLORS[brand] || '#64748b';
 
     return '\
-      <div class="brand-card" style="border-left-color:' + color + '">\
+      <div class="brand-card" style="--card-color:' + color + '">\
         <div class="brand-card-name">' + brand + '</div>\
-        <div class="brand-card-count">' + submitted + '<span style="font-size:13px;font-weight:400;color:var(--gray-400)">/' + total + '</span></div>\
+        <div class="brand-card-count">' + submitted + '<span>/' + total + '</span></div>\
         <div class="brand-card-sub">toko submit</div>\
         <div class="brand-card-bar"><div class="brand-card-fill" style="width:' + pct + '%;background:' + color + '"></div></div>\
         <div class="brand-card-pct" style="color:' + color + '">' + pct + '%</div>\
