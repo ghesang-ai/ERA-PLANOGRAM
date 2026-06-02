@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Toko — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-badge">ERA</div>
+        <div>
+          <div class="site-title">ERA-PLANOGRAM</div>
+          <div class="site-sub">Detail LDU per Toko</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="index.html" class="btn btn-outline">← Kembali</a>
+        <button class="btn btn-green" id="export-btn">📥 Export Excel</button>
+      </div>
+    </div>
+  </header>
+
+  <div id="detail-content">
+
+    <!-- INFO TOKO -->
+    <div class="section">
+      <div class="detail-header" id="detail-header">
+        <span class="spinner"></span> Memuat data toko...
+      </div>
+    </div>
+
+    <!-- GRID LDU PER BRAND -->
+    <div class="section">
+      <div class="section-title">Jumlah Unit LDU per Brand</div>
+      <div class="ldu-grid" id="ldu-grid">
+        <div style="color:var(--gray-400)">Memuat...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital
+  </footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/export.js"></script>
+  <script src="assets/js/store-detail.js"></script>
+</body>
+</html>
