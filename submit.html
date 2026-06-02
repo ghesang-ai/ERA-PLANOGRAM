@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input LDU — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/submit.css">
+</head>
+<body class="submit-page">
+
+  <!-- HEADER -->
+  <header class="submit-header">
+    <div class="submit-header-inner">
+      <div class="brand">
+        <div class="brand-badge">ERA</div>
+        <div>
+          <div class="site-title">ERA-PLANOGRAM</div>
+          <div class="site-sub">Form Input LDU · Region 5</div>
+        </div>
+      </div>
+      <a href="index.html" class="btn btn-outline btn-sm">← Dashboard</a>
+    </div>
+  </header>
+
+  <!-- PROGRESS BAR -->
+  <div class="form-progress">
+    <div class="form-progress-bar" id="progress-bar"></div>
+  </div>
+
+  <main class="submit-main">
+
+    <!-- ── STEP 1: Identitas Toko ── -->
+    <div class="form-card" id="step-identity">
+      <div class="form-card-header">
+        <div class="step-badge">1</div>
+        <div>
+          <div class="form-card-title">Identitas Toko</div>
+          <div class="form-card-sub">Masukkan Plant Code toko Anda</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="input-plant-code">Plant Code <span class="required">*</span></label>
+        <div class="input-verify-row">
+          <input
+            type="text"
+            id="input-plant-code"
+            class="field-input"
+            placeholder="Contoh: E544"
+            maxlength="20"
+            autocomplete="off"
+            style="text-transform:uppercase"
+          >
+          <button class="btn btn-primary" id="btn-verify" onclick="verifyPlantCode()">Verifikasi</button>
+        </div>
+        <div id="verify-result" class="verify-result" style="display:none"></div>
+      </div>
+
+      <!-- Store info card — muncul setelah verify -->
+      <div class="store-info-card" id="store-info" style="display:none">
+        <div class="store-info-icon">🏪</div>
+        <div class="store-info-body">
+          <div class="store-info-name" id="info-store-name">-</div>
+          <div class="store-info-meta">
+            <span id="info-plant-code">-</span>
+            <span class="dot">·</span>
+            <span id="info-region">-</span>
+            <span class="dot">·</span>
+            <span class="store-brand-pill" id="info-brand-pill">-</span>
+          </div>
+          <div class="store-info-status" id="info-last-submit"></div>
+        </div>
+        <div class="store-info-check">✓</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Input LDU ── -->
+    <div class="form-card form-card--disabled" id="step-ldu">
+      <div class="form-card-header">
+        <div class="step-badge">2</div>
+        <div>
+          <div class="form-card-title">Jumlah Unit LDU per Brand</div>
+          <div class="form-card-sub">Isi angka 0 jika tidak ada unit LDU brand tersebut</div>
+        </div>
+        <div class="ldu-total-badge" id="ldu-total-badge">Total: 0 unit</div>
+      </div>
+
+      <!-- Smartphone -->
+      <div class="brand-section">
+        <div class="brand-section-title">
+          <span class="brand-section-icon">📱</span> Smartphone
+        </div>
+        <div class="brand-grid" id="grid-smartphone"></div>
+      </div>
+
+      <!-- Laptop -->
+      <div class="brand-section">
+        <div class="brand-section-title">
+          <span class="brand-section-icon">💻</span> Laptop
+        </div>
+        <div class="brand-grid" id="grid-laptop"></div>
+      </div>
+
+      <!-- Consumer Electronics -->
+      <div class="brand-section">
+        <div class="brand-section-title">
+          <span class="brand-section-icon">📺</span> Consumer Electronics (CE)
+        </div>
+        <div class="brand-grid" id="grid-ce"></div>
+      </div>
+
+      <!-- Accessories -->
+      <div class="brand-section">
+        <div class="brand-section-title">
+          <span class="brand-section-icon">🎧</span> Accessories
+        </div>
+        <div class="brand-grid" id="grid-accessories"></div>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: Submit ── -->
+    <div class="form-card form-card--disabled" id="step-submit">
+      <div class="form-card-header">
+        <div class="step-badge">3</div>
+        <div>
+          <div class="form-card-title">Konfirmasi & Kirim</div>
+          <div class="form-card-sub">Periksa ringkasan data sebelum mengirim</div>
+        </div>
+      </div>
+
+      <div class="submit-summary" id="submit-summary">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="submit-actions">
+        <button class="btn btn-lg btn-primary" id="btn-submit" onclick="submitForm()" disabled>
+          <span id="btn-submit-text">📤 Kirim Data LDU</span>
+        </button>
+        <p class="submit-note">Data akan langsung tersimpan ke Google Sheet dan memperbarui dashboard.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- SUCCESS OVERLAY -->
+  <div class="success-overlay" id="success-overlay" style="display:none">
+    <div class="success-card">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Data Berhasil Dikirim!</div>
+      <div class="success-sub" id="success-sub">-</div>
+      <div class="success-actions">
+        <button class="btn btn-primary" onclick="resetForm()">📝 Input Toko Lain</button>
+        <a href="index.html" class="btn btn-outline">📊 Lihat Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR TOAST -->
+  <div class="toast toast-error" id="error-toast" style="display:none">
+    <span id="error-toast-msg">Terjadi kesalahan</span>
+  </div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/submit.js"></script>
+</body>
+</html>

@@ -94,6 +94,44 @@ function updateMasterSheet(sheet, formData, plantCode) {
   }
 }
 
+// ── doPost — menerima submission dari Custom Web Form ──
+function doPost(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) throw new Error('Sheet tidak ditemukan: ' + SHEET_NAME);
+
+    // Parse JSON body dari form
+    const body = JSON.parse(e.postData.contents);
+    const plantCode = (body['Plant Code'] || '').toString().trim().toUpperCase();
+
+    if (!plantCode) throw new Error('Plant Code kosong');
+
+    // Konversi format: { Apple: 3, Samsung: 2 } → { Apple: ['3'], Samsung: ['2'] }
+    const formData = {};
+    Object.keys(body).forEach(function(k) {
+      formData[k] = [body[k] !== undefined ? body[k].toString() : '0'];
+    });
+
+    updateMasterSheet(sheet, formData, plantCode);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Data berhasil disimpan untuk ' + plantCode
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        status: 'error',
+        message: err.toString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
 // ── JSON API — dipanggil Web Dashboard ──
 // URL params opsional: ?store=E544 | ?status=Submitted | ?status=Pending
 function doGet(e) {
