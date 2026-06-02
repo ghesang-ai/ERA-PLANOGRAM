@@ -134,15 +134,42 @@ function doPost(e) {
 
 // ── JSON API — dipanggil Web Dashboard ──
 // URL params opsional: ?store=E544 | ?status=Submitted | ?status=Pending
+// Submit form via GET: ?action=submit&store=E544&Apple=3&Samsung=2&...
 function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) throw new Error('Sheet tidak ditemukan: ' + SHEET_NAME);
+
+    const params = (e && e.parameter) ? e.parameter : {};
+
+    // ── Handle form submission via GET ──
+    if (params.action === 'submit') {
+      const plantCode = (params.store || '').toString().trim().toUpperCase();
+      if (!plantCode) throw new Error('Plant Code kosong');
+
+      // Build formData dari URL params (skip action & store)
+      const skipKeys = ['action', 'store'];
+      const formData = {};
+      Object.keys(params).forEach(function(k) {
+        if (skipKeys.indexOf(k) === -1) {
+          formData[k] = [params[k] !== undefined ? params[k].toString() : '0'];
+        }
+      });
+
+      updateMasterSheet(sheet, formData, plantCode);
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          status: 'success',
+          message: 'Data berhasil disimpan untuk ' + plantCode
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     const allData = sheet.getDataRange().getValues();
     const headers = allData[0].map(function(h) { return h.toString().trim(); });
 
-    const params = (e && e.parameter) ? e.parameter : {};
     const filterStore  = (params.store  || '').toUpperCase().trim();
     const filterStatus = (params.status || '').toLowerCase().trim();
 

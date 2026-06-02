@@ -250,43 +250,28 @@ function submitForm() {
     payload[brand] = _lduValues[brand] || 0;
   });
 
-  // POST to Apps Script
-  // mode: 'no-cors' diperlukan karena Apps Script redirect POST → response opaque
-  // Kita verifikasi keberhasilan via doGet setelah POST selesai
-  fetch(CONFIG.API_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
-  })
-  .then(function() {
-    // Response opaque (no-cors) — verifikasi via doGet apakah data tersimpan
-    btnText.textContent = '⏳ Memverifikasi...';
-    return new Promise(function(resolve) { setTimeout(resolve, 2000); });
-  })
-  .then(function() {
-    var verifyUrl = new URL(CONFIG.API_URL);
-    verifyUrl.searchParams.set('store', _verifiedStore['Plant Code']);
-    return fetch(verifyUrl.toString());
-  })
+  // Kirim via GET request — lebih reliable dari POST untuk Apps Script
+  var submitUrl = new URL(CONFIG.API_URL);
+  submitUrl.searchParams.set('action', 'submit');
+  submitUrl.searchParams.set('store', payload['Plant Code']);
+  CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
+    submitUrl.searchParams.set(brand, payload[brand] || 0);
+  });
+
+  fetch(submitUrl.toString())
   .then(function(r) { return r.json(); })
   .then(function(json) {
     btnSubmit.disabled = false;
     btnText.textContent = '📤 Kirim Data LDU';
 
-    var saved = json.status === 'success' &&
-                Array.isArray(json.data) &&
-                json.data.length > 0 &&
-                json.data[0]['Status'] === 'Submitted';
-
-    if (saved) {
+    if (json.status === 'success') {
       var total = Object.values(_lduValues).reduce(function(s, v) { return s + v; }, 0);
       document.getElementById('success-sub').textContent =
         _verifiedStore['Store Name'] + ' · ' + total + ' unit LDU berhasil disimpan.';
       document.getElementById('success-overlay').style.display = 'flex';
       updateProgress(3);
     } else {
-      showToast('Data mungkin belum tersimpan. Coba ulangi atau hubungi admin.');
+      showToast('Gagal menyimpan: ' + (json.message || 'Error tidak diketahui'));
     }
   })
   .catch(function(err) {
