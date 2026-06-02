@@ -6,6 +6,7 @@
   <title>ERA-PLANOGRAM Dashboard · Region 5</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -16,46 +17,93 @@
         <div class="brand-badge">ERA</div>
         <div>
           <div class="site-title">ERA-PLANOGRAM</div>
-          <div class="site-sub">Live Demo Unit Dashboard · Region 5</div>
+          <div class="site-sub">Live Demo Unit Dashboard</div>
         </div>
+      </div>
+      <div class="header-meta">
+        <div class="header-chip">🗺️ Region 5</div>
+        <div class="header-chip" id="header-date">📅 —</div>
+        <div class="header-chip">👤 VMD &amp; RMO · Regional Access</div>
       </div>
       <div class="header-actions">
         <a href="submit.html" class="btn btn-outline">📝 Input LDU</a>
         <button class="btn btn-outline" onclick="refreshData()">🔄 Refresh</button>
-        <button class="btn btn-primary" onclick="exportAllExcel()">📥 Export All</button>
+        <button class="btn btn-primary" onclick="exportAllExcel()">📥 Export</button>
       </div>
     </div>
   </header>
 
-  <!-- HERO BANNER -->
-  <div class="hero-banner">
-    <div class="hero-inner">
-      <div class="hero-title">📊 Ringkasan Keseluruhan</div>
-    </div>
-  </div>
+  <div class="page-body">
 
-  <!-- SUMMARY CARDS — pulled up over hero -->
-  <div class="cards-section">
-    <div class="cards-grid" id="summary-cards">
-      <div class="card card--submit"><div class="state-cell"><span class="spinner"></span></div></div>
-      <div class="card card--pending"></div>
-      <div class="card card--ldu"></div>
+    <!-- SUMMARY CARDS -->
+    <div class="summary-grid" id="summary-cards" style="margin-bottom:1.5rem">
+      <div class="summary-card sc--submit"><div class="state-cell"><span class="spinner"></span></div></div>
+      <div class="summary-card sc--pending"></div>
+      <div class="summary-card sc--ldu"></div>
     </div>
-  </div>
 
-  <!-- BRAND COMPLIANCE -->
-  <div class="section" style="margin-top:.5rem">
-    <div class="section-title">Compliance per Brand Toko</div>
-    <div class="brand-cards" id="brand-compliance-cards">
-      <div class="brand-card" style="color:var(--gray-400)">Memuat...</div>
+    <!-- BRAND COMPLIANCE -->
+    <div class="section-label">Compliance per Brand Toko</div>
+    <div class="brand-scroll" id="brand-compliance-cards">
+      <div class="brand-card" style="color:var(--gray-400);font-size:13px">Memuat...</div>
     </div>
-  </div>
 
-  <!-- FILTER BAR -->
-  <div class="section">
-    <div class="filter-bar">
-      <select id="filter-brand" onchange="applyFilters()">
-        <option value="">Semua Brand Toko</option>
+    <!-- CHARTS ROW -->
+    <div class="charts-row">
+      <!-- Trend Chart -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-title">📈 Trend Compliance</div>
+            <div class="chart-sub">Simulasi 7 hari terakhir</div>
+          </div>
+          <select class="chart-select" id="trend-range">
+            <option>7 Hari Terakhir</option>
+            <option>30 Hari Terakhir</option>
+          </select>
+        </div>
+        <canvas id="trend-chart" height="160"></canvas>
+      </div>
+
+      <!-- Top Stores -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div>
+            <div class="chart-title">🏆 Top LDU Toko</div>
+            <div class="chart-sub">Toko dengan unit LDU terbanyak</div>
+          </div>
+        </div>
+        <div id="top-stores-list"></div>
+      </div>
+
+      <!-- Donut -->
+      <div class="chart-card" style="display:flex;flex-direction:column;align-items:center">
+        <div class="chart-card-header" style="width:100%">
+          <div>
+            <div class="chart-title">📊 Status Submit</div>
+            <div class="chart-sub">Keseluruhan toko</div>
+          </div>
+        </div>
+        <div class="donut-wrap">
+          <canvas id="donut-chart" width="160" height="160"></canvas>
+          <div class="donut-center" id="donut-center">
+            <div class="donut-total">—</div>
+            <div class="donut-label">Total</div>
+          </div>
+        </div>
+        <div class="donut-legend" id="donut-legend" style="width:100%;margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- TABLE TOOLBAR -->
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Data Toko Terkini</span>
+      <div class="table-search-wrap">
+        <span class="table-search-icon">🔍</span>
+        <input type="text" id="search-store" placeholder="Cari toko atau Plant Code..." oninput="applyFilters()">
+      </div>
+      <select class="toolbar-select" id="filter-brand" onchange="applyFilters()">
+        <option value="">Semua Brand</option>
         <option value="erafone">Erafone</option>
         <option value="ibox">iBox</option>
         <option value="samsung store">Samsung Store</option>
@@ -65,42 +113,27 @@
         <option value="megastore">Megastore</option>
         <option value="lainnya">Lainnya</option>
       </select>
-      <select id="filter-status" onchange="applyFilters()">
+      <select class="toolbar-select" id="filter-status" onchange="applyFilters()">
         <option value="">Semua Status</option>
         <option value="Submitted">Sudah Submit</option>
         <option value="Pending">Belum Submit</option>
       </select>
-      <input type="text" id="search-store" placeholder="🔍 Cari nama toko atau Plant Code..." oninput="applyFilters()">
-      <span class="filter-count" id="filter-count">-</span>
-      <button class="btn btn-outline" onclick="exportFilteredExcel()">📥 Export Filtered</button>
-    </div>
-  </div>
-
-  <!-- DATA TABLE -->
-  <div class="section">
-    <div class="table-header-bar">
-      <span class="table-title">Data Toko</span>
+      <span class="filter-count" id="filter-count">—</span>
       <div class="view-toggle">
-        <button class="toggle-btn active" id="btn-summary-view" onclick="setView('summary')">📊 Summary View</button>
-        <button class="toggle-btn" id="btn-full-view" onclick="setView('full')">🗂 Full View (32 Brand)</button>
+        <button class="toggle-btn active" id="btn-summary-view" onclick="setView('summary')">Summary</button>
+        <button class="toggle-btn" id="btn-full-view" onclick="setView('full')">Full 32 Brand</button>
       </div>
+      <button class="btn btn-ghost" onclick="exportFilteredExcel()" style="height:36px;font-size:12px">📥 Export</button>
     </div>
+
+    <!-- TABLE -->
     <div class="table-wrap" id="table-wrap">
       <table class="data-table" id="main-table">
         <thead id="table-head">
           <tr>
-            <th>Plant Code</th>
-            <th>Nama Toko</th>
-            <th>Brand</th>
-            <th>Status</th>
-            <th>Apple</th>
-            <th>Samsung</th>
-            <th>Oppo</th>
-            <th>Xiaomi</th>
-            <th>Huawei</th>
-            <th>Total LDU</th>
-            <th>Last Submit</th>
-            <th>Aksi</th>
+            <th>Plant Code</th><th>Nama Toko</th><th>Brand</th><th>Status</th>
+            <th>Apple</th><th>Samsung</th><th>Oppo</th><th>Xiaomi</th><th>Huawei</th>
+            <th>Total LDU</th><th>Last Submit</th><th>Aksi</th>
           </tr>
         </thead>
         <tbody id="table-body">
@@ -108,9 +141,9 @@
         </tbody>
       </table>
     </div>
-  </div>
 
-  <!-- FOOTER -->
+  </div><!-- /page-body -->
+
   <footer class="footer">
     ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital ·
     <span id="last-updated" style="color:var(--blue)"></span>
