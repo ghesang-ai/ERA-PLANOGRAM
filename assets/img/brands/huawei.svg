@@ -1,14 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 48" width="120" height="48">
-  <!-- Huawei flower petals -->
-  <g transform="translate(20,24)">
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(0)"/>
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(45)"/>
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(90)"/>
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(135)"/>
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(180)"/>
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(225)"/>
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(270)"/>
-    <ellipse cx="0" cy="-9" rx="3.5" ry="7" fill="#cf0a2c" transform="rotate(315)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
+  <defs>
+    <radialGradient id="hpetal" cx="50%" cy="80%" r="80%">
+      <stop offset="0%" stop-color="#ff4444"/>
+      <stop offset="100%" stop-color="#b30000"/>
+    </radialGradient>
+  </defs>
+  <!-- Huawei flower: 8 petals -->
+  <g transform="translate(30,30)">
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(0)"   opacity="1"/>
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(45)"  opacity="0.92"/>
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(90)"  opacity="0.85"/>
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(135)" opacity="0.78"/>
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(180)" opacity="0.72"/>
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(225)" opacity="0.78"/>
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(270)" opacity="0.85"/>
+    <ellipse cx="0" cy="-11" rx="4" ry="9" fill="url(#hpetal)" transform="rotate(315)" opacity="0.92"/>
+    <circle cx="0" cy="0" r="3.5" fill="#cc0000"/>
   </g>
-  <text x="75" y="30" font-family="Arial,sans-serif" font-size="17" font-weight="700" fill="#cf0a2c" text-anchor="middle" letter-spacing="1">HUAWEI</text>
+  <!-- HUAWEI text -->
+  <text x="60" y="39" font-family="Arial,sans-serif" font-size="24" font-weight="800" fill="#1a1a1a" letter-spacing="1.5">HUAWEI</text>
 </svg>
