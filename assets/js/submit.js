@@ -271,7 +271,8 @@ function submitForm() {
       document.getElementById('success-overlay').style.display = 'flex';
       updateProgress(3);
     } else {
-      showToast('Gagal menyimpan: ' + (json.message || 'Error tidak diketahui'));
+      // Tampilkan pesan error yang jelas — termasuk Plant Code not found
+      showToast('❌ ' + (json.message || 'Gagal menyimpan data. Coba lagi.'));
     }
   })
   .catch(function(err) {
