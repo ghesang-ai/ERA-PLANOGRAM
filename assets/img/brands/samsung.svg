@@ -1,5 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 48" width="140" height="48">
-  <text x="70" y="30" font-family="Arial,sans-serif" font-size="20" font-weight="700" fill="#1428A0" text-anchor="middle" letter-spacing="2">SAMSUNG</text>
-  <line x1="10" y1="36" x2="130" y2="36" stroke="#e8001c" stroke-width="1.5"/>
-  <text x="70" y="46" font-family="Arial,sans-serif" font-size="10" font-weight="600" fill="#e8001c" text-anchor="middle" letter-spacing="1">erafone</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 48" width="160" height="48">
+  <text x="80" y="35" font-family="Arial,sans-serif" font-size="30" font-weight="800" fill="#1428A0" text-anchor="middle" letter-spacing="2">SAMSUNG</text>
 </svg>
