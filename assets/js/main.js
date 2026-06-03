@@ -7,16 +7,16 @@ var _refreshTimer = null;
 var _trendChart   = null;
 var _donutChart   = null;
 
-// Brand avatar colors
+// Brand avatar colors + logos
 var BRAND_AVATAR = {
-  'Erafone':       { bg: '#2563eb', initials: 'ERA' },
-  'iBox':          { bg: '#6d28d9', initials: 'iBX' },
-  'Samsung Store': { bg: '#1428A0', initials: 'SAM' },
-  'Xiaomi Store':  { bg: '#FF6900', initials: 'XIA' },
-  'Huawei Store':  { bg: '#cf0a2c', initials: 'HWI' },
-  'Honor Store':   { bg: '#0066cc', initials: 'HNR' },
-  'Megastore':     { bg: '#0f766e', initials: 'MEG' },
-  'Lainnya':       { bg: '#64748b', initials: 'LNY' }
+  'Erafone':       { bg: '#fff',    initials: 'ERA', logo: 'assets/img/brands/erafone.svg' },
+  'iBox':          { bg: '#fff',    initials: 'iBX', logo: 'assets/img/brands/ibox.svg' },
+  'Samsung Store': { bg: '#fff',    initials: 'SAM', logo: 'assets/img/brands/samsung.svg' },
+  'Xiaomi Store':  { bg: '#fff',    initials: 'XIA', logo: 'assets/img/brands/xiaomi.svg' },
+  'Huawei Store':  { bg: '#fff',    initials: 'HWI', logo: 'assets/img/brands/huawei.svg' },
+  'Honor Store':   { bg: '#fff',    initials: 'HNR', logo: 'assets/img/brands/honor.svg' },
+  'Megastore':     { bg: '#0f766e', initials: 'MEG', logo: null },
+  'Lainnya':       { bg: '#64748b', initials: 'LNY', logo: null }
 };
 
 function escHtml(s) {
@@ -129,9 +129,13 @@ function renderBrandComplianceCards(data) {
     var pctBg     = pct >= 80 ? '#dcfce7' : pct >= 50 ? '#fef9c3' : '#fee2e2';
     var pctColor  = pct >= 80 ? '#15803d' : pct >= 50 ? '#a16207' : '#b91c1c';
 
+    var avatarHtml = av.logo
+      ? '<div class="brand-avatar brand-avatar--logo" style="background:#fff;border:1.5px solid #e2e8f0"><img src="' + av.logo + '" alt="' + brand + '" onerror="this.parentElement.innerHTML=\'' + av.initials + '\';this.parentElement.style.background=\'' + color + '\';this.parentElement.classList.remove(\'brand-avatar--logo\')"></div>'
+      : '<div class="brand-avatar" style="background:' + color + '">' + av.initials + '</div>';
+
     return '<div class="brand-card">' +
       '<div class="brand-card-top">' +
-        '<div class="brand-avatar" style="background:' + color + '">' + av.initials + '</div>' +
+        avatarHtml +
         '<div class="brand-pct-badge" style="background:' + pctBg + ';color:' + pctColor + '">' + pct + '%</div>' +
       '</div>' +
       '<div class="brand-card-name">' + brand + '</div>' +
