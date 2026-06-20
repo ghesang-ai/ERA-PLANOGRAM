@@ -293,8 +293,36 @@
 
 /* ── SUBMIT ACTIONS ── */
 .submit-actions { text-align: center; }
-.btn-lg { padding: 14px 32px; font-size: 15px; width: 100%; border-radius: 10px; }
 .submit-note { font-size: 11px; color: var(--gray-400); margin-top: 10px; }
+
+.btn-submit-wrap {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #312e81 100%);
+  border-radius: 14px;
+  padding: 2px;
+  display: block;
+}
+.btn-submit-inner {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; padding: 16px 32px;
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 40%, #4f46e5 100%);
+  border: none; border-radius: 12px;
+  font-size: 16px; font-weight: 700; font-family: var(--font);
+  color: white; cursor: pointer; letter-spacing: .3px;
+  transition: opacity .2s, transform .15s;
+  position: relative; overflow: hidden;
+}
+.btn-submit-inner::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+.btn-submit-inner:hover { opacity: .92; transform: translateY(-1px); }
+.btn-submit-inner:active { transform: translateY(0); opacity: 1; }
+.btn-submit-inner:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-submit-icon { font-size: 20px; }
+.btn-submit-label { line-height: 1.2; text-align: left; }
+.btn-submit-label span { display: block; font-size: 11px; font-weight: 400; opacity: .8; margin-top: 1px; letter-spacing: 0; }
 
 /* ── SUCCESS OVERLAY ── */
 .success-overlay {

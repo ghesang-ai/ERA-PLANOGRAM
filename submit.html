@@ -144,10 +144,16 @@
       <div class="submit-summary" id="submit-summary"></div>
 
       <div class="submit-actions">
-        <button class="btn btn-lg btn-primary" id="btn-submit" onclick="submitChecklist()" disabled>
-          <span id="btn-submit-text">📤 Kirim Checklist LDU</span>
-        </button>
-        <p class="submit-note">Data akan langsung tersimpan ke Google Sheet dan memperbarui dashboard.</p>
+        <div class="btn-submit-wrap">
+          <button class="btn-submit-inner" id="btn-submit" onclick="submitChecklist()" disabled>
+            <span class="btn-submit-icon">📤</span>
+            <div class="btn-submit-label">
+              <span id="btn-submit-text">Kirim Checklist LDU</span>
+              <span>Data tersimpan ke Google Sheet & dashboard diperbarui</span>
+            </div>
+          </button>
+        </div>
+        <p class="submit-note">Pastikan semua device sudah dicek sebelum mengirim.</p>
       </div>
     </div>
 
