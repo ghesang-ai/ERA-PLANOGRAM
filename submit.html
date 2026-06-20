@@ -16,7 +16,7 @@
         <div class="brand-badge">ERA</div>
         <div>
           <div class="site-title">ERA-PLANOGRAM</div>
-          <div class="site-sub">Form Input LDU · Region 5</div>
+          <div class="site-sub">Checklist LDU · Region 5</div>
         </div>
       </div>
       <a href="index.html" class="btn btn-outline btn-sm">← Dashboard</a>
@@ -47,7 +47,7 @@
             type="text"
             id="input-plant-code"
             class="field-input"
-            placeholder="Contoh: E544"
+            placeholder="Contoh: E646"
             maxlength="20"
             autocomplete="off"
             style="text-transform:uppercase"
@@ -57,7 +57,7 @@
         <div id="verify-result" class="verify-result" style="display:none"></div>
       </div>
 
-      <!-- Store info card — muncul setelah verify -->
+      <!-- Store info card -->
       <div class="store-info-card" id="store-info" style="display:none">
         <div class="store-info-icon">🏪</div>
         <div class="store-info-body">
@@ -69,53 +69,65 @@
             <span class="dot">·</span>
             <span class="store-brand-pill" id="info-brand-pill">-</span>
           </div>
-          <div class="store-info-status" id="info-last-submit"></div>
+          <div class="store-info-status" id="info-device-count"></div>
         </div>
         <div class="store-info-check">✓</div>
       </div>
     </div>
 
-    <!-- ── STEP 2: Input LDU ── -->
+    <!-- ── STEP 2: Checklist LDU ── -->
     <div class="form-card form-card--disabled" id="step-ldu">
       <div class="form-card-header">
         <div class="step-badge">2</div>
         <div>
-          <div class="form-card-title">Jumlah Unit LDU per Brand</div>
-          <div class="form-card-sub">Isi angka 0 jika tidak ada unit LDU brand tersebut</div>
+          <div class="form-card-title">Checklist &amp; Catatan LDU Device</div>
+          <div class="form-card-sub">Centang device yang ada · Tambah catatan · Tambah item baru jika perlu</div>
         </div>
-        <div class="ldu-total-badge" id="ldu-total-badge">Total: 0 unit</div>
+        <div class="ldu-total-badge" id="ldu-total-badge">0 / 0 device</div>
       </div>
 
-      <!-- Smartphone -->
-      <div class="brand-section">
-        <div class="brand-section-title">
-          <span class="brand-section-icon">📱</span> Smartphone
+      <!-- Filter bar -->
+      <div class="checklist-filter-bar">
+        <div class="checklist-search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="cl-search" placeholder="Cari nama device atau serial number..." oninput="renderChecklist()">
         </div>
-        <div class="brand-grid" id="grid-smartphone"></div>
+        <select id="cl-brand" onchange="renderChecklist()">
+          <option value="">Semua Brand</option>
+        </select>
+        <span class="cl-count" id="cl-count">—</span>
+        <button class="btn-check-all" id="btn-check-all" onclick="toggleCheckAll()">Centang Semua</button>
       </div>
 
-      <!-- Laptop -->
-      <div class="brand-section">
-        <div class="brand-section-title">
-          <span class="brand-section-icon">💻</span> Laptop
-        </div>
-        <div class="brand-grid" id="grid-laptop"></div>
+      <!-- Device list -->
+      <div class="checklist-device-list" id="checklist-device-list">
+        <div class="cl-empty">Verifikasi Plant Code terlebih dahulu</div>
       </div>
 
-      <!-- Consumer Electronics -->
-      <div class="brand-section">
-        <div class="brand-section-title">
-          <span class="brand-section-icon">📺</span> Consumer Electronics (CE)
+      <!-- Add new item -->
+      <div class="add-new-section">
+        <div class="add-new-label">
+          <span class="add-new-icon">＋</span>
+          Tambah Item Baru
+          <span class="add-new-badge">TIDAK ADA DI LIST</span>
         </div>
-        <div class="brand-grid" id="grid-ce"></div>
-      </div>
-
-      <!-- Accessories -->
-      <div class="brand-section">
-        <div class="brand-section-title">
-          <span class="brand-section-icon">🎧</span> Accessories
+        <div class="add-new-row">
+          <input type="text" id="new-item-name" class="add-new-input" placeholder="Nama device baru... (contoh: OPPO Reno 16 Pro 12/256GB Demo)" onkeydown="if(event.key==='Enter') addNewItem()">
+          <select id="new-item-brand" class="add-new-select">
+            <option value="APPLE">APPLE</option>
+            <option value="SAMSUNG">SAMSUNG</option>
+            <option value="OPPO">OPPO</option>
+            <option value="Vivo">Vivo</option>
+            <option value="XIAOMI">XIAOMI</option>
+            <option value="Infinix">Infinix</option>
+            <option value="Honor">Honor</option>
+            <option value="Realme">Realme</option>
+            <option value="HUAWEI">HUAWEI</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+          <button class="btn btn-add-new" onclick="addNewItem()">＋ Tambah</button>
         </div>
-        <div class="brand-grid" id="grid-accessories"></div>
+        <div id="new-items-list" class="new-items-list"></div>
       </div>
     </div>
 
@@ -124,18 +136,16 @@
       <div class="form-card-header">
         <div class="step-badge">3</div>
         <div>
-          <div class="form-card-title">Konfirmasi & Kirim</div>
-          <div class="form-card-sub">Periksa ringkasan data sebelum mengirim</div>
+          <div class="form-card-title">Konfirmasi &amp; Kirim</div>
+          <div class="form-card-sub">Periksa ringkasan sebelum mengirim</div>
         </div>
       </div>
 
-      <div class="submit-summary" id="submit-summary">
-        <!-- filled by JS -->
-      </div>
+      <div class="submit-summary" id="submit-summary"></div>
 
       <div class="submit-actions">
-        <button class="btn btn-lg btn-primary" id="btn-submit" onclick="submitForm()" disabled>
-          <span id="btn-submit-text">📤 Kirim Data LDU</span>
+        <button class="btn btn-lg btn-primary" id="btn-submit" onclick="submitChecklist()" disabled>
+          <span id="btn-submit-text">📤 Kirim Checklist LDU</span>
         </button>
         <p class="submit-note">Data akan langsung tersimpan ke Google Sheet dan memperbarui dashboard.</p>
       </div>
@@ -147,7 +157,7 @@
   <div class="success-overlay" id="success-overlay" style="display:none">
     <div class="success-card">
       <div class="success-icon">✅</div>
-      <div class="success-title">Data Berhasil Dikirim!</div>
+      <div class="success-title">Checklist Berhasil Dikirim!</div>
       <div class="success-sub" id="success-sub">-</div>
       <div class="success-actions">
         <button class="btn btn-primary" onclick="resetForm()">📝 Input Toko Lain</button>

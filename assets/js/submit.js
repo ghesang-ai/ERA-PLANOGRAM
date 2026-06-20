@@ -1,34 +1,19 @@
-// assets/js/submit.js
-// Custom Web Form — ERA-PLANOGRAM LDU Input
+// assets/js/submit.js — ERA-PLANOGRAM Checklist LDU Form
 
-// ── Brand groups ──
-var BRAND_GROUPS = {
-  smartphone: [
-    'Apple','Samsung','Oppo','Vivo','Xiaomi','Infinix',
-    'Honor','Realme','Tecno','Sharp','IQOO','Huawei','Motorola','Advan'
-  ],
-  laptop: [
-    'Apple Macbook','Acer Laptop','Asus Laptop','HP Laptop',
-    'Huawei Laptop','Lenovo Laptop','Others Laptop'
-  ],
-  ce: [
-    'Samsung CE','Xiaomi CE','Infinix CE','Toshiba CE','LG CE',
-    'Polytron CE','Sharp CE','TCL CE','Sony CE','Changhong CE'
-  ],
-  accessories: [
-    'Accesories C-Brand'
-  ]
-};
+var _verifiedStore = null;
+var _allDevices    = [];
+var _checked       = {};
+var _notes         = {};
+var _newItems      = [];
+var _deviceData    = null;
 
-var _verifiedStore = null; // { 'Plant Code', 'Store Name', 'Region', 'Status', 'Last Submit' }
-var _lduValues     = {};   // { Apple: 0, Samsung: 2, ... }
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-// ── Init ──
 document.addEventListener('DOMContentLoaded', function() {
-  buildBrandGrids();
   updateProgress(1);
-
-  // Enter key on Plant Code input triggers verify
+  loadDeviceData();
   var pcInput = document.getElementById('input-plant-code');
   if (pcInput) {
     pcInput.addEventListener('keydown', function(ev) {
@@ -38,71 +23,21 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// ── Build all brand input grids ──
-function buildBrandGrids() {
-  Object.keys(BRAND_GROUPS).forEach(function(key) {
-    var grid = document.getElementById('grid-' + key);
-    if (!grid) return;
-
-    grid.innerHTML = BRAND_GROUPS[key].map(function(brand) {
-      var id = 'ldu-' + sanitizeId(brand);
-      _lduValues[brand] = 0;
-      return '<div class="brand-input-card">' +
-        '<label class="brand-input-label" for="' + id + '">' + escHtml(brand) + '</label>' +
-        '<input type="number" id="' + id + '" class="brand-input-field" ' +
-          'value="0" min="0" max="999" ' +
-          'data-brand="' + escHtml(brand) + '" ' +
-          'oninput="onLduInput(this)" onchange="onLduInput(this)">' +
-      '</div>';
-    }).join('');
-  });
+function loadDeviceData() {
+  fetch('assets/data/ldu-devices.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { _deviceData = data; })
+    .catch(function(err) { console.warn('Device data load failed:', err); });
 }
 
-function sanitizeId(str) {
-  return str.toLowerCase().replace(/[^a-z0-9]/g, '-');
-}
-
-function escHtml(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ── LDU input handler ──
-function onLduInput(input) {
-  var brand = input.getAttribute('data-brand');
-  var val   = parseInt(input.value) || 0;
-  if (val < 0) { val = 0; input.value = 0; }
-  _lduValues[brand] = val;
-
-  // Toggle highlight on non-zero
-  input.parentElement.classList.toggle('has-value', val > 0);
-
-  updateLduTotal();
-  updateSubmitSummary();
-}
-
-function updateLduTotal() {
-  var total = Object.values(_lduValues).reduce(function(s, v) { return s + v; }, 0);
-  var badge = document.getElementById('ldu-total-badge');
-  if (badge) {
-    badge.textContent = 'Total: ' + total + ' unit';
-    badge.classList.toggle('badge-has-value', total > 0);
-  }
-}
-
-// ── Step 1: Verify Plant Code ──
 function verifyPlantCode() {
   var input     = document.getElementById('input-plant-code');
   var resultEl  = document.getElementById('verify-result');
   var storeInfo = document.getElementById('store-info');
   var btnVerify = document.getElementById('btn-verify');
-
   var plantCode = (input.value || '').trim().toUpperCase();
-  if (!plantCode) {
-    showVerifyError('Masukkan Plant Code terlebih dahulu.');
-    return;
-  }
+  if (!plantCode) { showVerifyError('Masukkan Plant Code terlebih dahulu.'); return; }
 
-  // Loading state
   btnVerify.disabled = true;
   btnVerify.textContent = '⏳';
   resultEl.style.display = 'none';
@@ -118,7 +53,7 @@ function verifyPlantCode() {
       btnVerify.textContent = 'Verifikasi';
 
       if (json.status !== 'success' || !Array.isArray(json.data) || json.data.length === 0) {
-        showVerifyError('Plant Code <strong>' + escHtml(plantCode) + '</strong> tidak ditemukan. Pastikan kode sesuai dengan data toko.');
+        showVerifyError('Plant Code <strong>' + escHtml(plantCode) + '</strong> tidak ditemukan.');
         lockLduStep();
         return;
       }
@@ -126,44 +61,40 @@ function verifyPlantCode() {
       var store = json.data[0];
       _verifiedStore = store;
 
-      // Fill store info card
-      document.getElementById('info-store-name').textContent  = store['Store Name'] || '-';
-      document.getElementById('info-plant-code').textContent  = store['Plant Code'] || '-';
-      document.getElementById('info-region').textContent      = store['Region'] || '-';
+      document.getElementById('info-store-name').textContent = store['Store Name'] || '-';
+      document.getElementById('info-plant-code').textContent = store['Plant Code'] || '-';
+      document.getElementById('info-region').textContent     = store['Region'] || '-';
 
       var brandToko = CONFIG.detectBrandToko(store['Store Name']);
       var pill = document.getElementById('info-brand-pill');
-      pill.textContent = brandToko;
+      pill.textContent      = brandToko;
       pill.style.background = (CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b') + '22';
-      pill.style.color       = CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
-      pill.style.borderColor = CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
+      pill.style.color      = CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
+      pill.style.borderColor= CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
 
-      var lastSubmit = store['Status'] === 'Submitted'
-        ? '📅 Terakhir submit: ' + CONFIG.formatDate(store['Last Submit'])
-        : '⏳ Belum pernah submit';
-      document.getElementById('info-last-submit').textContent = lastSubmit;
+      _allDevices = [];
+      _checked    = {};
+      _notes      = {};
+      _newItems   = [];
 
-      // Pre-fill existing values
-      CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
-        var val = parseInt(store[brand]) || 0;
-        _lduValues[brand] = val;
-        var input = document.getElementById('ldu-' + sanitizeId(brand));
-        if (input) {
-          input.value = val;
-          input.parentElement.classList.toggle('has-value', val > 0);
-        }
-      });
+      if (_deviceData && _deviceData[plantCode]) {
+        _allDevices = _deviceData[plantCode].devices || [];
+      }
+
+      var devCount = _allDevices.length;
+      document.getElementById('info-device-count').textContent =
+        devCount > 0 ? '📦 ' + devCount + ' device terdaftar' : '⏳ Belum ada data device';
 
       storeInfo.style.display = 'flex';
       resultEl.style.display  = 'none';
 
-      // Unlock step 2 & 3
-      unlockLduStep();
-      updateLduTotal();
+      buildBrandFilter();
+      renderChecklist();
+      updateTotalBadge();
       updateSubmitSummary();
+      unlockLduStep();
       updateProgress(2);
 
-      // Smooth scroll to step 2
       setTimeout(function() {
         document.getElementById('step-ldu').scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 300);
@@ -171,9 +102,261 @@ function verifyPlantCode() {
     .catch(function(err) {
       btnVerify.disabled = false;
       btnVerify.textContent = 'Verifikasi';
-      showVerifyError('Gagal menghubungi server. Cek koneksi internet dan coba lagi.');
+      showVerifyError('Gagal menghubungi server. Cek koneksi dan coba lagi.');
       console.error(err);
     });
+}
+
+function buildBrandFilter() {
+  var brands = [];
+  _allDevices.forEach(function(d) {
+    if (d.brand && brands.indexOf(d.brand) === -1) brands.push(d.brand);
+  });
+  brands.sort();
+  var sel = document.getElementById('cl-brand');
+  sel.innerHTML = '<option value="">Semua Brand (' + _allDevices.length + ')</option>';
+  brands.forEach(function(b) {
+    var count = _allDevices.filter(function(d) { return d.brand === b; }).length;
+    var opt = document.createElement('option');
+    opt.value = b;
+    opt.textContent = b + ' (' + count + ')';
+    sel.appendChild(opt);
+  });
+}
+
+function renderChecklist() {
+  var q = (document.getElementById('cl-search').value || '').toLowerCase();
+  var b = document.getElementById('cl-brand').value;
+
+  var filtered = _allDevices.filter(function(d) {
+    if (b && d.brand !== b) return false;
+    if (q && !d.name.toLowerCase().includes(q) && !(d.sn || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  document.getElementById('cl-count').textContent = filtered.length + ' device';
+
+  var html = '';
+  if (filtered.length === 0 && _allDevices.length === 0) {
+    html = '<div class="cl-empty">Tidak ada data device untuk toko ini</div>';
+  } else if (filtered.length === 0) {
+    html = '<div class="cl-empty">Tidak ada device ditemukan</div>';
+  } else {
+    html = filtered.map(function(d) {
+      var i    = _allDevices.indexOf(d);
+      var ok   = !!_checked[i];
+      var note = _notes[i] || '';
+      var bp   = 'bp-' + d.brand.replace(/\s+/g, '-');
+      return '<div class="cl-item' + (ok ? ' cl-checked' : '') + '">' +
+        '<div class="cl-item-top" onclick="toggleDevice(' + i + ')">' +
+          '<div class="cl-checkbox"><span class="cl-check-icon">✓</span></div>' +
+          '<div class="cl-item-info">' +
+            '<div class="cl-item-name">' + escHtml(d.name) + '</div>' +
+            '<div class="cl-item-sn">SN: ' + escHtml(d.sn || '-') + '</div>' +
+          '</div>' +
+          '<span class="cl-brand-pill ' + bp + '">' + escHtml(d.brand) + '</span>' +
+        '</div>' +
+        '<div class="cl-item-note-row">' +
+          '<span class="cl-note-label">✏️ Catatan:</span>' +
+          '<input class="cl-note-input" type="text" ' +
+            'placeholder="Kondisi, lokasi display, keterangan lain..." ' +
+            'value="' + escHtml(note) + '" ' +
+            'data-idx="' + i + '" ' +
+            'oninput="onNoteInput(this)" ' +
+            'onclick="event.stopPropagation()">' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('checklist-device-list').innerHTML = html;
+  updateTotalBadge();
+
+  var totalChecked = Object.keys(_checked).filter(function(k) { return _checked[k]; }).length;
+  var btnAll = document.getElementById('btn-check-all');
+  if (btnAll) {
+    var allDone = _allDevices.length > 0 && totalChecked === _allDevices.length;
+    btnAll.textContent = allDone ? 'Batal Semua' : 'Centang Semua';
+    btnAll.classList.toggle('all-checked', allDone);
+  }
+}
+
+function onNoteInput(input) {
+  var i = parseInt(input.getAttribute('data-idx'));
+  _notes[i] = input.value;
+  updateSubmitSummary();
+}
+
+function toggleDevice(i) {
+  _checked[i] = !_checked[i];
+  renderChecklist();
+  updateSubmitSummary();
+}
+
+function toggleCheckAll() {
+  var totalChecked = Object.keys(_checked).filter(function(k) { return _checked[k]; }).length;
+  if (totalChecked === _allDevices.length) {
+    _checked = {};
+  } else {
+    _allDevices.forEach(function(_, i) { _checked[i] = true; });
+  }
+  renderChecklist();
+  updateSubmitSummary();
+}
+
+function addNewItem() {
+  var nameInput  = document.getElementById('new-item-name');
+  var brandInput = document.getElementById('new-item-brand');
+  var name = (nameInput.value || '').trim();
+  if (!name) { nameInput.focus(); return; }
+  _newItems.push({ name: name, brand: brandInput.value, note: '' });
+  nameInput.value = '';
+  renderNewItems();
+  updateSubmitSummary();
+}
+
+function deleteNewItem(i) {
+  _newItems.splice(i, 1);
+  renderNewItems();
+  updateSubmitSummary();
+}
+
+function renderNewItems() {
+  var container = document.getElementById('new-items-list');
+  if (!container) return;
+  container.innerHTML = _newItems.map(function(item, i) {
+    return '<div class="new-item-row">' +
+      '<span class="new-item-icon">✦</span>' +
+      '<span class="new-item-name">' + escHtml(item.name) + '</span>' +
+      '<span class="cl-brand-pill bp-NEW">' + escHtml(item.brand) + '</span>' +
+      '<input class="new-item-note-input" type="text" placeholder="Catatan..." ' +
+        'value="' + escHtml(item.note) + '" ' +
+        'data-newidx="' + i + '" ' +
+        'oninput="_newItems[parseInt(this.getAttribute(\'data-newidx\'))].note=this.value">' +
+      '<button class="btn-del-new" onclick="deleteNewItem(' + i + ')">×</button>' +
+    '</div>';
+  }).join('');
+}
+
+function updateTotalBadge() {
+  var totalChecked = Object.keys(_checked).filter(function(k) { return _checked[k]; }).length;
+  var badge = document.getElementById('ldu-total-badge');
+  if (badge) {
+    badge.textContent = totalChecked + ' / ' + _allDevices.length + ' device';
+    badge.classList.toggle('badge-has-value', totalChecked > 0);
+  }
+}
+
+function updateSubmitSummary() {
+  if (!_verifiedStore) return;
+  var summary = document.getElementById('submit-summary');
+  if (!summary) return;
+
+  var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
+  var totalChecked = checkedIdx.length;
+
+  var brandCount = {};
+  checkedIdx.forEach(function(k) {
+    var d = _allDevices[parseInt(k)];
+    if (d) brandCount[d.brand] = (brandCount[d.brand] || 0) + 1;
+  });
+  _newItems.forEach(function(it) {
+    var key = it.brand + ' (baru)';
+    brandCount[key] = (brandCount[key] || 0) + 1;
+  });
+
+  var brandHtml = Object.keys(brandCount).length > 0
+    ? Object.keys(brandCount).map(function(b) {
+        return '<span class="summary-brand-chip">' + escHtml(b) + ': <strong>' + brandCount[b] + '</strong></span>';
+      }).join('')
+    : '<span style="color:var(--gray-400)">Belum ada device tercentang</span>';
+
+  summary.innerHTML =
+    '<div class="summary-row"><div class="summary-label">Toko</div>' +
+      '<div class="summary-value"><strong>' + escHtml(_verifiedStore['Store Name']) + '</strong></div></div>' +
+    '<div class="summary-row"><div class="summary-label">Plant Code</div>' +
+      '<div class="summary-value"><code>' + escHtml(_verifiedStore['Plant Code']) + '</code></div></div>' +
+    '<div class="summary-row"><div class="summary-label">Device Tercentang</div>' +
+      '<div class="summary-value"><strong style="font-size:18px;color:var(--blue)">' + totalChecked + '</strong>' +
+      ' dari ' + _allDevices.length + ' device terdaftar</div></div>' +
+    (_newItems.length > 0
+      ? '<div class="summary-row"><div class="summary-label">Item Baru</div>' +
+        '<div class="summary-value"><strong style="color:#7c3aed">' + _newItems.length + '</strong> item ditambahkan</div></div>'
+      : '') +
+    '<div class="summary-row"><div class="summary-label">Per Brand</div>' +
+      '<div class="summary-value summary-brand-chips">' + brandHtml + '</div></div>';
+}
+
+function submitChecklist() {
+  if (!_verifiedStore) { showToast('Verifikasi Plant Code terlebih dahulu.'); return; }
+
+  var btnSubmit = document.getElementById('btn-submit');
+  var btnText   = document.getElementById('btn-submit-text');
+  btnSubmit.disabled = true;
+  btnText.textContent = '⏳ Mengirim data...';
+
+  var plantCode = _verifiedStore['Plant Code'];
+  var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
+
+  var brandCount = {};
+  checkedIdx.forEach(function(k) {
+    var d = _allDevices[parseInt(k)];
+    if (d) brandCount[d.brand] = (brandCount[d.brand] || 0) + 1;
+  });
+  _newItems.forEach(function(it) {
+    brandCount[it.brand] = (brandCount[it.brand] || 0) + 1;
+  });
+
+  var submitUrl = new URL(CONFIG.API_URL);
+  submitUrl.searchParams.set('action', 'submit');
+  submitUrl.searchParams.set('store', plantCode);
+  CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
+    submitUrl.searchParams.set(brand, brandCount[brand] || 0);
+  });
+
+  fetch(submitUrl.toString())
+    .then(function(r) { return r.json(); })
+    .then(function(json) {
+      btnSubmit.disabled = false;
+      btnText.textContent = '📤 Kirim Checklist LDU';
+
+      if (json.status === 'success') {
+        document.getElementById('success-sub').textContent =
+          _verifiedStore['Store Name'] + ' · ' + checkedIdx.length + ' device tercentang' +
+          (_newItems.length > 0 ? ' · ' + _newItems.length + ' item baru' : '');
+        document.getElementById('success-overlay').style.display = 'flex';
+        updateProgress(3);
+      } else {
+        showToast('❌ ' + (json.message || 'Gagal menyimpan data. Coba lagi.'));
+      }
+    })
+    .catch(function(err) {
+      btnSubmit.disabled = false;
+      btnText.textContent = '📤 Kirim Checklist LDU';
+      showToast('Gagal menghubungi server. Cek koneksi internet.');
+      console.error(err);
+    });
+}
+
+function resetForm() {
+  _verifiedStore = null;
+  _allDevices = [];
+  _checked    = {};
+  _notes      = {};
+  _newItems   = [];
+
+  document.getElementById('input-plant-code').value = '';
+  document.getElementById('verify-result').style.display   = 'none';
+  document.getElementById('store-info').style.display      = 'none';
+  document.getElementById('success-overlay').style.display = 'none';
+  document.getElementById('checklist-device-list').innerHTML = '<div class="cl-empty">Verifikasi Plant Code terlebih dahulu</div>';
+  document.getElementById('new-items-list').innerHTML = '';
+  document.getElementById('submit-summary').innerHTML = '';
+
+  lockLduStep();
+  updateTotalBadge();
+  updateProgress(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function showVerifyError(msg) {
@@ -196,128 +379,12 @@ function lockLduStep() {
   _verifiedStore = null;
 }
 
-// ── Update submit summary ──
-function updateSubmitSummary() {
-  if (!_verifiedStore) return;
-  var summary = document.getElementById('submit-summary');
-  if (!summary) return;
-
-  var total     = Object.values(_lduValues).reduce(function(s, v) { return s + v; }, 0);
-  var brandList = Object.keys(_lduValues).filter(function(b) { return _lduValues[b] > 0; });
-
-  var brandHtml = brandList.length > 0
-    ? brandList.map(function(b) {
-        return '<span class="summary-brand-chip">' + escHtml(b) + ': <strong>' + _lduValues[b] + '</strong></span>';
-      }).join('')
-    : '<span style="color:var(--gray-400)">Semua brand = 0 unit</span>';
-
-  summary.innerHTML =
-    '<div class="summary-row">' +
-      '<div class="summary-label">Toko</div>' +
-      '<div class="summary-value"><strong>' + escHtml(_verifiedStore['Store Name']) + '</strong></div>' +
-    '</div>' +
-    '<div class="summary-row">' +
-      '<div class="summary-label">Plant Code</div>' +
-      '<div class="summary-value"><code>' + escHtml(_verifiedStore['Plant Code']) + '</code></div>' +
-    '</div>' +
-    '<div class="summary-row">' +
-      '<div class="summary-label">Total LDU</div>' +
-      '<div class="summary-value"><strong style="font-size:20px;color:var(--blue)">' + total + '</strong> unit</div>' +
-    '</div>' +
-    '<div class="summary-row summary-row--brands">' +
-      '<div class="summary-label">Brand ada LDU</div>' +
-      '<div class="summary-value summary-brands">' + brandHtml + '</div>' +
-    '</div>';
-}
-
-// ── Submit form ──
-function submitForm() {
-  if (!_verifiedStore) {
-    showToast('Verifikasi Plant Code terlebih dahulu.');
-    return;
-  }
-
-  var btnSubmit = document.getElementById('btn-submit');
-  var btnText   = document.getElementById('btn-submit-text');
-
-  // Loading state
-  btnSubmit.disabled = true;
-  btnText.textContent = '⏳ Mengirim data...';
-
-  // Build payload
-  var payload = { 'Plant Code': _verifiedStore['Plant Code'] };
-  CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
-    payload[brand] = _lduValues[brand] || 0;
-  });
-
-  // Kirim via GET request — lebih reliable dari POST untuk Apps Script
-  var submitUrl = new URL(CONFIG.API_URL);
-  submitUrl.searchParams.set('action', 'submit');
-  submitUrl.searchParams.set('store', payload['Plant Code']);
-  CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
-    submitUrl.searchParams.set(brand, payload[brand] || 0);
-  });
-
-  fetch(submitUrl.toString())
-  .then(function(r) { return r.json(); })
-  .then(function(json) {
-    btnSubmit.disabled = false;
-    btnText.textContent = '📤 Kirim Data LDU';
-
-    if (json.status === 'success') {
-      var total = Object.values(_lduValues).reduce(function(s, v) { return s + v; }, 0);
-      document.getElementById('success-sub').textContent =
-        _verifiedStore['Store Name'] + ' · ' + total + ' unit LDU berhasil disimpan.';
-      document.getElementById('success-overlay').style.display = 'flex';
-      updateProgress(3);
-    } else {
-      // Tampilkan pesan error yang jelas — termasuk Plant Code not found
-      showToast('❌ ' + (json.message || 'Gagal menyimpan data. Coba lagi.'));
-    }
-  })
-  .catch(function(err) {
-    btnSubmit.disabled = false;
-    btnText.textContent = '📤 Kirim Data LDU';
-    showToast('Gagal menghubungi server. Cek koneksi internet.');
-    console.error(err);
-  });
-}
-
-// ── Reset form untuk input toko lain ──
-function resetForm() {
-  _verifiedStore = null;
-
-  document.getElementById('input-plant-code').value = '';
-  document.getElementById('verify-result').style.display = 'none';
-  document.getElementById('store-info').style.display    = 'none';
-  document.getElementById('success-overlay').style.display = 'none';
-
-  // Reset all LDU inputs
-  CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
-    _lduValues[brand] = 0;
-    var input = document.getElementById('ldu-' + sanitizeId(brand));
-    if (input) {
-      input.value = 0;
-      input.parentElement.classList.remove('has-value');
-    }
-  });
-
-  lockLduStep();
-  updateLduTotal();
-  updateProgress(1);
-
-  // Scroll to top
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// ── Progress bar ──
 function updateProgress(step) {
   var pct = step === 1 ? 10 : step === 2 ? 55 : 100;
   var bar = document.getElementById('progress-bar');
   if (bar) bar.style.width = pct + '%';
 }
 
-// ── Toast notification ──
 function showToast(msg) {
   var toast = document.getElementById('error-toast');
   var msgEl = document.getElementById('error-toast-msg');
