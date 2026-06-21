@@ -45,6 +45,22 @@
 
   </div>
 
+  <!-- DEVICE LIST MODAL -->
+  <div class="device-modal-overlay" id="device-modal" style="display:none" onclick="closeDeviceModal(event)">
+    <div class="device-modal-card">
+      <div class="device-modal-header">
+        <div>
+          <div class="device-modal-title" id="modal-brand-title">—</div>
+          <div class="device-modal-sub" id="modal-brand-sub">—</div>
+        </div>
+        <button class="device-modal-close" onclick="closeDeviceModal()">✕</button>
+      </div>
+      <div class="device-modal-body" id="modal-device-list">
+        <div class="modal-empty">Memuat data...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <footer class="footer">
     ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital

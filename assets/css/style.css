@@ -317,6 +317,63 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
 .ldu-card-brand { font-size: 11px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; margin-bottom: 6px; }
 .ldu-card-count { font-size: 28px; font-weight: 700; color: var(--gray-800); }
 .ldu-card-count.zero { color: var(--gray-200); }
+.ldu-card-hint { font-size: 10px; color: var(--gray-400); margin-top: 6px; opacity: 0; transition: opacity .2s; }
+.ldu-card--clickable { cursor: pointer; transition: transform .15s, box-shadow .15s, border-color .15s; }
+.ldu-card--clickable:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(37,99,235,.15); border-color: #bfdbfe; }
+.ldu-card--clickable:hover .ldu-card-hint { opacity: 1; }
+.ldu-card--clickable:hover .ldu-card-brand { color: var(--blue); }
+.ldu-card--clickable:active { transform: translateY(0); }
+
+/* ── DEVICE MODAL ── */
+.device-modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,.5); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.5rem;
+  animation: fadeIn .2s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.device-modal-card {
+  background: white; border-radius: 18px;
+  width: 100%; max-width: 560px; max-height: 80vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from { transform: scale(.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.device-modal-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--gray-200);
+  flex-shrink: 0;
+}
+.device-modal-title { font-size: 16px; font-weight: 700; color: var(--gray-800); }
+.device-modal-sub   { font-size: 12px; color: var(--gray-400); margin-top: 3px; }
+.device-modal-close {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: none; background: var(--gray-100); color: var(--gray-600);
+  font-size: 14px; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.device-modal-close:hover { background: var(--gray-200); }
+.device-modal-body { overflow-y: auto; padding: 12px 20px 20px; flex: 1; }
+.modal-empty { text-align: center; padding: 2rem; color: var(--gray-400); font-size: 13px; line-height: 1.8; }
+.modal-device-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--gray-100);
+}
+.modal-device-item:last-child { border-bottom: none; }
+.modal-device-num {
+  min-width: 26px; height: 26px; border-radius: 50%;
+  background: var(--blue-light); color: var(--blue);
+  font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.modal-device-info { flex: 1; min-width: 0; }
+.modal-device-name { font-size: 13px; font-weight: 600; color: var(--gray-800); line-height: 1.4; }
+.modal-device-sn   { font-size: 11px; color: var(--gray-400); margin-top: 3px; font-family: monospace; }
 
 /* ── FOOTER ── */
 .footer { text-align: center; padding: 1.5rem; font-size: 12px; color: var(--gray-400); border-top: 1px solid var(--gray-200); margin-top: 1.5rem; }

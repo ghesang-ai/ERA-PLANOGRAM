@@ -5,12 +5,70 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Initialize global data store (main.js not loaded on this page)
-window._eraAllData = [];
+window._eraAllData  = [];
+var _deviceData     = null;  // full ldu-devices.json
+var _currentPlant   = null;
+
+async function loadDeviceData() {
+  try {
+    var res = await fetch('assets/data/ldu-devices.json');
+    _deviceData = await res.json();
+  } catch (e) { console.warn('Device data unavailable', e); }
+}
+
+function openDeviceModal(brand) {
+  var modal = document.getElementById('device-modal');
+  var titleEl = document.getElementById('modal-brand-title');
+  var subEl   = document.getElementById('modal-brand-sub');
+  var listEl  = document.getElementById('modal-device-list');
+
+  // Normalize brand name: BRAND_LDU_COLUMNS uses title-case, JSON uses uppercase
+  var brandUpper = brand.toUpperCase();
+  var devices = [];
+  if (_deviceData && _currentPlant && _deviceData[_currentPlant]) {
+    devices = (_deviceData[_currentPlant].devices || []).filter(function(d) {
+      return (d.brand || '').toUpperCase() === brandUpper;
+    });
+  }
+
+  titleEl.textContent = brand.toUpperCase() + ' — ' + (devices.length > 0 ? devices.length + ' device' : 'tidak ada data');
+  subEl.textContent   = _deviceData && _currentPlant && _deviceData[_currentPlant]
+    ? _deviceData[_currentPlant].storeName || _currentPlant
+    : _currentPlant;
+
+  if (devices.length === 0) {
+    listEl.innerHTML = '<div class="modal-empty">Tidak ada data device untuk brand ini di toko ini.<br><small>Data mungkin belum ada di file LDU Device.</small></div>';
+  } else {
+    listEl.innerHTML = devices.map(function(d, i) {
+      return '<div class="modal-device-item">' +
+        '<div class="modal-device-num">' + (i + 1) + '</div>' +
+        '<div class="modal-device-info">' +
+          '<div class="modal-device-name">' + escHtml(d.name) + '</div>' +
+          '<div class="modal-device-sn">SN: ' + escHtml(d.sn || '-') + ' · ' + escHtml(d.status || '') + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDeviceModal(event) {
+  if (event && event.target !== document.getElementById('device-modal')) return;
+  document.getElementById('device-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeDeviceModal();
+});
 
 async function loadStoreDetail() {
   var params = new URLSearchParams(window.location.search);
   var plantCode = params.get('code');
+  _currentPlant = plantCode;
+  loadDeviceData();
 
   if (!plantCode) {
     document.getElementById('detail-content').innerHTML = '<p style="padding:20px;color:var(--red)">Plant Code tidak ditemukan di URL.</p>';
@@ -64,11 +122,11 @@ function renderStoreDetail(row, plantCode) {
   var gridHtml = CONFIG.BRAND_LDU_COLUMNS.map(function(col) {
     var val  = parseInt(row[col]) || 0;
     var zero = val === 0 ? ' zero' : '';
-    return '\
-      <div class="ldu-card">\
-        <div class="ldu-card-brand">' + escHtml(col) + '</div>\
-        <div class="ldu-card-count' + zero + '">' + val + '</div>\
-      </div>';
+    return '<div class="ldu-card ldu-card--clickable" onclick="openDeviceModal(\'' + escHtml(col).replace(/'/g, "\\'") + '\')">' +
+        '<div class="ldu-card-brand">' + escHtml(col) + '</div>' +
+        '<div class="ldu-card-count' + zero + '">' + val + '</div>' +
+        '<div class="ldu-card-hint">Tap untuk lihat detail</div>' +
+      '</div>';
   }).join('');
 
   document.getElementById('ldu-grid').innerHTML = gridHtml;
