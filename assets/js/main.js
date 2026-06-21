@@ -456,21 +456,14 @@ function applyHeaderSettings() {
   var heroContent = document.querySelector('.hero-content');
   var heroBg      = document.querySelector('.hero-banner-bg');
   var mobileLabel = document.getElementById('hero-mobile-label');
-  if (s.bgImage) {
-    banner.style.backgroundImage    = 'url(' + s.bgImage + ')';
-    banner.style.backgroundSize     = 'cover';
-    banner.style.backgroundPosition = 'center';
-    banner.style.backgroundColor    = '';
-    if (heroContent)  heroContent.style.display  = 'none';
-    if (heroBg)       heroBg.style.display       = 'none';
-    if (mobileLabel)  mobileLabel.style.display  = 'none';
-  } else {
-    banner.style.backgroundImage = '';
-    banner.style.backgroundColor = s.bgColor || '#1e3a8a';
-    if (heroContent)  heroContent.style.display  = '';
-    if (heroBg)       heroBg.style.display       = '';
-    if (mobileLabel)  mobileLabel.style.display  = '';
-  }
+  var bgSrc = s.bgImage || 'assets/img/banner-default.jpg';
+  banner.style.backgroundImage    = 'url(' + bgSrc + ')';
+  banner.style.backgroundSize     = 'cover';
+  banner.style.backgroundPosition = 'center';
+  banner.style.backgroundColor    = '';
+  if (heroContent)  heroContent.style.display  = 'none';
+  if (heroBg)       heroBg.style.display       = 'none';
+  if (mobileLabel)  mobileLabel.style.display  = 'none';
 
   var cdEl = document.getElementById('hero-countdown');
   var cdLabel = document.getElementById('hero-cd-label');
