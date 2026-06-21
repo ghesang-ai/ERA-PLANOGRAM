@@ -10,28 +10,60 @@
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-inner">
-      <div class="brand">
-        <div class="brand-badge">ERA</div>
-        <div>
-          <div class="site-title">ERA-PLANOGRAM</div>
-          <div class="site-sub">Live Demo Unit Dashboard</div>
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-brand-pill">ERAJAYA DIGITAL · REGION 5</div>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-updated" id="topbar-updated">Last updated: —</span>
+      <button class="topbar-icon-btn" onclick="refreshData()" title="Refresh Data">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <a href="submit.html" class="topbar-upload-btn">↑ Input LDU</a>
+    </div>
+  </div>
+
+  <!-- HERO BANNER -->
+  <div class="hero-banner">
+    <div class="hero-banner-bg">
+      <!-- Decorative circles -->
+      <div class="hero-circle hero-circle--1"></div>
+      <div class="hero-circle hero-circle--2"></div>
+      <div class="hero-circle hero-circle--3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-left">
+        <div class="hero-eyebrow">ERAJAYA DIGITAL · VMD &amp; RMO</div>
+        <div class="hero-title">ERA-PLANOGRAM</div>
+        <div class="hero-sub">Live Demo Unit Monitoring Dashboard · Region 5</div>
+        <div class="hero-actions">
+          <a href="submit.html" class="hero-btn-primary">📝 Input LDU</a>
+          <button class="hero-btn-ghost" onclick="exportAllExcel()">📥 Export Excel</button>
         </div>
       </div>
-      <div class="header-meta">
-        <div class="header-chip">🗺️ Region 5</div>
-        <div class="header-chip" id="header-date">📅 —</div>
-        <div class="header-chip">👤 VMD &amp; RMO · Regional Access</div>
-      </div>
-      <div class="header-actions">
-        <a href="submit.html" class="btn btn-outline">📝 Input LDU</a>
-        <button class="btn btn-outline" onclick="refreshData()">🔄 Refresh</button>
-        <button class="btn btn-primary" onclick="exportAllExcel()">📥 Export</button>
+      <div class="hero-right">
+        <div class="hero-stat-grid">
+          <div class="hero-stat">
+            <div class="hero-stat-val" id="hs-toko">—</div>
+            <div class="hero-stat-label">Total Toko</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val" id="hs-submit">—</div>
+            <div class="hero-stat-label">Sudah Submit</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val" id="hs-bulan">—</div>
+            <div class="hero-stat-label">Submit Bulan Ini</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-val" id="hs-ldu">—</div>
+            <div class="hero-stat-label">Total Unit LDU</div>
+          </div>
+        </div>
       </div>
     </div>
-  </header>
+  </div>
 
   <div class="page-body">
 

@@ -47,14 +47,27 @@ function getSubmitPeriod(lastSubmitVal) {
   return           { key: 'older',      label: 'Data Lama',          short: monthLabel };
 }
 
-// ── Header date ──
-(function() {
-  var el = document.getElementById('header-date');
-  if (el) {
-    var d = new Date();
-    el.textContent = '📅 ' + d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' });
-  }
-})();
+// ── Topbar updated time ──
+function updateTopbarTime(isoStr) {
+  var el = document.getElementById('topbar-updated');
+  if (!el) return;
+  var d = isoStr ? new Date(isoStr) : new Date();
+  el.textContent = 'Last updated: ' + d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' }) +
+    ', ' + d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── Hero stats ──
+function renderHeroStats(data) {
+  var total     = data.length;
+  var submitted = data.filter(function(d) { return d['Status'] === 'Submitted'; }).length;
+  var thisMonth = data.filter(function(d) { return getSubmitPeriod(d['Last Submit']).key === 'this_month'; }).length;
+  var totalLDU  = data.reduce(function(s, d) { return s + CONFIG.calcTotalLDU(d); }, 0);
+  var set = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+  set('hs-toko',   total);
+  set('hs-submit', submitted);
+  set('hs-bulan',  thisMonth);
+  set('hs-ldu',    totalLDU.toLocaleString('id-ID'));
+}
 
 // ── Fetch ──
 async function fetchData(params) {
@@ -75,11 +88,13 @@ async function fetchData(params) {
     window._eraAllData      = json.data;
     window._eraFilteredData = json.data.slice();
 
+    renderHeroStats(json.data);
     renderSummaryCards(json.data);
     renderBrandComplianceCards(json.data);
     renderCharts(json.data);
     renderTopStores(json.data);
     applyFilters();
+    updateTopbarTime(json.lastUpdated);
 
     var el = document.getElementById('last-updated');
     if (el) {
