@@ -566,16 +566,54 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
   .charts-row { grid-template-columns: 1fr 1fr; }
   .charts-row .chart-card:last-child { grid-column: span 2; }
 }
+
 @media (max-width: 768px) {
+  /* Topbar */
+  .topbar { padding: 0 1rem; height: 44px; }
+  .topbar-brand-pill { font-size: 10px; padding: 3px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+  .topbar-updated { display: none; }
+  .topbar-upload-btn { font-size: 11px; padding: 5px 12px; }
+  .topbar-icon-btn { width: 28px; height: 28px; }
+
+  /* Hero Banner */
+  .hero-banner-wrap { padding: 8px 1rem 0; }
+  .hero-banner { min-height: auto; border-radius: 12px; }
+  .hero-content {
+    flex-direction: column; padding: 1.25rem 1rem 1rem; gap: 1rem;
+  }
+  .hero-eyebrow { font-size: 9px; }
+  .hero-title   { font-size: 24px; }
+  .hero-sub     { font-size: 11px; margin-bottom: 12px; }
+  .hero-btn-primary, .hero-btn-ghost { font-size: 12px; padding: 8px 14px; }
+  .hero-stat-grid {
+    min-width: unset; width: 100%;
+    grid-template-columns: 1fr 1fr;
+  }
+  .hero-stat { padding: 12px 10px; }
+  .hero-stat-val { font-size: 20px; }
+  .hero-stat-label { font-size: 9px; }
+
+  /* Page body */
   .page-body { padding: 1rem; }
-  .header-inner { padding: 0 1rem; }
-  .site-title { font-size: 14px; }
-  .header-meta { display: none; }
-  .summary-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .summary-grid .summary-card:last-child { grid-column: span 2; }
+
+  /* Summary cards — stack 1 per row on mobile */
+  .summary-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  /* Brand compliance — 2 per row */
   .brand-scroll { grid-template-columns: repeat(2, 1fr); }
+
+  /* Charts */
   .charts-row { grid-template-columns: 1fr; }
   .charts-row .chart-card:last-child { grid-column: span 1; }
-  .table-toolbar { flex-wrap: wrap; }
-  .header-actions .btn-outline { display: none; }
+
+  /* Table toolbar */
+  .table-toolbar { flex-wrap: wrap; gap: 6px; }
+  .table-toolbar-title { width: 100%; }
+  .table-search-wrap { width: 100%; }
+  .toolbar-select, .toolbar-select--period { flex: 1; min-width: 0; font-size: 12px; }
+  .view-toggle { display: none; }
+
+  /* Header settings modal */
+  .hs-color-row { flex-direction: column; }
+  .hs-color-preview-card { min-width: unset; width: 100%; }
 }
