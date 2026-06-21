@@ -423,6 +423,170 @@ function applyFilters() {
 function refreshData() { fetchData(); }
 
 document.addEventListener('DOMContentLoaded', function() {
+  applyHeaderSettings();
+  startCountdown();
   fetchData();
   _refreshTimer = setInterval(fetchData, 5 * 60 * 1000);
+});
+
+// ══════════════════════════════════════════
+// HEADER SETTINGS
+// ══════════════════════════════════════════
+
+var HS_KEY = 'era_header_settings';
+var _cdTimer = null;
+
+var HS_DEFAULT = {
+  bgImage: null,
+  bgColor: '#1e3a8a',
+  cdLabel: '',
+  cdEnd: ''
+};
+
+function loadHs() {
+  try { return Object.assign({}, HS_DEFAULT, JSON.parse(localStorage.getItem(HS_KEY) || '{}')); }
+  catch(e) { return Object.assign({}, HS_DEFAULT); }
+}
+
+function applyHeaderSettings() {
+  var s = loadHs();
+  var banner = document.querySelector('.hero-banner');
+  if (!banner) return;
+
+  if (s.bgImage) {
+    banner.style.backgroundImage = 'url(' + s.bgImage + ')';
+    banner.style.backgroundSize  = 'cover';
+    banner.style.backgroundPosition = 'center';
+    banner.style.backgroundColor = '';
+  } else {
+    banner.style.backgroundImage = '';
+    banner.style.backgroundColor = s.bgColor || '#1e3a8a';
+  }
+
+  var cdEl = document.getElementById('hero-countdown');
+  var cdLabel = document.getElementById('hero-cd-label');
+  if (cdEl) {
+    if (s.cdEnd) {
+      cdEl.style.display = 'block';
+      if (cdLabel) cdLabel.textContent = s.cdLabel || 'Berakhir dalam';
+    } else {
+      cdEl.style.display = 'none';
+    }
+  }
+}
+
+function startCountdown() {
+  if (_cdTimer) clearInterval(_cdTimer);
+  function tick() {
+    var s = loadHs();
+    if (!s.cdEnd) return;
+    var end  = new Date(s.cdEnd).getTime();
+    var now  = Date.now();
+    var diff = Math.max(0, end - now);
+    var d = Math.floor(diff / 86400000);
+    var h = Math.floor((diff % 86400000) / 3600000);
+    var m = Math.floor((diff % 3600000)  / 60000);
+    var sec = Math.floor((diff % 60000)  / 1000);
+    var pad = function(n) { return String(n).padStart(2, '0'); };
+    var set = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+    set('cd-d', pad(d)); set('cd-h', pad(h)); set('cd-m', pad(m)); set('cd-s', pad(sec));
+  }
+  tick();
+  _cdTimer = setInterval(tick, 1000);
+}
+
+function openHeaderSettings() {
+  var s = loadHs();
+  document.getElementById('hs-cd-label').value = s.cdLabel || '';
+  document.getElementById('hs-cd-date').value  = s.cdEnd   || '';
+  document.getElementById('hs-color-picker').value = s.bgColor || '#1e3a8a';
+  document.getElementById('hs-color-hex').value    = s.bgColor || '#1e3a8a';
+  updateHsColorPreview();
+
+  var previewImg = document.getElementById('hs-preview-img');
+  var uploadEmpty   = document.getElementById('hs-upload-empty');
+  var uploadPreview = document.getElementById('hs-upload-preview');
+  if (s.bgImage) {
+    previewImg.src = s.bgImage;
+    uploadEmpty.style.display   = 'none';
+    uploadPreview.style.display = 'block';
+  } else {
+    uploadEmpty.style.display   = 'block';
+    uploadPreview.style.display = 'none';
+  }
+
+  document.getElementById('hs-overlay').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeHeaderSettings() {
+  document.getElementById('hs-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function onHsImageUpload(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var previewImg = document.getElementById('hs-preview-img');
+    previewImg.src = e.target.result;
+    document.getElementById('hs-upload-empty').style.display   = 'none';
+    document.getElementById('hs-upload-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeHsImage() {
+  document.getElementById('hs-preview-img').src = '';
+  document.getElementById('hs-upload-empty').style.display   = 'block';
+  document.getElementById('hs-upload-preview').style.display = 'none';
+  document.getElementById('hs-file-input').value = '';
+}
+
+function updateHsColorPreview() {
+  var color = document.getElementById('hs-color-picker').value;
+  document.getElementById('hs-color-hex').value = color;
+  var card = document.getElementById('hs-color-preview');
+  if (card) card.style.background = 'linear-gradient(135deg, ' + color + ' 0%, ' + color + 'cc 100%)';
+}
+
+function syncHsColorFromHex() {
+  var hex = document.getElementById('hs-color-hex').value.trim();
+  if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+    document.getElementById('hs-color-picker').value = hex;
+    var card = document.getElementById('hs-color-preview');
+    if (card) card.style.background = 'linear-gradient(135deg, ' + hex + ' 0%, ' + hex + 'cc 100%)';
+  }
+}
+
+function saveHeaderSettings() {
+  var imgSrc = document.getElementById('hs-preview-img').src;
+  var s = {
+    bgImage: (imgSrc && imgSrc !== window.location.href) ? imgSrc : null,
+    bgColor: document.getElementById('hs-color-hex').value || '#1e3a8a',
+    cdLabel: document.getElementById('hs-cd-label').value.trim(),
+    cdEnd:   document.getElementById('hs-cd-date').value
+  };
+  localStorage.setItem(HS_KEY, JSON.stringify(s));
+  applyHeaderSettings();
+  startCountdown();
+  closeHeaderSettings();
+}
+
+function resetHsDefaults() {
+  localStorage.removeItem(HS_KEY);
+  removeHsImage();
+  document.getElementById('hs-cd-label').value     = '';
+  document.getElementById('hs-cd-date').value      = '';
+  document.getElementById('hs-color-picker').value = '#1e3a8a';
+  document.getElementById('hs-color-hex').value    = '#1e3a8a';
+  updateHsColorPreview();
+  applyHeaderSettings();
+  startCountdown();
+  closeHeaderSettings();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeHeaderSettings();
 });

@@ -17,6 +17,9 @@
     </div>
     <div class="topbar-right">
       <span class="topbar-updated" id="topbar-updated">Last updated: —</span>
+      <button class="topbar-icon-btn" onclick="openHeaderSettings()" title="Pengaturan Header">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="topbar-icon-btn" onclick="refreshData()" title="Refresh Data">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       </button>
@@ -37,6 +40,18 @@
         <div class="hero-eyebrow">ERAJAYA DIGITAL · VMD &amp; RMO</div>
         <div class="hero-title">ERA-PLANOGRAM</div>
         <div class="hero-sub">Live Demo Unit Monitoring Dashboard · Region 5</div>
+        <div class="hero-countdown" id="hero-countdown" style="display:none">
+          <div class="hero-cd-label" id="hero-cd-label">Berakhir dalam</div>
+          <div class="hero-cd-timer">
+            <div class="hero-cd-unit"><span class="hero-cd-num" id="cd-d">00</span><div class="hero-cd-sub">HARI</div></div>
+            <span class="hero-cd-sep">:</span>
+            <div class="hero-cd-unit"><span class="hero-cd-num" id="cd-h">00</span><div class="hero-cd-sub">JAM</div></div>
+            <span class="hero-cd-sep">:</span>
+            <div class="hero-cd-unit"><span class="hero-cd-num" id="cd-m">00</span><div class="hero-cd-sub">MENIT</div></div>
+            <span class="hero-cd-sep">:</span>
+            <div class="hero-cd-unit"><span class="hero-cd-num" id="cd-s">00</span><div class="hero-cd-sub">DETIK</div></div>
+          </div>
+        </div>
         <div class="hero-actions">
           <a href="submit.html" class="hero-btn-primary">📝 Input LDU</a>
           <button class="hero-btn-ghost" onclick="exportAllExcel()">📥 Export Excel</button>
@@ -182,6 +197,75 @@
     </div>
 
   </div><!-- /page-body -->
+
+  <!-- HEADER SETTINGS MODAL -->
+  <div class="hs-overlay" id="hs-overlay" style="display:none" onclick="if(event.target===this)closeHeaderSettings()">
+    <div class="hs-modal">
+      <div class="hs-modal-header">
+        <div class="hs-modal-icon">⚙️</div>
+        <div>
+          <div class="hs-modal-title">Pengaturan Header</div>
+          <div class="hs-modal-sub">Ubah tampilan hero section dashboard</div>
+        </div>
+        <button class="hs-close" onclick="closeHeaderSettings()">✕</button>
+      </div>
+
+      <div class="hs-modal-body">
+        <!-- Countdown -->
+        <div class="hs-field-group">
+          <label class="hs-label">Label Countdown</label>
+          <input type="text" id="hs-cd-label" class="hs-input" placeholder="Contoh: Kampanye berakhir dalam">
+        </div>
+        <div class="hs-field-group">
+          <label class="hs-label">Tanggal Akhir Kampanye <span class="hs-hint">(untuk countdown)</span></label>
+          <input type="datetime-local" id="hs-cd-date" class="hs-input">
+          <div class="hs-field-note">Countdown akan menghitung mundur ke tanggal ini</div>
+        </div>
+
+        <div class="hs-divider">BACKGROUND HERO</div>
+
+        <!-- Image upload -->
+        <div class="hs-field-group">
+          <label class="hs-label">Gambar Background <span class="hs-hint">(opsional) · 700 × 105 px</span></label>
+          <div class="hs-upload-area" id="hs-upload-area">
+            <div id="hs-upload-empty">
+              <div class="hs-upload-icon">🖼️</div>
+              <div class="hs-upload-text">Klik atau drag gambar ke sini</div>
+              <div class="hs-upload-hint">PNG, JPG, GIF · Disarankan 700×105px</div>
+              <input type="file" id="hs-file-input" accept="image/*" style="display:none" onchange="onHsImageUpload(event)">
+              <button class="hs-upload-btn" onclick="document.getElementById('hs-file-input').click()">Pilih Gambar</button>
+            </div>
+            <div id="hs-upload-preview" style="display:none">
+              <img id="hs-preview-img" src="" alt="preview" style="width:100%;height:105px;object-fit:cover;border-radius:8px;display:block">
+              <button class="hs-remove-btn" onclick="removeHsImage()">✕ Hapus</button>
+            </div>
+          </div>
+          <div class="hs-field-note">Gambar akan jadi background hero. Hapus gambar untuk kembali ke warna solid.</div>
+        </div>
+
+        <!-- Color + preview -->
+        <div class="hs-color-row">
+          <div class="hs-field-group" style="flex:1">
+            <label class="hs-label">Warna Solid <span class="hs-hint">(jika tanpa gambar)</span></label>
+            <div class="hs-color-input-wrap">
+              <input type="color" id="hs-color-picker" value="#1e3a8a" oninput="updateHsColorPreview()">
+              <input type="text" id="hs-color-hex" class="hs-input hs-input--hex" placeholder="#1e3a8a" oninput="syncHsColorFromHex()">
+            </div>
+          </div>
+          <div class="hs-color-preview-card" id="hs-color-preview">
+            <div class="hs-cp-eyebrow">ERA-PLANOGRAM</div>
+            <div class="hs-cp-title">LIVE DEMO UNIT</div>
+            <div class="hs-cp-sub">Monitoring Dashboard · Region 5</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hs-modal-footer">
+        <button class="hs-btn-reset" onclick="resetHsDefaults()">Reset Default</button>
+        <button class="hs-btn-save" onclick="saveHeaderSettings()">Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>
 
   <footer class="footer">
     ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital ·
