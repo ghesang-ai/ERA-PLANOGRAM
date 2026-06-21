@@ -589,14 +589,10 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
 
   /* Hero Banner — slim image strip like ERA-SBD */
   .hero-banner-wrap { padding: 8px 1rem 0; }
-  .hero-banner { min-height: 120px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .hero-banner { min-height: unset; border-radius: 12px; background: none !important; }
   .hero-content { display: none !important; }
   .hero-banner-bg { display: none; }
-  .hero-banner-mobile-label {
-    color: rgba(255,255,255,.85); font-size: 13px; font-weight: 700;
-    letter-spacing: 2px; text-transform: uppercase; text-align: center;
-    position: absolute; z-index: 2;
-  }
+  .hero-banner-img { width: 100%; height: auto; display: block; border-radius: 12px; }
 
   /* Page body */
   .page-body { padding: 1rem; }
