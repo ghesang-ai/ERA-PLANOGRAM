@@ -587,27 +587,16 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
   .topbar-upload-btn { font-size: 11px; padding: 5px 12px; }
   .topbar-icon-btn { width: 28px; height: 28px; }
 
-  /* Hero Banner */
+  /* Hero Banner — slim image strip like ERA-SBD */
   .hero-banner-wrap { padding: 8px 1rem 0; }
-  .hero-banner { min-height: auto; border-radius: 12px; }
-  .hero-content {
-    flex-direction: column; padding: 1.25rem 1rem 1rem; gap: 1rem;
-    align-items: center; text-align: center;
+  .hero-banner { min-height: 120px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .hero-content { display: none !important; }
+  .hero-banner-bg { display: none; }
+  .hero-banner-mobile-label {
+    color: rgba(255,255,255,.85); font-size: 13px; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; text-align: center;
+    position: absolute; z-index: 2;
   }
-  .hero-left { width: 100%; }
-  .hero-right { width: 100%; }
-  .hero-eyebrow { font-size: 9px; }
-  .hero-title   { font-size: 24px; }
-  .hero-sub     { font-size: 11px; margin-bottom: 12px; }
-  .hero-actions { justify-content: center; }
-  .hero-btn-primary, .hero-btn-ghost { font-size: 12px; padding: 8px 14px; }
-  .hero-stat-grid {
-    min-width: unset; width: 100%;
-    grid-template-columns: 1fr 1fr;
-  }
-  .hero-stat { padding: 12px 10px; }
-  .hero-stat-val { font-size: 20px; }
-  .hero-stat-label { font-size: 9px; }
 
   /* Page body */
   .page-body { padding: 1rem; }
