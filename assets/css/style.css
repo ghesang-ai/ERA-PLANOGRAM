@@ -41,6 +41,12 @@ a { text-decoration: none; }
   background: var(--gray-100); border: 1px solid var(--gray-200);
   padding: 4px 14px; border-radius: 20px;
 }
+/* Hero banner image — desktop fixed height, mobile natural ratio */
+.hero-banner-img {
+  width: 100%; display: block; border-radius: 16px;
+  height: 160px; object-fit: cover; object-position: center;
+}
+
 .topbar-brand-short { display: none; }
 .topbar-left  { display: flex; align-items: center; }
 .topbar-center { display: flex; align-items: center; }
