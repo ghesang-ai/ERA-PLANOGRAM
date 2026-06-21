@@ -42,7 +42,16 @@ a { text-decoration: none; }
   padding: 4px 14px; border-radius: 20px;
 }
 .topbar-brand-short { display: none; }
+.topbar-left  { display: flex; align-items: center; }
+.topbar-center { display: flex; align-items: center; }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
+.topbar-back-btn {
+  font-size: 13px; font-weight: 600; color: var(--blue);
+  padding: 5px 10px; border-radius: 8px;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.topbar-back-btn:hover { background: var(--blue-light); }
 .topbar-updated { font-size: 12px; color: var(--gray-400); }
 .topbar-icon-btn {
   width: 32px; height: 32px; border-radius: 8px;
