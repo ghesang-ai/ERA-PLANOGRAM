@@ -453,14 +453,17 @@ function applyHeaderSettings() {
   var banner = document.querySelector('.hero-banner');
   if (!banner) return;
 
+  var heroLeft = document.querySelector('.hero-left');
   if (s.bgImage) {
-    banner.style.backgroundImage = 'url(' + s.bgImage + ')';
-    banner.style.backgroundSize  = 'cover';
+    banner.style.backgroundImage    = 'url(' + s.bgImage + ')';
+    banner.style.backgroundSize     = 'cover';
     banner.style.backgroundPosition = 'center';
-    banner.style.backgroundColor = '';
+    banner.style.backgroundColor    = '';
+    if (heroLeft) heroLeft.style.display = 'none';
   } else {
     banner.style.backgroundImage = '';
     banner.style.backgroundColor = s.bgColor || '#1e3a8a';
+    if (heroLeft) heroLeft.style.display = '';
   }
 
   var cdEl = document.getElementById('hero-countdown');
