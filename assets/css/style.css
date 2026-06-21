@@ -120,8 +120,12 @@ a { text-decoration: none; }
   top: -20px; left: -20px; pointer-events: none;
 }
 .sc--submit  { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+.sc--month   { background: linear-gradient(135deg, #0f766e, #14b8a6); }
 .sc--pending { background: linear-gradient(135deg, #be123c, #f43f5e); }
 .sc--ldu     { background: linear-gradient(135deg, #6d28d9, #8b5cf6); }
+.sc-badge--month   { background: rgba(255,255,255,.25); }
+.sc-value--month   { color: white; }
+.sc-bar-fill--month { background: rgba(255,255,255,.7); }
 
 .sc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
 .sc-icon {
@@ -292,6 +296,12 @@ code {
 }
 .badge-green { background: #dcfce7; color: #15803d; }
 .badge-red   { background: #fee2e2; color: #b91c1c; }
+.badge-period { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; white-space: nowrap; }
+.badge-period--this  { background: #dcfce7; color: #15803d; }
+.badge-period--last  { background: #fef9c3; color: #a16207; }
+.badge-period--old   { background: #f1f5f9; color: #64748b; }
+.badge-period--never { background: #fee2e2; color: #b91c1c; }
+.toolbar-select--period { min-width: 140px; }
 
 /* Full view */
 .table-wrap.full-view .data-table { min-width: 2400px; }

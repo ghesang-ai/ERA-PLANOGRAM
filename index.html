@@ -118,6 +118,13 @@
         <option value="Submitted">Sudah Submit</option>
         <option value="Pending">Belum Submit</option>
       </select>
+      <select class="toolbar-select toolbar-select--period" id="filter-period" onchange="applyFilters()">
+        <option value="">Semua Periode</option>
+        <option value="this_month">📅 Bulan Ini</option>
+        <option value="last_month">📆 Bulan Lalu</option>
+        <option value="older">🕐 Lebih Lama</option>
+        <option value="never">❌ Belum Pernah</option>
+      </select>
       <span class="filter-count" id="filter-count">—</span>
       <div class="view-toggle">
         <button class="toggle-btn active" id="btn-summary-view" onclick="setView('summary')">Summary</button>

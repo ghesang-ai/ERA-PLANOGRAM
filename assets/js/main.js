@@ -23,6 +23,30 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Period Helper ──
+function getSubmitPeriod(lastSubmitVal) {
+  if (!lastSubmitVal || lastSubmitVal === '' || lastSubmitVal === '-') {
+    return { key: 'never', label: 'Belum Pernah', short: '—' };
+  }
+  var d = new Date(lastSubmitVal);
+  if (isNaN(d.getTime())) {
+    // try parsing "22 Jun 2026 14:30" format
+    d = new Date(String(lastSubmitVal).replace(/(\d{2}) (\w{3}) (\d{4})/, '$2 $1 $3'));
+  }
+  if (isNaN(d.getTime())) return { key: 'never', label: 'Belum Pernah', short: '—' };
+
+  var now = new Date();
+  var sameYear  = d.getFullYear() === now.getFullYear();
+  var sameMonth = sameYear && d.getMonth() === now.getMonth();
+  var lastMonth = sameYear && d.getMonth() === now.getMonth() - 1;
+
+  var monthLabel = d.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' });
+
+  if (sameMonth)  return { key: 'this_month', label: 'Submit Bulan Ini',  short: monthLabel };
+  if (lastMonth)  return { key: 'last_month', label: 'Data Bulan Lalu',   short: monthLabel };
+  return           { key: 'older',      label: 'Data Lama',          short: monthLabel };
+}
+
 // ── Header date ──
 (function() {
   var el = document.getElementById('header-date');
@@ -84,26 +108,31 @@ function showError(msg) {
 function renderSummaryCards(data) {
   var container = document.getElementById('summary-cards');
   if (!container) return;
-  var total     = data.length;
-  var submitted = data.filter(function(d) { return d['Status'] === 'Submitted'; }).length;
-  var pending   = total - submitted;
-  var pct       = total > 0 ? Math.round((submitted / total) * 100) : 0;
-  var totalLDU  = data.reduce(function(s, d) { return s + CONFIG.calcTotalLDU(d); }, 0);
+  var total      = data.length;
+  var submitted  = data.filter(function(d) { return d['Status'] === 'Submitted'; }).length;
+  var pending    = total - submitted;
+  var pct        = total > 0 ? Math.round((submitted / total) * 100) : 0;
+  var totalLDU   = data.reduce(function(s, d) { return s + CONFIG.calcTotalLDU(d); }, 0);
+
+  var thisMonth  = data.filter(function(d) { return getSubmitPeriod(d['Last Submit']).key === 'this_month'; }).length;
+  var belumBulanIni = total - thisMonth;
+  var pctBulanIni   = total > 0 ? Math.round((thisMonth / total) * 100) : 0;
+  var nowLabel   = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
   container.innerHTML =
     '<div class="summary-card sc--submit">' +
       '<div class="sc-top"><div class="sc-icon">🏪</div><div class="sc-badge">' + pct + '% Rate</div></div>' +
       '<div class="sc-value">' + submitted + '<span>/' + total + '</span></div>' +
-      '<div class="sc-label">Toko Sudah Submit</div>' +
+      '<div class="sc-label">Toko Sudah Submit (Total)</div>' +
       '<div class="sc-bar"><div class="sc-bar-fill" style="width:' + pct + '%"></div></div>' +
       '<div class="sc-foot">✅ ' + pct + '% Compliance Rate Region 5</div>' +
     '</div>' +
-    '<div class="summary-card sc--pending">' +
-      '<div class="sc-top"><div class="sc-icon">⏳</div><div class="sc-badge">' + Math.round((pending/total)*100||0) + '% Belum</div></div>' +
-      '<div class="sc-value">' + pending + '</div>' +
-      '<div class="sc-label">Toko Belum Submit</div>' +
-      '<div class="sc-bar"><div class="sc-bar-fill" style="width:' + Math.round((pending/total)*100||0) + '%"></div></div>' +
-      '<div class="sc-foot">⚠️ Perlu segera submit data LDU</div>' +
+    '<div class="summary-card sc--month">' +
+      '<div class="sc-top"><div class="sc-icon">📅</div><div class="sc-badge sc-badge--month">' + pctBulanIni + '%</div></div>' +
+      '<div class="sc-value sc-value--month">' + thisMonth + '<span>/' + total + '</span></div>' +
+      '<div class="sc-label">Submit Bulan Ini</div>' +
+      '<div class="sc-bar"><div class="sc-bar-fill sc-bar-fill--month" style="width:' + pctBulanIni + '%"></div></div>' +
+      '<div class="sc-foot">📆 ' + nowLabel + ' · ' + belumBulanIni + ' toko belum submit bulan ini</div>' +
     '</div>' +
     '<div class="summary-card sc--ldu">' +
       '<div class="sc-top"><div class="sc-icon">📱</div><div class="sc-badge">Live</div></div>' +
@@ -315,19 +344,32 @@ function renderTable(data) {
 
   tbody.innerHTML = data.map(function(row) {
     var status     = row['Status'] || 'Pending';
-    var badgeClass = status === 'Submitted' ? 'badge-green' : 'badge-red';
     var lastSubmit = CONFIG.formatDate(row['Last Submit']);
     var totalLDU   = CONFIG.calcTotalLDU(row);
+    var period     = getSubmitPeriod(row['Last Submit']);
+
+    var periodBadge;
+    if (status !== 'Submitted') {
+      periodBadge = '<span class="badge badge-period badge-period--never">❌ Belum Submit</span>';
+    } else if (period.key === 'this_month') {
+      periodBadge = '<span class="badge badge-period badge-period--this">✅ ' + period.short + '</span>';
+    } else if (period.key === 'last_month') {
+      periodBadge = '<span class="badge badge-period badge-period--last">⚠️ ' + period.short + '</span>';
+    } else {
+      periodBadge = '<span class="badge badge-period badge-period--old">🕐 ' + period.short + '</span>';
+    }
+
     var brandCols  = cols.map(function(col) {
       var val = parseInt(row[col]) || 0;
       var cls = isFull ? 'col-num col-brand-full' : 'col-num';
       return '<td class="' + cls + '">' + (val > 0 ? val : '<span style="color:var(--gray-200)">0</span>') + '</td>';
     }).join('');
+
     return '<tr class="' + (status !== 'Submitted' ? 'row-pending' : '') + '">' +
       '<td><code>' + escHtml(row['Plant Code']) + '</code></td>' +
       '<td class="col-store">' + escHtml(row['Store Name']) + '</td>' +
       '<td><span style="font-size:12px;color:var(--gray-600)">' + escHtml(CONFIG.detectBrandToko(row['Store Name'])) + '</span></td>' +
-      '<td><span class="badge ' + badgeClass + '">' + escHtml(status) + '</span></td>' +
+      '<td>' + periodBadge + '</td>' +
       brandCols +
       '<td class="col-total">' + (totalLDU > 0 ? totalLDU : '—') + '</td>' +
       '<td style="color:var(--gray-600);font-size:12px">' + lastSubmit + '</td>' +
@@ -340,6 +382,7 @@ function applyFilters() {
   var brandVal  = (document.getElementById('filter-brand')  || {}).value || '';
   var searchVal = ((document.getElementById('search-store') || {}).value || '').toLowerCase();
   var statusVal = (document.getElementById('filter-status') || {}).value || '';
+  var periodVal = (document.getElementById('filter-period') || {}).value || '';
 
   window._eraFilteredData = window._eraAllData.filter(function(d) {
     var matchBrand  = !brandVal  || CONFIG.detectBrandToko(d['Store Name']).toLowerCase() === brandVal.toLowerCase();
@@ -347,7 +390,16 @@ function applyFilters() {
       (d['Store Name'] || '').toLowerCase().includes(searchVal) ||
       (d['Plant Code'] || '').toLowerCase().includes(searchVal);
     var matchStatus = !statusVal || (d['Status'] || 'Pending') === statusVal;
-    return matchBrand && matchSearch && matchStatus;
+    var matchPeriod = true;
+    if (periodVal) {
+      var p = getSubmitPeriod(d['Last Submit']);
+      if (periodVal === 'never') {
+        matchPeriod = p.key === 'never' || (d['Status'] || 'Pending') === 'Pending';
+      } else {
+        matchPeriod = p.key === periodVal;
+      }
+    }
+    return matchBrand && matchSearch && matchStatus && matchPeriod;
   });
 
   renderTable(window._eraFilteredData);
