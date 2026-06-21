@@ -61,10 +61,16 @@ a { text-decoration: none; }
 .topbar-upload-btn:hover { background: #0f172a; }
 
 /* ── HERO BANNER ── */
+.hero-banner-wrap {
+  max-width: 1440px; margin: 0 auto;
+  padding: 12px 1.75rem 0;
+}
 .hero-banner {
   position: relative; overflow: hidden;
   background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #312e81 100%);
   min-height: 180px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.12);
 }
 .hero-banner-bg { position: absolute; inset: 0; pointer-events: none; }
 .hero-circle {
