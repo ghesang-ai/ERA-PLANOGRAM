@@ -334,6 +334,8 @@ function submitChecklist() {
         document.getElementById('success-sub').textContent =
           _verifiedStore['Store Name'] + ' · ' + checkedIdx.length + ' device tercentang' +
           (_newItems.length > 0 ? ' · ' + _newItems.length + ' item baru' : '');
+        var detailBtn = document.getElementById('btn-see-detail');
+        if (detailBtn) detailBtn.href = 'store-detail.html?code=' + encodeURIComponent(plantCode);
         document.getElementById('success-overlay').style.display = 'flex';
         updateProgress(3);
       } else {
