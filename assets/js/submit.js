@@ -298,13 +298,23 @@ function submitChecklist() {
   var plantCode = _verifiedStore['Plant Code'];
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
 
+  // Build case-insensitive map: "APPLE" → "Apple", "SAMSUNG" → "Samsung", etc.
+  var brandMap = {};
+  CONFIG.BRAND_LDU_COLUMNS.forEach(function(col) {
+    brandMap[col.toUpperCase()] = col;
+  });
+
   var brandCount = {};
   checkedIdx.forEach(function(k) {
     var d = _allDevices[parseInt(k)];
-    if (d) brandCount[d.brand] = (brandCount[d.brand] || 0) + 1;
+    if (d) {
+      var colName = brandMap[(d.brand || '').toUpperCase()] || d.brand;
+      brandCount[colName] = (brandCount[colName] || 0) + 1;
+    }
   });
   _newItems.forEach(function(it) {
-    brandCount[it.brand] = (brandCount[it.brand] || 0) + 1;
+    var colName = brandMap[(it.brand || '').toUpperCase()] || it.brand;
+    brandCount[colName] = (brandCount[colName] || 0) + 1;
   });
 
   var submitUrl = new URL(CONFIG.API_URL);
