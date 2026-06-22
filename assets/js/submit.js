@@ -394,17 +394,11 @@ function showFotoStep(brandCount) {
   var brandsWithCount = Object.keys(brandCount).map(function(b) {
     return { name: b, count: brandCount[b] };
   });
-
   buildFotoAccordion(brandsWithCount);
-
-  var stepFoto = document.getElementById('step-foto');
-  var body     = document.getElementById('step-foto-body');
-  stepFoto.classList.remove('form-card--disabled');
-  body.style.display = 'block';
   updateProgress(3);
 
   setTimeout(function() {
-    stepFoto.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('step-foto').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 200);
 }
 
@@ -493,7 +487,8 @@ function resetForm() {
 
   var fotoBody = document.getElementById('step-foto-body');
   if (fotoBody) fotoBody.style.display = 'none';
-  document.getElementById('step-foto').classList.add('form-card--disabled');
+  var stepFoto = document.getElementById('step-foto');
+  if (stepFoto) stepFoto.classList.add('form-card--disabled');
   var accordion = document.getElementById('foto-accordion');
   if (accordion) accordion.innerHTML = '';
   var btn = document.getElementById('btn-submit-foto');
@@ -526,6 +521,12 @@ function unlockLduStep() {
   document.getElementById('step-ldu').classList.remove('form-card--disabled');
   document.getElementById('step-submit').classList.remove('form-card--disabled');
   document.getElementById('btn-submit').disabled = false;
+
+  var stepFoto = document.getElementById('step-foto');
+  var fotoBody = document.getElementById('step-foto-body');
+  stepFoto.classList.remove('form-card--disabled');
+  fotoBody.style.display = 'block';
+  buildFotoAccordion([]);
 }
 
 function lockLduStep() {
