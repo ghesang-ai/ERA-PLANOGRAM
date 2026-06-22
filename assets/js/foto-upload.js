@@ -54,8 +54,8 @@ function buildFotoAccordion(brandsWithCount) {
     var key   = brandName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
     var count = countMap[brandName] || 0;
     var countLabel = count > 0
-      ? '<span style="color:var(--gray-400);font-weight:400;font-size:11px">(' + count + ' device)</span>'
-      : '<span style="color:var(--gray-400);font-weight:400;font-size:11px">(tidak dipilih)</span>';
+      ? '<span style="color:var(--blue);font-weight:600;font-size:11px">(' + count + ' device tercentang)</span>'
+      : '';
 
     return '<div class="foto-brand-item" id="fbi-' + key + '">' +
       '<div class="foto-brand-header" onclick="toggleFotoAccordion(\'' + key + '\')">' +

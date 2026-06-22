@@ -544,7 +544,10 @@ function unlockLduStep() {
   var fotoBody = document.getElementById('step-foto-body');
   stepFoto.classList.remove('form-card--disabled');
   fotoBody.style.display = 'block';
-  buildFotoAccordion([]);
+  var allBrands = (typeof CONFIG !== 'undefined' && CONFIG.BRAND_LDU_COLUMNS)
+    ? CONFIG.BRAND_LDU_COLUMNS.map(function(b) { return { name: b, count: 0 }; })
+    : [];
+  buildFotoAccordion(allBrands);
 }
 
 function lockLduStep() {
