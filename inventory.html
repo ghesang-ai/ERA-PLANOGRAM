@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Device — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/inventory.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-left"><a id="back-link" href="store-detail.html" class="topbar-back-btn">← Detail Toko</a></div>
+    <div class="topbar-center"><div class="topbar-brand-pill">ERAJAYA DIGITAL · REGION 5</div></div>
+    <div class="topbar-right"><a id="log-link" href="#" class="btn btn-outline btn-sm">📜 Log History</a></div>
+  </div>
+
+  <div id="inv-header" style="padding:20px 24px 0;background:white;border-bottom:1px solid var(--gray-200)">
+    <div style="font-size:22px;font-weight:800;color:var(--gray-800)" id="inv-title">Memuat...</div>
+    <div style="font-size:13px;color:var(--gray-400);margin:4px 0 16px" id="inv-sub"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding-bottom:14px" id="inv-filter-row">
+      <select id="f-brand" class="inv-select" onchange="applyFilter()"><option value="">Semua Brand</option></select>
+      <select id="f-status" class="inv-select" onchange="applyFilter()">
+        <option value="">Semua Status</option>
+        <option value="display">Display</option>
+        <option value="tidak">Tidak Display</option>
+        <option value="rusak">Rusak</option>
+        <option value="retur">Retur</option>
+      </select>
+      <input type="text" id="f-search" class="inv-search" placeholder="🔍 Cari nama / SN..." oninput="applyFilter()">
+      <button class="btn btn-primary btn-sm" onclick="openAddModal()" style="margin-left:auto">＋ Add Device</button>
+    </div>
+  </div>
+
+  <div style="padding:16px 24px" id="inv-stats-row"></div>
+
+  <div style="padding:0 24px 40px">
+    <div id="inv-table-wrap"></div>
+  </div>
+
+  <!-- ADD / EDIT MODAL -->
+  <div class="inv-modal-overlay" id="inv-modal" style="display:none" onclick="closeModal(event)">
+    <div class="inv-modal-card">
+      <div class="inv-modal-header">
+        <div class="inv-modal-title" id="modal-title">Tambah Device Baru</div>
+        <button class="inv-modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="inv-modal-body">
+        <input type="hidden" id="m-device-id">
+        <div class="inv-field">
+          <label>Brand <span class="req">*</span></label>
+          <select id="m-brand" class="inv-select" style="width:100%"></select>
+        </div>
+        <div class="inv-field">
+          <label>Nama Device <span class="req">*</span></label>
+          <input type="text" id="m-name" class="inv-input" placeholder="Contoh: OPPO RENO 15F 8/256GB PINK DEMO">
+        </div>
+        <div class="inv-field">
+          <label>Serial Number</label>
+          <input type="text" id="m-sn" class="inv-input" placeholder="Contoh: 8622010...">
+        </div>
+        <div class="inv-field">
+          <label>Status <span class="req">*</span></label>
+          <select id="m-status" class="inv-select" style="width:100%">
+            <option value="Display">Display</option>
+            <option value="Tidak Display">Tidak Display</option>
+            <option value="Rusak">Rusak</option>
+          </select>
+        </div>
+        <div class="inv-field">
+          <label>Lokasi Display</label>
+          <input type="text" id="m-location" class="inv-input" placeholder="Contoh: Meja Tengah, Rak Kanan">
+        </div>
+        <div class="inv-field">
+          <label>Catatan</label>
+          <input type="text" id="m-notes" class="inv-input" placeholder="Opsional...">
+        </div>
+      </div>
+      <div class="inv-modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal()">Batal</button>
+        <button class="btn btn-primary" id="modal-save-btn" onclick="saveDevice()">💾 Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RETUR MODAL -->
+  <div class="inv-modal-overlay" id="retur-modal" style="display:none" onclick="closeReturModal(event)">
+    <div class="inv-modal-card">
+      <div class="inv-modal-header">
+        <div class="inv-modal-title">🔄 Retur Device ke Gudang</div>
+        <button class="inv-modal-close" onclick="closeReturModal()">✕</button>
+      </div>
+      <div class="inv-modal-body">
+        <div style="background:var(--gray-100);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px" id="retur-device-info"></div>
+        <input type="hidden" id="r-device-id">
+        <div class="inv-field">
+          <label>Tujuan Retur <span class="req">*</span></label>
+          <select id="r-destination" class="inv-select" style="width:100%">
+            <option value="Gudang Pusat">Gudang Pusat</option>
+            <option value="Vendor / Garansi">Vendor / Garansi</option>
+            <option value="Toko Lain">Toko Lain</option>
+          </select>
+        </div>
+        <div class="inv-field">
+          <label>Alasan Retur <span class="req">*</span></label>
+          <select id="r-reason" class="inv-select" style="width:100%">
+            <option value="Rusak / Perlu Perbaikan">Rusak / Perlu Perbaikan</option>
+            <option value="Klaim Garansi">Klaim Garansi</option>
+            <option value="Tidak Laku / Slow Moving">Tidak Laku / Slow Moving</option>
+            <option value="Rotasi Toko">Rotasi Toko</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+        <div class="inv-field">
+          <label>Catatan Tambahan</label>
+          <input type="text" id="r-notes" class="inv-input" placeholder="Kondisi, nomor tiket garansi, dll...">
+        </div>
+      </div>
+      <div class="inv-modal-footer">
+        <button class="btn btn-ghost" onclick="closeReturModal()">Batal</button>
+        <button class="btn btn-primary" style="background:#dc2626" onclick="confirmRetur()">🔄 Konfirmasi Retur</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="inv-toast" style="display:none"><span id="inv-toast-msg"></span></div>
+
+  <footer class="footer">ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital</footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/inventory.js"></script>
+</body>
+</html>

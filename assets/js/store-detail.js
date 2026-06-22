@@ -185,6 +185,9 @@ function renderStoreDetail(row, plantCode) {
 
   renderFotoTab(row);
 
+  var invBtn = document.getElementById('inv-btn');
+  if (invBtn) invBtn.href = 'inventory.html?code=' + encodeURIComponent(plantCode);
+
   var exportBtn = document.getElementById('export-btn');
   if (exportBtn) {
     exportBtn.disabled = false;

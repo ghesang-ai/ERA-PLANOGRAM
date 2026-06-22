@@ -102,6 +102,8 @@ async function loadBrandDetail() {
 
   document.title = brand.toUpperCase() + ' — ' + plantCode + ' · ERA-PLANOGRAM';
   document.getElementById('back-link').href = 'store-detail.html?code=' + encodeURIComponent(plantCode);
+  var invLink = document.getElementById('inv-link');
+  if (invLink) invLink.href = 'inventory.html?code=' + encodeURIComponent(plantCode) + '&brand=' + encodeURIComponent(brand);
 
   var urlObj = new URL(CONFIG.API_URL);
   urlObj.searchParams.set('store', plantCode);

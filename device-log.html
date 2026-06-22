@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log History — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/inventory.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-left"><a id="back-link" href="inventory.html" class="topbar-back-btn">← Inventory</a></div>
+    <div class="topbar-center"><div class="topbar-brand-pill">ERAJAYA DIGITAL · REGION 5</div></div>
+    <div class="topbar-right"></div>
+  </div>
+
+  <div style="padding:20px 24px 0;background:white;border-bottom:1px solid var(--gray-200)">
+    <div style="font-size:22px;font-weight:800;color:var(--gray-800)" id="log-title">Memuat...</div>
+    <div style="font-size:13px;color:var(--gray-400);margin:4px 0 16px" id="log-sub"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding-bottom:14px">
+      <select id="lf-action" class="inv-select" onchange="loadLog()">
+        <option value="">Semua Aksi</option>
+        <option value="ADD">➕ Add</option>
+        <option value="EDIT">✏️ Edit</option>
+        <option value="RETUR">🔄 Retur</option>
+        <option value="DELETE">🗑 Delete</option>
+      </select>
+      <select id="lf-brand" class="inv-select" onchange="loadLog()"><option value="">Semua Brand</option></select>
+      <input type="text" id="lf-search" class="inv-search" placeholder="🔍 Cari nama / SN..." oninput="filterLog()">
+    </div>
+  </div>
+
+  <div style="padding:20px 24px 40px">
+    <div id="log-list"></div>
+  </div>
+
+  <div class="toast" id="log-toast" style="display:none"><span id="log-toast-msg"></span></div>
+  <footer class="footer">ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital</footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/device-log.js"></script>
+</body>
+</html>
