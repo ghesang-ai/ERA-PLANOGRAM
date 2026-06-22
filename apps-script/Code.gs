@@ -187,16 +187,16 @@ function doPost(e) {
     const action = body.action || 'submit';
 
     if (action === 'uploadFoto') {
-      var result = uploadFotoToDrive(body);
+      const uploadResult = uploadFotoToDrive(body);
       return ContentService
-        .createTextOutput(JSON.stringify(result))
+        .createTextOutput(JSON.stringify(uploadResult))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
     if (action === 'saveFotoUrls') {
-      var result = saveFotoUrls(body);
+      const saveResult = saveFotoUrls(body);
       return ContentService
-        .createTextOutput(JSON.stringify(result))
+        .createTextOutput(JSON.stringify(saveResult))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
