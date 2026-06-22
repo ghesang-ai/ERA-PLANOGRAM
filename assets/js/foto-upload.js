@@ -155,7 +155,7 @@ async function uploadAllFotos(plantCode, storeName) {
     try {
       var res = await fetch(CONFIG.API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action:    'uploadFoto',
           plantCode: plantCode,
@@ -184,7 +184,7 @@ async function saveFotoUrlsToSheet(plantCode, fotoMap) {
   try {
     await fetch(CONFIG.API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action:    'saveFotoUrls',
         plantCode: plantCode,
@@ -208,7 +208,7 @@ async function saveDeviceStatusToSheet(plantCode, deviceStatusMap) {
   try {
     await fetch(CONFIG.API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
         action:    'saveFotoUrls',
         plantCode: plantCode,
