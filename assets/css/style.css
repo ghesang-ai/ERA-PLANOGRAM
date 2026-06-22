@@ -44,7 +44,7 @@ a { text-decoration: none; }
 /* Hero banner image — desktop fixed height, mobile natural ratio */
 .hero-banner-img {
   width: 100%; display: block; border-radius: 16px;
-  height: 160px; object-fit: cover; object-position: center;
+  height: 170px; object-fit: cover; object-position: center;
   box-shadow: none;
 }
 
@@ -84,10 +84,10 @@ a { text-decoration: none; }
 }
 .hero-banner {
   position: relative; overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #312e81 100%);
-  min-height: 180px;
+  background: transparent;
   border-radius: 16px;
   box-shadow: none;
+  line-height: 0;
 }
 .hero-banner-bg { position: absolute; inset: 0; pointer-events: none; }
 .hero-circle {
