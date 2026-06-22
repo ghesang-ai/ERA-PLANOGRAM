@@ -152,7 +152,8 @@ async function loadBrandDetail() {
   if (lduFoto || wallFoto) {
     function fotoItem(url, label) {
       if (!url) return '<div class="bd-foto-item"><div class="bd-foto-label">' + label + '</div><div class="bd-foto-empty">Tidak ada foto</div></div>';
-      var prev = url.replace('/view', '/preview');
+      var fileId = url.match(/\/d\/([^\/]+)/);
+      var prev = fileId ? 'https://drive.google.com/thumbnail?id=' + fileId[1] + '&sz=w800' : url;
       return '<div class="bd-foto-item">' +
         '<div class="bd-foto-label">' + label + '</div>' +
         '<a href="' + escHtml(url) + '" target="_blank" rel="noopener">' +

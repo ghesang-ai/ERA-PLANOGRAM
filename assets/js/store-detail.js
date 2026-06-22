@@ -63,7 +63,8 @@ function openDeviceModal(brand, row) {
       fotoRow.style.display = 'flex';
       function fotoThumb(url, label) {
         if (!url) return '<div style="flex:1;min-width:120px;text-align:center;color:var(--gray-300);font-size:12px;padding:12px">Tidak ada foto</div>';
-        var prev = url.replace('/view', '/preview');
+        var fileId = url.match(/\/d\/([^\/]+)/);
+        var prev = fileId ? 'https://drive.google.com/thumbnail?id=' + fileId[1] + '&sz=w800' : url;
         return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-decoration:none">' +
           '<div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;font-weight:600">' + label + '</div>' +
           '<img src="' + escHtml(prev) + '" alt="' + escHtml(label) + '" ' +
@@ -248,7 +249,7 @@ function renderFotoTab(row) {
     function imgHtml(url, label) {
       if (!url) return '<div class="foto-img-empty">Tidak ada foto</div>';
       return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener">' +
-               '<img src="' + escHtml(url.replace('/view', '/preview')) + '" alt="' + escHtml(label) + '" ' +
+               '<img src="' + escHtml((function(u){var m=u.match(/\/d\/([^\/]+)/);return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w800':u;})(url)) + '" alt="' + escHtml(label) + '" ' +
                     'class="foto-gallery-img" loading="lazy">' +
              '</a>';
     }
