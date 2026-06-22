@@ -388,51 +388,23 @@ function preparePendingData() {
   return true;
 }
 
-function submitChecklist() {
+async function submitChecklist() {
   if (!preparePendingData()) return;
-  showFotoStep(_pendingBrandCount);
-}
 
-function showFotoStep(brandCount) {
-  var brandsWithCount = Object.keys(brandCount).map(function(b) {
-    return { name: b, count: brandCount[b] };
-  });
-  buildFotoAccordion(brandsWithCount);
-  updateProgress(3);
-}
+  var btnSubmit = document.getElementById('btn-submit');
+  var btnText   = document.getElementById('btn-submit-text');
+  if (btnSubmit) btnSubmit.disabled = true;
 
-function skipFoto() {
-  if (!preparePendingData()) return;
-  doActualSubmit({});
-}
-
-async function submitWithFoto() {
-  if (!_verifiedStore) { showToast('Verifikasi Plant Code terlebih dahulu.'); return; }
-
-  var plantCode = _verifiedStore['Plant Code'];
-  var storeName = _verifiedStore['Store Name'] || '';
-  var btn  = document.getElementById('btn-submit-foto');
-  var text = document.getElementById('btn-foto-text');
-
-  if (getFotoCount() === 0) {
-    showToast('⚠️ Belum ada foto yang dipilih. Buka brand lalu pilih foto terlebih dahulu.');
-    return;
+  var fotoMap = {};
+  if (getFotoCount() > 0) {
+    if (btnText) btnText.textContent = '⏳ Mengupload foto...';
+    fotoMap = await uploadAllFotos(_pendingPlantCode, _pendingStoreName);
   }
 
-  btn.disabled = true;
-  text.textContent = '⏳ Mengupload foto...';
-
-  var fotoMap = await uploadAllFotos(plantCode, storeName);
-  if (Object.keys(fotoMap).length > 0) {
-    await saveFotoUrlsToSheet(plantCode, fotoMap);
-    showToast('✅ ' + Object.keys(fotoMap).length + ' foto berhasil diupload ke Drive!');
-  } else {
-    showToast('⚠️ Upload foto gagal. Cek koneksi internet dan coba lagi.');
-  }
-
-  btn.disabled = false;
-  text.textContent = '📤 Submit dengan Foto';
+  if (btnText) btnText.textContent = '⏳ Mengirim data...';
+  doActualSubmit(fotoMap);
 }
+
 
 function doActualSubmit(fotoMap) {
   var btnSubmit = document.getElementById('btn-submit');
@@ -473,19 +445,11 @@ function doActualSubmit(fotoMap) {
         updateProgress(4);
       } else {
         showToast('❌ ' + (json.message || 'Gagal menyimpan data. Coba lagi.'));
-        var btn = document.getElementById('btn-submit-foto');
-        if (btn) btn.disabled = false;
-        var text = document.getElementById('btn-foto-text');
-        if (text) text.textContent = '📤 Submit dengan Foto';
       }
     })
     .catch(function(err) {
       if (btnSubmit) { btnSubmit.disabled = false; }
-      if (btnText)   { btnText.textContent = '📤 Kirim Checklist LDU'; }
-      var btn = document.getElementById('btn-submit-foto');
-      if (btn) btn.disabled = false;
-      var text = document.getElementById('btn-foto-text');
-      if (text) text.textContent = '📤 Submit dengan Foto';
+      if (btnText)   { btnText.textContent = 'Kirim Checklist LDU'; }
       showToast('Gagal menghubungi server. Cek koneksi internet.');
       console.error(err);
     });
@@ -509,10 +473,6 @@ function resetForm() {
   if (stepFoto) stepFoto.classList.add('form-card--disabled');
   var accordion = document.getElementById('foto-accordion');
   if (accordion) accordion.innerHTML = '';
-  var btn = document.getElementById('btn-submit-foto');
-  if (btn) btn.disabled = false;
-  var text = document.getElementById('btn-foto-text');
-  if (text) text.textContent = '📤 Submit dengan Foto';
 
   document.getElementById('input-plant-code').value = '';
   document.getElementById('verify-result').style.display   = 'none';
