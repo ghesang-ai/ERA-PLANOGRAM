@@ -5,6 +5,7 @@
 // ============================================================
 
 const SHEET_NAME = 'ERA-PLANOGRAM';
+const FOTO_ROOT_FOLDER_ID = '1LG9I2fhm3YY6rNUpRUBOHjP6dCQ0FeXc';
 
 // ── TRIGGER: dipanggil otomatis saat Google Form disubmit ──
 function onFormSubmit(e) {
@@ -97,20 +98,116 @@ function updateMasterSheet(sheet, formData, plantCode) {
   return { success: true, storeName: storeName };
 }
 
+// ── Helper: get folder by name, buat jika belum ada ──
+function getOrCreateFolder(parentFolder, name) {
+  var iter = parentFolder.getFoldersByName(name);
+  if (iter.hasNext()) return iter.next();
+  return parentFolder.createFolder(name);
+}
+
+// ── Upload foto ke Drive, return web view URL ──
+function uploadFotoToDrive(payload) {
+  var plantCode = (payload.plantCode || '').toUpperCase().trim();
+  var storeName = (payload.storeName || plantCode).trim();
+  var brand     = (payload.brand || '').trim();
+  var type      = (payload.type || '').trim();
+  var fileData  = payload.fileData || '';
+  var fileName  = payload.fileName || (brand + '_' + type + '.jpg');
+
+  var base64 = fileData.replace(/^data:image\/\w+;base64,/, '');
+  var blob   = Utilities.newBlob(Utilities.base64Decode(base64), 'image/jpeg', fileName);
+
+  var root        = DriveApp.getFolderById(FOTO_ROOT_FOLDER_ID);
+  var now         = new Date();
+  var monthName   = Utilities.formatDate(now, 'Asia/Jakarta', 'yyyy-MM MMMM');
+  var folderName  = plantCode + ' ' + storeName;
+
+  var monthFolder = getOrCreateFolder(root, monthName);
+  var tokoFolder  = getOrCreateFolder(monthFolder, folderName);
+
+  var existing = tokoFolder.getFilesByName(fileName);
+  while (existing.hasNext()) existing.next().setTrashed(true);
+
+  var file = tokoFolder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  return {
+    status: 'success',
+    url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+    fileId: file.getId()
+  };
+}
+
+// ── Simpan URL foto ke kolom sheet ──
+function saveFotoUrls(payload) {
+  var plantCode = (payload.plantCode || '').toUpperCase().trim();
+  var fotoMap   = payload.fotoMap || {};
+
+  var ss      = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet   = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('Sheet tidak ditemukan');
+
+  var lastCol  = sheet.getLastColumn();
+  var lastRow  = sheet.getLastRow();
+  var headers  = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+
+  var headerMap = {};
+  headers.forEach(function(h, i) {
+    if (h) headerMap[h.toString().trim()] = i + 1;
+  });
+
+  var allRows   = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var targetRow = -1;
+  for (var i = 0; i < allRows.length; i++) {
+    if (allRows[i][0].toString().trim().toUpperCase() === plantCode) {
+      targetRow = i + 2;
+      break;
+    }
+  }
+  if (targetRow === -1) throw new Error('Plant Code tidak ditemukan: ' + plantCode);
+
+  Object.keys(fotoMap).forEach(function(colName) {
+    var colIdx = headerMap[colName];
+    if (!colIdx) {
+      lastCol++;
+      sheet.getRange(1, lastCol).setValue(colName);
+      headerMap[colName] = lastCol;
+      colIdx = lastCol;
+    }
+    sheet.getRange(targetRow, colIdx).setValue(fotoMap[colName] || '');
+  });
+
+  return { status: 'success', updated: Object.keys(fotoMap).length };
+}
+
 // ── doPost — menerima submission dari Custom Web Form ──
 function doPost(e) {
   try {
+    const body   = JSON.parse(e.postData.contents);
+    const action = body.action || 'submit';
+
+    if (action === 'uploadFoto') {
+      var result = uploadFotoToDrive(body);
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (action === 'saveFotoUrls') {
+      var result = saveFotoUrls(body);
+      return ContentService
+        .createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Default: submit checklist
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
     if (!sheet) throw new Error('Sheet tidak ditemukan: ' + SHEET_NAME);
 
-    // Parse JSON body dari form
-    const body = JSON.parse(e.postData.contents);
     const plantCode = (body['Plant Code'] || '').toString().trim().toUpperCase();
-
     if (!plantCode) throw new Error('Plant Code kosong');
 
-    // Konversi format: { Apple: 3, Samsung: 2 } → { Apple: ['3'], Samsung: ['2'] }
     const formData = {};
     Object.keys(body).forEach(function(k) {
       formData[k] = [body[k] !== undefined ? body[k].toString() : '0'];
@@ -128,10 +225,7 @@ function doPost(e) {
 
   } catch (err) {
     return ContentService
-      .createTextOutput(JSON.stringify({
-        status: 'error',
-        message: err.toString()
-      }))
+      .createTextOutput(JSON.stringify({ status: 'error', message: err.toString() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
