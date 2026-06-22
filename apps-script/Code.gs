@@ -232,7 +232,7 @@ function getLog(params) {
 
   var filterStore  = (params.store  || '').toUpperCase().trim();
   var filterBrand  = (params.brand  || '').toLowerCase().trim();
-  var filterAction = (params.action || '').toUpperCase().trim();
+  var filterAction = (params.action_filter || '').toUpperCase().trim();
   var limit        = parseInt(params.limit || '100');
 
   var result = [];
