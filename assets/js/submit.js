@@ -3,12 +3,14 @@
 var _verifiedStore    = null;
 var _allDevices       = [];
 var _checked          = {};
+var _status           = {};
 var _notes            = {};
 var _newItems         = [];
 var _deviceData       = null;
-var _pendingBrandCount = {};
-var _pendingPlantCode  = '';
-var _pendingStoreName  = '';
+var _pendingBrandCount  = {};
+var _pendingStatusCount = {};
+var _pendingPlantCode   = '';
+var _pendingStoreName   = '';
 
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -148,8 +150,24 @@ function renderChecklist() {
     html = filtered.map(function(d) {
       var i    = _allDevices.indexOf(d);
       var ok   = !!_checked[i];
+      var st   = _status[i] || null;
       var note = _notes[i] || '';
       var bp   = 'bp-' + d.brand.replace(/\s+/g, '-');
+
+      var statusRow = '';
+      if (ok) {
+        statusRow =
+          '<div class="cl-status-row">' +
+            '<span class="cl-status-label">Status:</span>' +
+            '<button class="cl-status-btn' + (st === 'display' ? ' s-display' : '') + '" ' +
+              'onclick="event.stopPropagation();setDeviceStatus(' + i + ',\'display\')">Display</button>' +
+            '<button class="cl-status-btn' + (st === 'tidak' ? ' s-tidak' : '') + '" ' +
+              'onclick="event.stopPropagation();setDeviceStatus(' + i + ',\'tidak\')">Tidak Display</button>' +
+            '<button class="cl-status-btn' + (st === 'rusak' ? ' s-rusak' : '') + '" ' +
+              'onclick="event.stopPropagation();setDeviceStatus(' + i + ',\'rusak\')">Rusak</button>' +
+          '</div>';
+      }
+
       return '<div class="cl-item' + (ok ? ' cl-checked' : '') + '">' +
         '<div class="cl-item-top" onclick="toggleDevice(' + i + ')">' +
           '<div class="cl-checkbox"><span class="cl-check-icon">✓</span></div>' +
@@ -159,6 +177,7 @@ function renderChecklist() {
           '</div>' +
           '<span class="cl-brand-pill ' + bp + '">' + escHtml(d.brand) + '</span>' +
         '</div>' +
+        statusRow +
         '<div class="cl-item-note-row">' +
           '<span class="cl-note-label">✏️ Catatan:</span>' +
           '<input class="cl-note-input" type="text" ' +
@@ -192,6 +211,14 @@ function onNoteInput(input) {
 
 function toggleDevice(i) {
   _checked[i] = !_checked[i];
+  if (!_checked[i]) _status[i] = null;
+  renderChecklist();
+  updateSubmitSummary();
+}
+
+function setDeviceStatus(i, s) {
+  if (!_checked[i]) return;
+  _status[i] = (_status[i] === s) ? null : s;
   renderChecklist();
   updateSubmitSummary();
 }
@@ -268,6 +295,14 @@ function updateSubmitSummary() {
     brandCount[key] = (brandCount[key] || 0) + 1;
   });
 
+  var totalDisplay = 0, totalTidak = 0, totalRusak = 0;
+  checkedIdx.forEach(function(k) {
+    var st = _status[parseInt(k)] || null;
+    if (st === 'display') totalDisplay++;
+    else if (st === 'tidak') totalTidak++;
+    else if (st === 'rusak') totalRusak++;
+  });
+
   var brandHtml = Object.keys(brandCount).length > 0
     ? Object.keys(brandCount).map(function(b) {
         return '<span class="summary-brand-chip">' + escHtml(b) + ': <strong>' + brandCount[b] + '</strong></span>';
@@ -286,6 +321,12 @@ function updateSubmitSummary() {
       ? '<div class="summary-row"><div class="summary-label">Item Baru</div>' +
         '<div class="summary-value"><strong style="color:#7c3aed">' + _newItems.length + '</strong> item ditambahkan</div></div>'
       : '') +
+    '<div class="summary-row"><div class="summary-label">Status Kondisi</div>' +
+      '<div class="summary-value">' +
+        '<span class="summary-status-chip s-display">Display: <strong>' + totalDisplay + '</strong></span>' +
+        '<span class="summary-status-chip s-tidak">Tidak Display: <strong>' + totalTidak + '</strong></span>' +
+        '<span class="summary-status-chip s-rusak">Rusak: <strong>' + totalRusak + '</strong></span>' +
+      '</div></div>' +
     '<div class="summary-row"><div class="summary-label">Per Brand</div>' +
       '<div class="summary-value summary-brand-chips">' + brandHtml + '</div></div>';
 }
@@ -312,9 +353,20 @@ function submitChecklist() {
     brandCount[colName] = (brandCount[colName] || 0) + 1;
   });
 
-  _pendingBrandCount = brandCount;
-  _pendingPlantCode  = plantCode;
-  _pendingStoreName  = _verifiedStore['Store Name'] || '';
+  var statusCount = {};
+  checkedIdx.forEach(function(k) {
+    var d  = _allDevices[parseInt(k)];
+    if (!d) return;
+    var colName = brandMap[(d.brand || '').toUpperCase()] || d.brand;
+    var st = _status[parseInt(k)] || 'display';
+    if (!statusCount[colName]) statusCount[colName] = { display: 0, tidak: 0, rusak: 0 };
+    statusCount[colName][st]++;
+  });
+
+  _pendingBrandCount  = brandCount;
+  _pendingStatusCount = statusCount;
+  _pendingPlantCode   = plantCode;
+  _pendingStoreName   = _verifiedStore['Store Name'] || '';
 
   showFotoStep(brandCount);
 }
@@ -362,6 +414,10 @@ function doActualSubmit(fotoMap) {
   submitUrl.searchParams.set('store', _pendingPlantCode);
   CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
     submitUrl.searchParams.set(brand, _pendingBrandCount[brand] || 0);
+    var sc = _pendingStatusCount[brand] || {};
+    submitUrl.searchParams.set(brand + '_Display',      sc.display || 0);
+    submitUrl.searchParams.set(brand + '_TidakDisplay', sc.tidak   || 0);
+    submitUrl.searchParams.set(brand + '_Rusak',        sc.rusak   || 0);
   });
 
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
@@ -405,14 +461,16 @@ function doActualSubmit(fotoMap) {
 }
 
 function resetForm() {
-  _verifiedStore     = null;
-  _allDevices        = [];
-  _checked           = {};
-  _notes             = {};
-  _newItems          = [];
-  _pendingBrandCount = {};
-  _pendingPlantCode  = '';
-  _pendingStoreName  = '';
+  _verifiedStore      = null;
+  _allDevices         = [];
+  _checked            = {};
+  _status             = {};
+  _notes              = {};
+  _newItems           = [];
+  _pendingBrandCount  = {};
+  _pendingStatusCount = {};
+  _pendingPlantCode   = '';
+  _pendingStoreName   = '';
 
   var fotoBody = document.getElementById('step-foto-body');
   if (fotoBody) fotoBody.style.display = 'none';

@@ -71,16 +71,19 @@ function updateMasterSheet(sheet, formData, plantCode) {
 
   // 3. Update setiap field brand dari form ke kolom yang sesuai
   const skipFields = ['plant code', 'store name', 'timestamp'];
+  let currentLastCol = sheet.getLastColumn();
   Object.keys(formData).forEach(function(fieldName) {
     if (skipFields.indexOf(fieldName.toLowerCase().trim()) !== -1) return;
-    const colIdx = headerMap[fieldName.toLowerCase().trim()];
-    if (colIdx) {
-      const rawVal = (formData[fieldName][0] || '0').toString().trim();
-      const numVal = parseInt(rawVal, 10);
-      sheet.getRange(targetRow, colIdx).setValue(isNaN(numVal) ? 0 : numVal);
-    } else {
-      Logger.log('WARN: Field tidak ada header match: ' + fieldName);
+    let colIdx = headerMap[fieldName.toLowerCase().trim()];
+    if (!colIdx) {
+      currentLastCol++;
+      sheet.getRange(1, currentLastCol).setValue(fieldName);
+      headerMap[fieldName.toLowerCase().trim()] = currentLastCol;
+      colIdx = currentLastCol;
     }
+    const rawVal = (formData[fieldName][0] || '0').toString().trim();
+    const numVal = parseInt(rawVal, 10);
+    sheet.getRange(targetRow, colIdx).setValue(isNaN(numVal) ? 0 : numVal);
   });
 
   // 4. Update Last Submit dan Status
