@@ -170,16 +170,15 @@ function renderStoreDetail(row, plantCode) {
       <span>Total LDU: <strong style="color:var(--blue)">' + totalLDU + ' unit</strong></span>\
     </div>';
 
-  var rowJson = escHtml(JSON.stringify(row)).replace(/'/g, '&#39;');
   var gridHtml = CONFIG.BRAND_LDU_COLUMNS.map(function(col) {
     var val  = parseInt(row[col]) || 0;
     var zero = val === 0 ? ' zero' : '';
-    var safeCol = col.replace(/'/g, "\\'");
-    return '<div class="ldu-card ldu-card--clickable" onclick="_openModalWithRow(\'' + safeCol + '\')">' +
+    var href = 'brand-detail.html?code=' + encodeURIComponent(plantCode) + '&brand=' + encodeURIComponent(col);
+    return '<a class="ldu-card ldu-card--clickable" href="' + href + '" style="text-decoration:none;color:inherit">' +
         '<div class="ldu-card-brand">' + escHtml(col) + '</div>' +
         '<div class="ldu-card-count' + zero + '">' + val + '</div>' +
         '<div class="ldu-card-hint">Tap untuk lihat detail</div>' +
-      '</div>';
+      '</a>';
   }).join('');
 
   document.getElementById('ldu-grid').innerHTML = gridHtml;

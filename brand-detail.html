@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Brand — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .bd-hero {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 20px 24px 0;
+    }
+    .bd-back { font-size:13px; color:var(--blue); margin-bottom:12px; display:inline-block; }
+    .bd-brand-name {
+      font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+      color: var(--gray-800); margin-bottom: 4px;
+    }
+    .bd-store-name { font-size: 13px; color: var(--gray-400); margin-bottom: 16px; }
+    .bd-status-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      padding: 14px 0;
+    }
+    .bd-stat {
+      display: flex; flex-direction: column; align-items: center;
+      border-radius: 12px; padding: 12px 24px; flex: 1; min-width: 90px;
+    }
+    .bd-stat-num { font-size: 32px; font-weight: 800; line-height: 1; }
+    .bd-stat-label { font-size: 11px; font-weight: 600; letter-spacing: .4px; margin-top: 4px; text-transform: uppercase; }
+    .bd-stat.s-display  { background: #dcfce7; color: #15803d; }
+    .bd-stat.s-tidak    { background: #fef9c3; color: #a16207; }
+    .bd-stat.s-rusak    { background: #fee2e2; color: #dc2626; }
+    .bd-stat.s-total    { background: var(--blue-light); color: var(--blue-dark); }
+
+    .bd-section { padding: 20px 24px; }
+    .bd-section-title {
+      font-size: 12px; font-weight: 700; letter-spacing: .6px;
+      text-transform: uppercase; color: var(--gray-400);
+      margin-bottom: 14px;
+    }
+
+    /* Foto */
+    .bd-foto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .bd-foto-item {}
+    .bd-foto-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .4px;
+      text-transform: uppercase; color: var(--gray-400); margin-bottom: 6px;
+    }
+    .bd-foto-img {
+      width: 100%; border-radius: 10px; object-fit: cover;
+      border: 1px solid var(--gray-200);
+      max-height: 220px;
+      transition: opacity .2s;
+    }
+    .bd-foto-img:hover { opacity: .85; }
+    .bd-foto-empty {
+      width: 100%; height: 120px; border-radius: 10px;
+      background: var(--gray-100); border: 1px dashed var(--gray-200);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--gray-400);
+    }
+
+    /* Device list */
+    .bd-device-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid var(--gray-100);
+    }
+    .bd-device-item:last-child { border-bottom: none; }
+    .bd-device-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--gray-100); color: var(--gray-600);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .bd-device-name { font-size: 13px; font-weight: 600; color: var(--gray-800); }
+    .bd-device-sn { font-size: 11px; color: var(--gray-400); margin-top: 2px; font-family: monospace; }
+
+    .bd-empty { color: var(--gray-400); font-size: 13px; padding: 12px 0; }
+    .bd-card {
+      background: white; border-radius: var(--radius);
+      box-shadow: var(--shadow); margin: 0 16px 16px;
+    }
+    .main-wrap { padding-top: 0; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <a id="back-link" href="store-detail.html" class="topbar-back-btn">← Detail Toko</a>
+    </div>
+    <div class="topbar-center">
+      <div class="topbar-brand-pill"><span class="topbar-brand-full">ERAJAYA DIGITAL · REGION 5</span><span class="topbar-brand-short">ERAJAYA · R5</span></div>
+    </div>
+    <div class="topbar-right"></div>
+  </div>
+
+  <div id="page-content" style="padding-bottom:40px">
+    <div style="padding:40px;text-align:center;color:var(--gray-400)">Memuat data...</div>
+  </div>
+
+  <footer class="footer">ERA-PLANOGRAM · VMD Region 5 · Erajaya Digital</footer>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/brand-detail.js"></script>
+</body>
+</html>
