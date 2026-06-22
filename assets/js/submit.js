@@ -336,16 +336,16 @@ function preparePendingData() {
 
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
 
+  if (checkedIdx.length === 0) {
+    showToast('⚠️ Belum ada device yang dicentang. Centang minimal 1 device sebelum submit.');
+    return false;
+  }
+
   var missingStatus = checkedIdx.filter(function(k) { return !_status[parseInt(k)]; });
   if (missingStatus.length > 0) {
-    showToast('⚠️ ' + missingStatus.length + ' device belum dipilih statusnya (Display / Tidak Display / Rusak).');
-    var firstIdx = parseInt(missingStatus[0]);
-    var d = _allDevices[firstIdx];
-    if (d) {
-      document.getElementById('cl-search').value = d.name.substring(0, 10);
-      renderChecklist();
-    }
-    return false;
+    missingStatus.forEach(function(k) { _status[parseInt(k)] = 'display'; });
+    renderChecklist();
+    showToast('ℹ️ ' + missingStatus.length + ' device belum ada status → otomatis diset Display.');
   }
 
   var brandMap = {};
