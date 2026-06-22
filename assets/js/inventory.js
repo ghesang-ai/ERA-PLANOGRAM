@@ -236,7 +236,7 @@ async function saveDevice() {
       payload = { action, plantCode: _plantCode, storeName: _storeName, brand, deviceName: name, serialNo: sn, status, location: loc, notes };
     }
 
-    var res  = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    var res  = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
     var text = await res.text();
     var json;
     try { json = JSON.parse(text); } catch(e) { throw new Error('Non-JSON: ' + text.substring(0, 200)); }
@@ -280,7 +280,7 @@ async function confirmRetur() {
 
   try {
     var res  = await fetch(CONFIG.API_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'returDevice', deviceId: _returId, destination, reason, notes })
     });
     var json = await res.json();
@@ -301,7 +301,7 @@ async function confirmDelete(deviceId, deviceName) {
   if (!confirm('Hapus "' + deviceName + '"?\n\nHapus hanya untuk data salah input. Untuk retur ke gudang gunakan tombol Retur.')) return;
   try {
     var res  = await fetch(CONFIG.API_URL, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ action: 'deleteDevice', deviceId, reason: 'Hapus manual oleh user' })
     });
     var json = await res.json();
