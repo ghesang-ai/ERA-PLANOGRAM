@@ -71,10 +71,14 @@ async function loadInventory() {
   document.getElementById('inv-title').textContent = 'Inventory — ' + _storeName;
   document.getElementById('inv-sub').textContent   = '📍 ' + _plantCode + ' · ' + _allDevices.length + ' device terdaftar';
 
-  // Brand filter
-  var brands = [];
+  // Brand list: gabungan dari CONFIG + existing inventory
+  var brands = (typeof CONFIG !== 'undefined' && CONFIG.BRAND_LDU_COLUMNS)
+    ? CONFIG.BRAND_LDU_COLUMNS.slice()
+    : [];
   _allDevices.forEach(function(d) { if (d.brand && brands.indexOf(d.brand) === -1) brands.push(d.brand); });
   brands.sort();
+
+  // Brand filter dropdown
   var bSel = document.getElementById('f-brand');
   brands.forEach(function(b) {
     var opt = document.createElement('option');
