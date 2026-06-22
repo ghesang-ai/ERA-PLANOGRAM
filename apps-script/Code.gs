@@ -81,9 +81,13 @@ function updateMasterSheet(sheet, formData, plantCode) {
       headerMap[fieldName.toLowerCase().trim()] = currentLastCol;
       colIdx = currentLastCol;
     }
-    const rawVal = (formData[fieldName][0] || '0').toString().trim();
-    const numVal = parseInt(rawVal, 10);
-    sheet.getRange(targetRow, colIdx).setValue(isNaN(numVal) ? 0 : numVal);
+    const rawVal = (formData[fieldName][0] || '').toString().trim();
+    if (fieldName.toLowerCase().trim().endsWith('_devicestatus')) {
+      sheet.getRange(targetRow, colIdx).setValue(rawVal);
+    } else {
+      const numVal = parseInt(rawVal, 10);
+      sheet.getRange(targetRow, colIdx).setValue(isNaN(numVal) ? 0 : numVal);
+    }
   });
 
   // 4. Update Last Submit dan Status

@@ -7,10 +7,11 @@ var _status           = {};
 var _notes            = {};
 var _newItems         = [];
 var _deviceData       = null;
-var _pendingBrandCount  = {};
-var _pendingStatusCount = {};
-var _pendingPlantCode   = '';
-var _pendingStoreName   = '';
+var _pendingBrandCount      = {};
+var _pendingStatusCount     = {};
+var _pendingDeviceStatusMap = {};
+var _pendingPlantCode       = '';
+var _pendingStoreName       = '';
 
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -381,10 +382,20 @@ function preparePendingData() {
     statusCount[colName]['display']++;
   });
 
-  _pendingBrandCount  = brandCount;
-  _pendingStatusCount = statusCount;
-  _pendingPlantCode   = _verifiedStore['Plant Code'];
-  _pendingStoreName   = _verifiedStore['Store Name'] || '';
+  // Build per-device status map: { BrandCol: { "SN_or_name": "display"|"tidak"|"rusak" } }
+  var deviceStatusMap = {};
+  _allDevices.forEach(function(d, i) {
+    var colName = brandMap[(d.brand || '').toUpperCase()] || d.brand;
+    if (!deviceStatusMap[colName]) deviceStatusMap[colName] = {};
+    var key = (d.sn && d.sn !== '-') ? d.sn : d.name;
+    deviceStatusMap[colName][key] = _checked[i] ? (_status[i] || 'display') : 'tidak';
+  });
+
+  _pendingBrandCount      = brandCount;
+  _pendingStatusCount     = statusCount;
+  _pendingDeviceStatusMap = deviceStatusMap;
+  _pendingPlantCode       = _verifiedStore['Plant Code'];
+  _pendingStoreName       = _verifiedStore['Store Name'] || '';
   return true;
 }
 
@@ -421,6 +432,9 @@ function doActualSubmit(fotoMap) {
     submitUrl.searchParams.set(brand + '_Display',      sc.display || 0);
     submitUrl.searchParams.set(brand + '_TidakDisplay', sc.tidak   || 0);
     submitUrl.searchParams.set(brand + '_Rusak',        sc.rusak   || 0);
+    if (_pendingDeviceStatusMap[brand]) {
+      submitUrl.searchParams.set(brand + '_DeviceStatus', JSON.stringify(_pendingDeviceStatusMap[brand]));
+    }
   });
 
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
