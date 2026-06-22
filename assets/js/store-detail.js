@@ -16,13 +16,14 @@ async function loadDeviceData() {
   } catch (e) { console.warn('Device data unavailable', e); }
 }
 
-function openDeviceModal(brand) {
-  var modal = document.getElementById('device-modal');
-  var titleEl = document.getElementById('modal-brand-title');
-  var subEl   = document.getElementById('modal-brand-sub');
-  var listEl  = document.getElementById('modal-device-list');
+function openDeviceModal(brand, row) {
+  var modal     = document.getElementById('device-modal');
+  var titleEl   = document.getElementById('modal-brand-title');
+  var subEl     = document.getElementById('modal-brand-sub');
+  var listEl    = document.getElementById('modal-device-list');
+  var statusRow = document.getElementById('modal-status-row');
+  var fotoRow   = document.getElementById('modal-foto-row');
 
-  // Normalize brand name: BRAND_LDU_COLUMNS uses title-case, JSON uses uppercase
   var brandUpper = brand.toUpperCase();
   var devices = [];
   if (_deviceData && _currentPlant && _deviceData[_currentPlant]) {
@@ -36,8 +37,53 @@ function openDeviceModal(brand) {
     ? _deviceData[_currentPlant].storeName || _currentPlant
     : _currentPlant;
 
+  // ── Status chips ──
+  if (row) {
+    var colBase   = brand;
+    var nDisplay  = parseInt(row[colBase + '_Display'])      || 0;
+    var nTidak    = parseInt(row[colBase + '_TidakDisplay']) || 0;
+    var nRusak    = parseInt(row[colBase + '_Rusak'])        || 0;
+    var hasStatus = nDisplay + nTidak + nRusak > 0;
+
+    if (hasStatus) {
+      statusRow.style.display = 'flex';
+      statusRow.innerHTML =
+        '<span style="font-size:12px;color:var(--gray-400);align-self:center;margin-right:4px">Status:</span>' +
+        '<span class="summary-status-chip s-display">Display: <strong>' + nDisplay + '</strong></span>' +
+        '<span class="summary-status-chip s-tidak">Tidak Display: <strong>' + nTidak + '</strong></span>' +
+        '<span class="summary-status-chip s-rusak">Rusak: <strong>' + nRusak + '</strong></span>';
+    } else {
+      statusRow.style.display = 'none';
+    }
+
+    // ── Foto ──
+    var lduFotoUrl  = row[brand + '_LDU_Foto']    || '';
+    var wallFotoUrl = row[brand + '_Wallbay_Foto'] || '';
+    if (lduFotoUrl || wallFotoUrl) {
+      fotoRow.style.display = 'flex';
+      function fotoThumb(url, label) {
+        if (!url) return '<div style="flex:1;min-width:120px;text-align:center;color:var(--gray-300);font-size:12px;padding:12px">Tidak ada foto</div>';
+        var prev = url.replace('/view', '/preview');
+        return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-decoration:none">' +
+          '<div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;font-weight:600">' + label + '</div>' +
+          '<img src="' + escHtml(prev) + '" alt="' + escHtml(label) + '" ' +
+               'style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-100)">' +
+        '</a>';
+      }
+      fotoRow.innerHTML =
+        fotoThumb(lduFotoUrl,  '📺 LDU Display') +
+        fotoThumb(wallFotoUrl, '🗂️ Wallbay');
+    } else {
+      fotoRow.style.display = 'none';
+    }
+  } else {
+    statusRow.style.display = 'none';
+    fotoRow.style.display   = 'none';
+  }
+
+  // ── Device list ──
   if (devices.length === 0) {
-    listEl.innerHTML = '<div class="modal-empty">Tidak ada data device untuk brand ini di toko ini.<br><small>Data mungkin belum ada di file LDU Device.</small></div>';
+    listEl.innerHTML = '<div class="modal-empty">Tidak ada data device untuk brand ini.<br><small>Data mungkin belum ada di file LDU Device.</small></div>';
   } else {
     listEl.innerHTML = devices.map(function(d, i) {
       return '<div class="modal-device-item">' +
@@ -52,6 +98,11 @@ function openDeviceModal(brand) {
 
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+}
+
+function _openModalWithRow(brand) {
+  var row = window._eraAllData && window._eraAllData[0] ? window._eraAllData[0] : null;
+  openDeviceModal(brand, row);
 }
 
 function closeDeviceModal(event) {
@@ -119,10 +170,12 @@ function renderStoreDetail(row, plantCode) {
       <span>Total LDU: <strong style="color:var(--blue)">' + totalLDU + ' unit</strong></span>\
     </div>';
 
+  var rowJson = escHtml(JSON.stringify(row)).replace(/'/g, '&#39;');
   var gridHtml = CONFIG.BRAND_LDU_COLUMNS.map(function(col) {
     var val  = parseInt(row[col]) || 0;
     var zero = val === 0 ? ' zero' : '';
-    return '<div class="ldu-card ldu-card--clickable" onclick="openDeviceModal(\'' + escHtml(col).replace(/'/g, "\\'") + '\')">' +
+    var safeCol = col.replace(/'/g, "\\'");
+    return '<div class="ldu-card ldu-card--clickable" onclick="_openModalWithRow(\'' + safeCol + '\')">' +
         '<div class="ldu-card-brand">' + escHtml(col) + '</div>' +
         '<div class="ldu-card-count' + zero + '">' + val + '</div>' +
         '<div class="ldu-card-hint">Tap untuk lihat detail</div>' +

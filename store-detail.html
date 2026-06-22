@@ -57,7 +57,7 @@
 
   </div>
 
-  <!-- DEVICE LIST MODAL -->
+  <!-- BRAND DETAIL MODAL -->
   <div class="device-modal-overlay" id="device-modal" style="display:none" onclick="closeDeviceModal(event)">
     <div class="device-modal-card">
       <div class="device-modal-header">
@@ -67,6 +67,11 @@
         </div>
         <button class="device-modal-close" onclick="closeDeviceModal()">✕</button>
       </div>
+      <!-- Status chips -->
+      <div id="modal-status-row" style="display:none;gap:8px;padding:12px 20px;border-bottom:1px solid var(--gray-100);flex-wrap:wrap"></div>
+      <!-- Foto section -->
+      <div id="modal-foto-row" style="display:none;padding:14px 20px;border-bottom:1px solid var(--gray-100);gap:12px"></div>
+      <!-- Device list -->
       <div class="device-modal-body" id="modal-device-list">
         <div class="modal-empty">Memuat data...</div>
       </div>
