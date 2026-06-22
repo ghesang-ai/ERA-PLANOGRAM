@@ -218,7 +218,7 @@ a { text-decoration: none; }
 
 /* ── SUMMARY CARDS ── */
 .summary-grid {
-  display: grid; grid-template-columns: repeat(3,1fr); gap: 16px;
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
   margin-bottom: 1.5rem;
 }
 .summary-card {
@@ -242,9 +242,13 @@ a { text-decoration: none; }
 .sc--month   { background: linear-gradient(135deg, #0f766e, #14b8a6); }
 .sc--pending { background: linear-gradient(135deg, #be123c, #f43f5e); }
 .sc--ldu     { background: linear-gradient(135deg, #6d28d9, #8b5cf6); }
+.sc--rusak   { background: linear-gradient(135deg, #b45309, #f59e0b); }
 .sc-badge--month   { background: rgba(255,255,255,.25); }
 .sc-value--month   { color: white; }
 .sc-bar-fill--month { background: rgba(255,255,255,.7); }
+.sc-badge--rusak    { background: rgba(255,255,255,.25); color: white; }
+.sc-value--rusak    { color: white; }
+.sc-bar-fill--rusak { background: rgba(255,255,255,.7); }
 
 .sc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
 .sc-icon {
@@ -680,6 +684,7 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
 @media (max-width: 1100px) {
   .charts-row { grid-template-columns: 1fr 1fr; }
   .charts-row .chart-card:last-child { grid-column: span 2; }
+  .summary-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {

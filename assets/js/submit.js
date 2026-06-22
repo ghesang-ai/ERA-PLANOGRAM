@@ -337,6 +337,18 @@ function submitChecklist() {
   var plantCode  = _verifiedStore['Plant Code'];
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
 
+  var missingStatus = checkedIdx.filter(function(k) { return !_status[parseInt(k)]; });
+  if (missingStatus.length > 0) {
+    showToast('⚠️ ' + missingStatus.length + ' device belum dipilih statusnya (Display / Tidak Display / Rusak).');
+    var firstIdx = parseInt(missingStatus[0]);
+    var d = _allDevices[firstIdx];
+    if (d) {
+      document.getElementById('cl-search').value = d.name.substring(0, 10);
+      renderChecklist();
+    }
+    return;
+  }
+
   var brandMap = {};
   CONFIG.BRAND_LDU_COLUMNS.forEach(function(col) { brandMap[col.toUpperCase()] = col; });
 
@@ -354,13 +366,20 @@ function submitChecklist() {
   });
 
   var statusCount = {};
-  checkedIdx.forEach(function(k) {
-    var d  = _allDevices[parseInt(k)];
-    if (!d) return;
+  _allDevices.forEach(function(d, i) {
     var colName = brandMap[(d.brand || '').toUpperCase()] || d.brand;
-    var st = _status[parseInt(k)] || 'display';
     if (!statusCount[colName]) statusCount[colName] = { display: 0, tidak: 0, rusak: 0 };
-    statusCount[colName][st]++;
+    if (_checked[i]) {
+      var st = _status[i] || 'tidak';
+      statusCount[colName][st]++;
+    } else {
+      statusCount[colName]['tidak']++;
+    }
+  });
+  _newItems.forEach(function(it) {
+    var colName = brandMap[(it.brand || '').toUpperCase()] || it.brand;
+    if (!statusCount[colName]) statusCount[colName] = { display: 0, tidak: 0, rusak: 0 };
+    statusCount[colName]['display']++;
   });
 
   _pendingBrandCount  = brandCount;

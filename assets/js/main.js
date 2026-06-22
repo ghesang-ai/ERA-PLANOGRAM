@@ -125,14 +125,27 @@ function renderSummaryCards(data) {
   if (!container) return;
   var total      = data.length;
   var submitted  = data.filter(function(d) { return d['Status'] === 'Submitted'; }).length;
-  var pending    = total - submitted;
   var pct        = total > 0 ? Math.round((submitted / total) * 100) : 0;
   var totalLDU   = data.reduce(function(s, d) { return s + CONFIG.calcTotalLDU(d); }, 0);
 
-  var thisMonth  = data.filter(function(d) { return getSubmitPeriod(d['Last Submit']).key === 'this_month'; }).length;
+  var thisMonth     = data.filter(function(d) { return getSubmitPeriod(d['Last Submit']).key === 'this_month'; }).length;
   var belumBulanIni = total - thisMonth;
   var pctBulanIni   = total > 0 ? Math.round((thisMonth / total) * 100) : 0;
-  var nowLabel   = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  var nowLabel      = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+
+  var totalRusak = 0;
+  var tokoRusak  = 0;
+  data.forEach(function(d) {
+    var rusakToko = 0;
+    Object.keys(d).forEach(function(col) {
+      if (col.endsWith('_Rusak')) {
+        var val = parseInt(d[col]) || 0;
+        totalRusak += val;
+        rusakToko  += val;
+      }
+    });
+    if (rusakToko > 0) tokoRusak++;
+  });
 
   container.innerHTML =
     '<div class="summary-card sc--submit">' +
@@ -155,6 +168,13 @@ function renderSummaryCards(data) {
       '<div class="sc-label">Total Unit LDU Terpasang</div>' +
       '<div class="sc-bar"><div class="sc-bar-fill" style="width:' + Math.min(pct + 20, 100) + '%"></div></div>' +
       '<div class="sc-foot">📊 Dari ' + submitted + ' toko yang sudah submit</div>' +
+    '</div>' +
+    '<div class="summary-card sc--rusak">' +
+      '<div class="sc-top"><div class="sc-icon">⚠️</div><div class="sc-badge sc-badge--rusak">' + tokoRusak + ' toko</div></div>' +
+      '<div class="sc-value sc-value--rusak">' + totalRusak + '</div>' +
+      '<div class="sc-label">Total Unit Rusak Region 5</div>' +
+      '<div class="sc-bar"><div class="sc-bar-fill sc-bar-fill--rusak" style="width:' + Math.min(totalRusak, 100) + '%"></div></div>' +
+      '<div class="sc-foot">🔧 ' + tokoRusak + ' toko ada device rusak</div>' +
     '</div>';
 }
 
