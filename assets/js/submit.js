@@ -432,9 +432,6 @@ function doActualSubmit(fotoMap) {
     submitUrl.searchParams.set(brand + '_Display',      sc.display || 0);
     submitUrl.searchParams.set(brand + '_TidakDisplay', sc.tidak   || 0);
     submitUrl.searchParams.set(brand + '_Rusak',        sc.rusak   || 0);
-    if (_pendingDeviceStatusMap[brand]) {
-      submitUrl.searchParams.set(brand + '_DeviceStatus', JSON.stringify(_pendingDeviceStatusMap[brand]));
-    }
   });
 
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
@@ -446,6 +443,7 @@ function doActualSubmit(fotoMap) {
       if (btnText)   { btnText.textContent = '📤 Kirim Checklist LDU'; }
 
       if (json.status === 'success') {
+        await saveDeviceStatusToSheet(_pendingPlantCode, _pendingDeviceStatusMap);
         if (fotoMap && Object.keys(fotoMap).length > 0) {
           await saveFotoUrlsToSheet(_pendingPlantCode, fotoMap);
         }

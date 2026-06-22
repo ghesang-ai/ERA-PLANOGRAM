@@ -196,6 +196,30 @@ async function saveFotoUrlsToSheet(plantCode, fotoMap) {
   }
 }
 
+async function saveDeviceStatusToSheet(plantCode, deviceStatusMap) {
+  if (!deviceStatusMap || Object.keys(deviceStatusMap).length === 0) return;
+  var statusData = {};
+  Object.keys(deviceStatusMap).forEach(function(brand) {
+    if (Object.keys(deviceStatusMap[brand]).length > 0) {
+      statusData[brand + '_DeviceStatus'] = JSON.stringify(deviceStatusMap[brand]);
+    }
+  });
+  if (Object.keys(statusData).length === 0) return;
+  try {
+    await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action:    'saveFotoUrls',
+        plantCode: plantCode,
+        fotoMap:   statusData
+      })
+    });
+  } catch (err) {
+    console.warn('saveDeviceStatus error:', err);
+  }
+}
+
 function getFotoCount() {
   return Object.keys(_fotoData).length;
 }
