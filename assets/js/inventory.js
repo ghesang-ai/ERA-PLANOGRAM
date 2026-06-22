@@ -237,7 +237,9 @@ async function saveDevice() {
     }
 
     var res  = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    var json = await res.json();
+    var text = await res.text();
+    var json;
+    try { json = JSON.parse(text); } catch(e) { throw new Error('Non-JSON: ' + text.substring(0, 200)); }
 
     if (json.status === 'success') {
       showToast(_editingId ? '✅ Device berhasil diupdate.' : '✅ Device berhasil ditambahkan.');
@@ -247,7 +249,7 @@ async function saveDevice() {
       showToast('❌ ' + (json.message || 'Gagal menyimpan.'), true);
     }
   } catch(err) {
-    showToast('❌ Gagal menghubungi server.', true);
+    showToast('❌ Error: ' + err.message, true);
   }
 
   btn.disabled = false;
