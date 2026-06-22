@@ -31,11 +31,27 @@
       </div>
     </div>
 
+    <!-- TAB ROW -->
+    <div class="section" style="padding-bottom:0">
+      <div class="detail-tab-row">
+        <button class="detail-tab active" id="tab-btn-ldu" onclick="setDetailTab('ldu')">📊 LDU per Brand</button>
+        <button class="detail-tab" id="tab-btn-foto" onclick="setDetailTab('foto')">📷 Foto LDU &amp; Wallbay</button>
+      </div>
+    </div>
+
     <!-- GRID LDU PER BRAND -->
-    <div class="section">
+    <div class="section" id="tab-ldu-section">
       <div class="section-title">Jumlah Unit LDU per Brand</div>
       <div class="ldu-grid" id="ldu-grid">
         <div style="color:var(--gray-400)">Memuat...</div>
+      </div>
+    </div>
+
+    <!-- FOTO GALLERY -->
+    <div class="section" id="tab-foto-section" style="display:none">
+      <div class="section-title">Foto LDU &amp; Wallbay per Brand</div>
+      <div id="foto-gallery-container">
+        <div style="color:var(--gray-400);font-size:13px">Belum ada foto yang diupload.</div>
       </div>
     </div>
 

@@ -131,6 +131,8 @@ function renderStoreDetail(row, plantCode) {
 
   document.getElementById('ldu-grid').innerHTML = gridHtml;
 
+  renderFotoTab(row);
+
   var exportBtn = document.getElementById('export-btn');
   if (exportBtn) {
     exportBtn.disabled = false;
@@ -138,6 +140,78 @@ function renderStoreDetail(row, plantCode) {
       exportStoreExcel(plantCode, row['Store Name']);
     };
   }
+}
+
+function setDetailTab(tab) {
+  var lduSection  = document.getElementById('tab-ldu-section');
+  var fotoSection = document.getElementById('tab-foto-section');
+  var btnLdu      = document.getElementById('tab-btn-ldu');
+  var btnFoto     = document.getElementById('tab-btn-foto');
+  if (!lduSection || !fotoSection) return;
+
+  if (tab === 'foto') {
+    lduSection.style.display  = 'none';
+    fotoSection.style.display = 'block';
+    if (btnLdu)  btnLdu.classList.remove('active');
+    if (btnFoto) btnFoto.classList.add('active');
+  } else {
+    lduSection.style.display  = 'block';
+    fotoSection.style.display = 'none';
+    if (btnLdu)  btnLdu.classList.add('active');
+    if (btnFoto) btnFoto.classList.remove('active');
+  }
+}
+
+function renderFotoTab(row) {
+  var container = document.getElementById('foto-gallery-container');
+  if (!container) return;
+
+  // Collect brands that have any foto column
+  var brandFotoMap = {};
+  Object.keys(row).forEach(function(col) {
+    var lduMatch  = col.match(/^(.+)_LDU_Foto$/);
+    var wallMatch = col.match(/^(.+)_Wallbay_Foto$/);
+    var brand, type, url;
+    if (lduMatch)  { brand = lduMatch[1];  type = 'LDU';    url = row[col]; }
+    if (wallMatch) { brand = wallMatch[1]; type = 'Wallbay'; url = row[col]; }
+    if (brand && url) {
+      if (!brandFotoMap[brand]) brandFotoMap[brand] = {};
+      brandFotoMap[brand][type] = url;
+    }
+  });
+
+  var brands = Object.keys(brandFotoMap);
+  if (brands.length === 0) {
+    container.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:12px 0">Belum ada foto yang diupload untuk toko ini.</div>';
+    return;
+  }
+
+  container.innerHTML = brands.map(function(brand) {
+    var lduUrl  = brandFotoMap[brand]['LDU']    || '';
+    var wallUrl = brandFotoMap[brand]['Wallbay'] || '';
+
+    function imgHtml(url, label) {
+      if (!url) return '<div class="foto-img-empty">Tidak ada foto</div>';
+      return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener">' +
+               '<img src="' + escHtml(url.replace('/view', '/preview')) + '" alt="' + escHtml(label) + '" ' +
+                    'class="foto-gallery-img" loading="lazy">' +
+             '</a>';
+    }
+
+    return '<div class="foto-gallery-brand-card">' +
+      '<div class="foto-gallery-brand-title">' + escHtml(brand) + '</div>' +
+      '<div class="foto-cols">' +
+        '<div class="foto-col">' +
+          '<div class="foto-col-label ldu">📺 LDU Display</div>' +
+          imgHtml(lduUrl, brand + ' LDU') +
+        '</div>' +
+        '<div class="foto-col">' +
+          '<div class="foto-col-label wall">🗂️ Wallbay</div>' +
+          imgHtml(wallUrl, brand + ' Wallbay') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 document.addEventListener('DOMContentLoaded', loadStoreDetail);

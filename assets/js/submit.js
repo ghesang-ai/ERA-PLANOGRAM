@@ -1,11 +1,14 @@
 // assets/js/submit.js — ERA-PLANOGRAM Checklist LDU Form
 
-var _verifiedStore = null;
-var _allDevices    = [];
-var _checked       = {};
-var _notes         = {};
-var _newItems      = [];
-var _deviceData    = null;
+var _verifiedStore    = null;
+var _allDevices       = [];
+var _checked          = {};
+var _notes            = {};
+var _newItems         = [];
+var _deviceData       = null;
+var _pendingBrandCount = {};
+var _pendingPlantCode  = '';
+var _pendingStoreName  = '';
 
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -290,19 +293,11 @@ function updateSubmitSummary() {
 function submitChecklist() {
   if (!_verifiedStore) { showToast('Verifikasi Plant Code terlebih dahulu.'); return; }
 
-  var btnSubmit = document.getElementById('btn-submit');
-  var btnText   = document.getElementById('btn-submit-text');
-  btnSubmit.disabled = true;
-  btnText.textContent = '⏳ Mengirim data...';
-
-  var plantCode = _verifiedStore['Plant Code'];
+  var plantCode  = _verifiedStore['Plant Code'];
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
 
-  // Build case-insensitive map: "APPLE" → "Apple", "SAMSUNG" → "Samsung", etc.
   var brandMap = {};
-  CONFIG.BRAND_LDU_COLUMNS.forEach(function(col) {
-    brandMap[col.toUpperCase()] = col;
-  });
+  CONFIG.BRAND_LDU_COLUMNS.forEach(function(col) { brandMap[col.toUpperCase()] = col; });
 
   var brandCount = {};
   checkedIdx.forEach(function(k) {
@@ -317,45 +312,117 @@ function submitChecklist() {
     brandCount[colName] = (brandCount[colName] || 0) + 1;
   });
 
+  _pendingBrandCount = brandCount;
+  _pendingPlantCode  = plantCode;
+  _pendingStoreName  = _verifiedStore['Store Name'] || '';
+
+  showFotoStep(brandCount);
+}
+
+function showFotoStep(brandCount) {
+  var brandsWithCount = Object.keys(brandCount).map(function(b) {
+    return { name: b, count: brandCount[b] };
+  });
+
+  buildFotoAccordion(brandsWithCount);
+
+  var stepFoto = document.getElementById('step-foto');
+  var body     = document.getElementById('step-foto-body');
+  stepFoto.classList.remove('form-card--disabled');
+  body.style.display = 'block';
+  updateProgress(3);
+
+  setTimeout(function() {
+    stepFoto.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 200);
+}
+
+function skipFoto() {
+  doActualSubmit({});
+}
+
+async function submitWithFoto() {
+  var btn  = document.getElementById('btn-submit-foto');
+  var text = document.getElementById('btn-foto-text');
+  btn.disabled = true;
+  text.textContent = '⏳ Mengupload foto...';
+
+  var fotoMap = await uploadAllFotos(_pendingPlantCode, _pendingStoreName);
+  doActualSubmit(fotoMap);
+}
+
+function doActualSubmit(fotoMap) {
+  var btnSubmit = document.getElementById('btn-submit');
+  var btnText   = document.getElementById('btn-submit-text');
+  if (btnSubmit) { btnSubmit.disabled = true; }
+  if (btnText)   { btnText.textContent = '⏳ Mengirim data...'; }
+
   var submitUrl = new URL(CONFIG.API_URL);
   submitUrl.searchParams.set('action', 'submit');
-  submitUrl.searchParams.set('store', plantCode);
+  submitUrl.searchParams.set('store', _pendingPlantCode);
   CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
-    submitUrl.searchParams.set(brand, brandCount[brand] || 0);
+    submitUrl.searchParams.set(brand, _pendingBrandCount[brand] || 0);
   });
+
+  var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
 
   fetch(submitUrl.toString())
     .then(function(r) { return r.json(); })
-    .then(function(json) {
-      btnSubmit.disabled = false;
-      btnText.textContent = '📤 Kirim Checklist LDU';
+    .then(async function(json) {
+      if (btnSubmit) { btnSubmit.disabled = false; }
+      if (btnText)   { btnText.textContent = '📤 Kirim Checklist LDU'; }
 
       if (json.status === 'success') {
+        if (fotoMap && Object.keys(fotoMap).length > 0) {
+          await saveFotoUrlsToSheet(_pendingPlantCode, fotoMap);
+        }
         document.getElementById('success-sub').textContent =
-          _verifiedStore['Store Name'] + ' · ' + checkedIdx.length + ' device tercentang' +
-          (_newItems.length > 0 ? ' · ' + _newItems.length + ' item baru' : '');
+          _pendingStoreName + ' · ' + checkedIdx.length + ' device tercentang' +
+          (_newItems.length > 0 ? ' · ' + _newItems.length + ' item baru' : '') +
+          (Object.keys(fotoMap || {}).length > 0 ? ' · ' + Object.keys(fotoMap).length + ' foto' : '');
         var detailBtn = document.getElementById('btn-see-detail');
-        if (detailBtn) detailBtn.href = 'store-detail.html?code=' + encodeURIComponent(plantCode);
+        if (detailBtn) detailBtn.href = 'store-detail.html?code=' + encodeURIComponent(_pendingPlantCode);
         document.getElementById('success-overlay').style.display = 'flex';
-        updateProgress(3);
+        updateProgress(4);
       } else {
         showToast('❌ ' + (json.message || 'Gagal menyimpan data. Coba lagi.'));
+        var btn = document.getElementById('btn-submit-foto');
+        if (btn) btn.disabled = false;
+        var text = document.getElementById('btn-foto-text');
+        if (text) text.textContent = '📤 Submit dengan Foto';
       }
     })
     .catch(function(err) {
-      btnSubmit.disabled = false;
-      btnText.textContent = '📤 Kirim Checklist LDU';
+      if (btnSubmit) { btnSubmit.disabled = false; }
+      if (btnText)   { btnText.textContent = '📤 Kirim Checklist LDU'; }
+      var btn = document.getElementById('btn-submit-foto');
+      if (btn) btn.disabled = false;
+      var text = document.getElementById('btn-foto-text');
+      if (text) text.textContent = '📤 Submit dengan Foto';
       showToast('Gagal menghubungi server. Cek koneksi internet.');
       console.error(err);
     });
 }
 
 function resetForm() {
-  _verifiedStore = null;
-  _allDevices = [];
-  _checked    = {};
-  _notes      = {};
-  _newItems   = [];
+  _verifiedStore     = null;
+  _allDevices        = [];
+  _checked           = {};
+  _notes             = {};
+  _newItems          = [];
+  _pendingBrandCount = {};
+  _pendingPlantCode  = '';
+  _pendingStoreName  = '';
+
+  var fotoBody = document.getElementById('step-foto-body');
+  if (fotoBody) fotoBody.style.display = 'none';
+  document.getElementById('step-foto').classList.add('form-card--disabled');
+  var accordion = document.getElementById('foto-accordion');
+  if (accordion) accordion.innerHTML = '';
+  var btn = document.getElementById('btn-submit-foto');
+  if (btn) btn.disabled = false;
+  var text = document.getElementById('btn-foto-text');
+  if (text) text.textContent = '📤 Submit dengan Foto';
 
   document.getElementById('input-plant-code').value = '';
   document.getElementById('verify-result').style.display   = 'none';
@@ -386,13 +453,14 @@ function unlockLduStep() {
 
 function lockLduStep() {
   document.getElementById('step-ldu').classList.add('form-card--disabled');
+  document.getElementById('step-foto').classList.add('form-card--disabled');
   document.getElementById('step-submit').classList.add('form-card--disabled');
   document.getElementById('btn-submit').disabled = true;
   _verifiedStore = null;
 }
 
 function updateProgress(step) {
-  var pct = step === 1 ? 10 : step === 2 ? 55 : 100;
+  var pct = step === 1 ? 10 : step === 2 ? 45 : step === 3 ? 75 : 100;
   var bar = document.getElementById('progress-bar');
   if (bar) bar.style.width = pct + '%';
 }
