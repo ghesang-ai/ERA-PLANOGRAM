@@ -45,6 +45,7 @@ a { text-decoration: none; }
 .hero-banner-img {
   width: 100%; display: block; border-radius: 16px;
   height: 160px; object-fit: cover; object-position: center;
+  box-shadow: none;
 }
 
 .topbar-brand-short { display: none; }
@@ -86,7 +87,7 @@ a { text-decoration: none; }
   background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #312e81 100%);
   min-height: 180px;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,.12);
+  box-shadow: none;
 }
 .hero-banner-bg { position: absolute; inset: 0; pointer-events: none; }
 .hero-circle {
