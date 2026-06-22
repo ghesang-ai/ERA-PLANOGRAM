@@ -170,10 +170,10 @@ async function uploadAllFotos(plantCode, storeName) {
       if (json.status === 'success') {
         fotoMap[colName] = json.url;
       } else {
-        console.warn('Upload gagal:', brand, type, json.message);
+        alert('Upload foto gagal: ' + brand + ' ' + type + '\n' + (json.message || ''));
       }
     } catch (err) {
-      console.warn('Upload error:', brand, type, err);
+      alert('Upload foto error: ' + brand + ' ' + type + '\n' + err.message);
     }
   }
   return fotoMap;
