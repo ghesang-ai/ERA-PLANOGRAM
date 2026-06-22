@@ -131,7 +131,31 @@
       </div>
     </div>
 
-    <!-- ── STEP 3: Submit ── -->
+    <!-- ── STEP 3: Foto LDU & Wallbay ── -->
+    <div class="form-card form-card--disabled" id="step-foto">
+      <div class="form-card-header">
+        <div class="step-badge">3</div>
+        <div>
+          <div class="form-card-title">Foto LDU &amp; Wallbay</div>
+          <div class="form-card-sub">Upload foto display dan wallbay per brand · Opsional</div>
+        </div>
+        <span class="badge-yellow" style="margin-left:auto;flex-shrink:0">Opsional</span>
+      </div>
+      <div id="step-foto-body" style="display:none">
+        <p style="font-size:12px;color:var(--gray-400);margin-bottom:14px;padding:0 4px">
+          Semua 32 brand ditampilkan. Brand dengan device terpilih di Step 2 ditandai jumlahnya.
+        </p>
+        <div id="foto-accordion"></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="btn btn-ghost" onclick="skipFoto()" style="flex:1">Lewati →</button>
+          <button class="btn btn-blue" onclick="submitWithFoto()" style="flex:2" id="btn-submit-foto">
+            <span id="btn-foto-text">📤 Submit dengan Foto</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: Submit (konfirmasi) ── -->
     <div class="form-card form-card--disabled" id="step-submit">
       <div class="form-card-header">
         <div class="step-badge">3</div>
@@ -179,6 +203,7 @@
   </div>
 
   <script src="assets/js/config.js"></script>
+  <script src="assets/js/foto-upload.js"></script>
   <script src="assets/js/submit.js"></script>
 </body>
 </html>
