@@ -407,14 +407,31 @@ function skipFoto() {
 }
 
 async function submitWithFoto() {
-  if (!preparePendingData()) return;
+  if (!_verifiedStore) { showToast('Verifikasi Plant Code terlebih dahulu.'); return; }
+
+  var plantCode = _verifiedStore['Plant Code'];
+  var storeName = _verifiedStore['Store Name'] || '';
   var btn  = document.getElementById('btn-submit-foto');
   var text = document.getElementById('btn-foto-text');
+
+  if (getFotoCount() === 0) {
+    showToast('⚠️ Belum ada foto yang dipilih. Buka brand lalu pilih foto terlebih dahulu.');
+    return;
+  }
+
   btn.disabled = true;
   text.textContent = '⏳ Mengupload foto...';
 
-  var fotoMap = await uploadAllFotos(_pendingPlantCode, _pendingStoreName);
-  doActualSubmit(fotoMap);
+  var fotoMap = await uploadAllFotos(plantCode, storeName);
+  if (Object.keys(fotoMap).length > 0) {
+    await saveFotoUrlsToSheet(plantCode, fotoMap);
+    showToast('✅ ' + Object.keys(fotoMap).length + ' foto berhasil diupload ke Drive!');
+  } else {
+    showToast('⚠️ Upload foto gagal. Cek koneksi internet dan coba lagi.');
+  }
+
+  btn.disabled = false;
+  text.textContent = '📤 Submit dengan Foto';
 }
 
 function doActualSubmit(fotoMap) {
