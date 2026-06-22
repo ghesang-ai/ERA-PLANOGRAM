@@ -166,14 +166,16 @@ async function uploadAllFotos(plantCode, storeName) {
           fileName:  fileName
         })
       });
-      var json = await res.json();
+      var rawText = await res.text();
+      var json;
+      try { json = JSON.parse(rawText); } catch(pe) { throw new Error('Non-JSON response: ' + rawText.substring(0, 300)); }
       if (json.status === 'success') {
         fotoMap[colName] = json.url;
       } else {
-        alert('Upload foto gagal: ' + brand + ' ' + type + '\n' + (json.message || ''));
+        alert('Upload foto GAGAL:\nBrand: ' + brand + ' · ' + type + '\nPesan: ' + (json.message || JSON.stringify(json)));
       }
     } catch (err) {
-      alert('Upload foto error: ' + brand + ' ' + type + '\n' + err.message);
+      alert('Upload foto ERROR:\nBrand: ' + brand + ' · ' + type + '\n' + err.message);
     }
   }
   return fotoMap;
