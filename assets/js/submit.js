@@ -331,10 +331,9 @@ function updateSubmitSummary() {
       '<div class="summary-value summary-brand-chips">' + brandHtml + '</div></div>';
 }
 
-function submitChecklist() {
-  if (!_verifiedStore) { showToast('Verifikasi Plant Code terlebih dahulu.'); return; }
+function preparePendingData() {
+  if (!_verifiedStore) { showToast('Verifikasi Plant Code terlebih dahulu.'); return false; }
 
-  var plantCode  = _verifiedStore['Plant Code'];
   var checkedIdx = Object.keys(_checked).filter(function(k) { return _checked[k]; });
 
   var missingStatus = checkedIdx.filter(function(k) { return !_status[parseInt(k)]; });
@@ -346,7 +345,7 @@ function submitChecklist() {
       document.getElementById('cl-search').value = d.name.substring(0, 10);
       renderChecklist();
     }
-    return;
+    return false;
   }
 
   var brandMap = {};
@@ -384,10 +383,14 @@ function submitChecklist() {
 
   _pendingBrandCount  = brandCount;
   _pendingStatusCount = statusCount;
-  _pendingPlantCode   = plantCode;
+  _pendingPlantCode   = _verifiedStore['Plant Code'];
   _pendingStoreName   = _verifiedStore['Store Name'] || '';
+  return true;
+}
 
-  showFotoStep(brandCount);
+function submitChecklist() {
+  if (!preparePendingData()) return;
+  showFotoStep(_pendingBrandCount);
 }
 
 function showFotoStep(brandCount) {
@@ -396,17 +399,15 @@ function showFotoStep(brandCount) {
   });
   buildFotoAccordion(brandsWithCount);
   updateProgress(3);
-
-  setTimeout(function() {
-    document.getElementById('step-foto').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 200);
 }
 
 function skipFoto() {
+  if (!preparePendingData()) return;
   doActualSubmit({});
 }
 
 async function submitWithFoto() {
+  if (!preparePendingData()) return;
   var btn  = document.getElementById('btn-submit-foto');
   var text = document.getElementById('btn-foto-text');
   btn.disabled = true;
