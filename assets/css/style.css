@@ -627,27 +627,27 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
 .foto-badge-zero  { color: var(--gray-400); font-size: 11px; }
 
 /* ── FOTO GALLERY (store-detail) ── */
-.foto-gallery { display: flex; flex-direction: column; gap: 12px; }
+.foto-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
 .foto-gallery-brand-card {
   background: white; border-radius: 12px; padding: 14px;
   box-shadow: var(--shadow); border: 1px solid var(--gray-200);
 }
 .foto-gallery-brand-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .foto-gallery-brand-name { font-size: 13px; font-weight: 700; color: var(--gray-800); }
-.foto-cols { display: flex; gap: 12px; }
-.foto-col { flex: 1; }
-.foto-col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.foto-cols { display: flex; gap: 8px; }
+.foto-col { flex: 1; min-width: 0; }
+.foto-col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
 .foto-col-label.ldu  { color: var(--blue); }
 .foto-col-label.wall { color: var(--green); }
 .foto-img-frame {
-  border-radius: 8px; overflow: hidden; aspect-ratio: 4/3;
+  border-radius: 8px; overflow: hidden;
   border: 1.5px solid var(--gray-200);
-  display: flex; align-items: center; justify-content: center;
-  background: var(--gray-50); cursor: pointer; text-decoration: none;
+  display: block; background: var(--gray-50);
+  text-decoration: none; height: 160px;
 }
-.foto-img-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.foto-img-frame:hover img { opacity: .9; }
-.foto-img-empty { font-size: 11px; color: var(--gray-400); text-align: center; }
+.foto-img-frame img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .2s; }
+.foto-img-frame:hover img { opacity: .85; }
+.foto-img-empty { font-size: 11px; color: var(--gray-400); text-align: center; height: 160px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1.5px dashed var(--gray-200); }
 .foto-img-date { font-size: 10px; color: var(--gray-400); margin-top: 4px; }
 
 /* ── DETAIL TABS ── */
@@ -660,8 +660,7 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
 .detail-tab.active { background: var(--blue); color: white; border-color: var(--blue); }
 
 .badge-yellow { background: #fef3c7; color: #92400e; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
-.foto-gallery-brand-title { font-size: 13px; font-weight: 700; color: var(--gray-800); margin-bottom: 10px; }
-.foto-gallery-img { width: 100%; border-radius: 8px; aspect-ratio: 4/3; object-fit: cover; display: block; border: 1.5px solid var(--gray-200); }
+.foto-gallery-brand-title { font-size: 13px; font-weight: 700; color: var(--gray-800); margin-bottom: 8px; }
 
 /* ── STATUS DEVICE BUTTONS ── */
 .cl-status-row { display: flex; align-items: center; gap: 6px; padding: 0 14px 10px 50px; flex-wrap: wrap; }

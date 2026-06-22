@@ -242,15 +242,16 @@ function renderFotoTab(row) {
     return;
   }
 
+  container.className = 'foto-gallery';
   container.innerHTML = brands.map(function(brand) {
     var lduUrl  = brandFotoMap[brand]['LDU']    || '';
     var wallUrl = brandFotoMap[brand]['Wallbay'] || '';
 
     function imgHtml(url, label) {
-      if (!url) return '<div class="foto-img-empty">Tidak ada foto</div>';
-      return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener">' +
-               '<img src="' + escHtml((function(u){var m=u.match(/\/d\/([^\/]+)/);return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w800':u;})(url)) + '" alt="' + escHtml(label) + '" ' +
-                    'class="foto-gallery-img" loading="lazy">' +
+      if (!url) return '<div class="foto-img-empty">Belum ada foto</div>';
+      var thumb = (function(u){ var m=u.match(/\/d\/([^\/]+)/); return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w600':u; })(url);
+      return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" class="foto-img-frame">' +
+               '<img src="' + escHtml(thumb) + '" alt="' + escHtml(label) + '" loading="lazy">' +
              '</a>';
     }
 
