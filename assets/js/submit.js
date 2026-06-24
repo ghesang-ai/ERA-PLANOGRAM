@@ -52,58 +52,73 @@ function verifyPlantCode() {
   var url = new URL(CONFIG.API_URL);
   url.searchParams.set('store', plantCode);
 
+  function onStoreVerified(storeName, plantCodeVal, regionVal, fromSheet) {
+    btnVerify.disabled = false;
+    btnVerify.textContent = 'Verifikasi';
+
+    _verifiedStore = { 'Store Name': storeName, 'Plant Code': plantCodeVal, 'Region': regionVal };
+
+    document.getElementById('info-store-name').textContent = storeName || '-';
+    document.getElementById('info-plant-code').textContent = plantCodeVal || '-';
+    document.getElementById('info-region').textContent     = regionVal || '-';
+
+    var brandToko = CONFIG.detectBrandToko(storeName);
+    var pill = document.getElementById('info-brand-pill');
+    pill.textContent      = brandToko;
+    pill.style.background = (CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b') + '22';
+    pill.style.color      = CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
+    pill.style.borderColor= CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
+
+    _allDevices = [];
+    _checked    = {};
+    _notes      = {};
+    _newItems   = [];
+
+    if (_deviceData && _deviceData[plantCode]) {
+      _allDevices = _deviceData[plantCode].devices || [];
+    }
+
+    var devCount = _allDevices.length;
+    document.getElementById('info-device-count').textContent =
+      devCount > 0 ? '📦 ' + devCount + ' device terdaftar' : '⏳ Belum ada data device';
+
+    storeInfo.style.display = 'flex';
+    resultEl.style.display  = 'none';
+
+    buildBrandFilter();
+    renderChecklist();
+    updateTotalBadge();
+    updateSubmitSummary();
+    unlockLduStep();
+    updateProgress(2);
+
+    setTimeout(function() {
+      document.getElementById('step-ldu').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
+  }
+
+  // Cek ldu-devices.json dulu (offline, semua store tersedia)
+  if (_deviceData && _deviceData[plantCode]) {
+    var localStore = _deviceData[plantCode];
+    onStoreVerified(localStore.storeName || plantCode, plantCode, 'Region 5', false);
+    btnVerify.disabled = false;
+    btnVerify.textContent = 'Verifikasi';
+    return;
+  }
+
+  // Fallback: cek Google Sheet (untuk store yang tidak ada di ldu-devices.json)
   fetch(url.toString())
     .then(function(r) { return r.json(); })
     .then(function(json) {
-      btnVerify.disabled = false;
-      btnVerify.textContent = 'Verifikasi';
-
       if (json.status !== 'success' || !Array.isArray(json.data) || json.data.length === 0) {
+        btnVerify.disabled = false;
+        btnVerify.textContent = 'Verifikasi';
         showVerifyError('Plant Code <strong>' + escHtml(plantCode) + '</strong> tidak ditemukan.');
         lockLduStep();
         return;
       }
-
       var store = json.data[0];
-      _verifiedStore = store;
-
-      document.getElementById('info-store-name').textContent = store['Store Name'] || '-';
-      document.getElementById('info-plant-code').textContent = store['Plant Code'] || '-';
-      document.getElementById('info-region').textContent     = store['Region'] || '-';
-
-      var brandToko = CONFIG.detectBrandToko(store['Store Name']);
-      var pill = document.getElementById('info-brand-pill');
-      pill.textContent      = brandToko;
-      pill.style.background = (CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b') + '22';
-      pill.style.color      = CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
-      pill.style.borderColor= CONFIG.BRAND_TOKO_COLORS[brandToko] || '#64748b';
-
-      _allDevices = [];
-      _checked    = {};
-      _notes      = {};
-      _newItems   = [];
-
-      if (_deviceData && _deviceData[plantCode]) {
-        _allDevices = _deviceData[plantCode].devices || [];
-      }
-
-      var devCount = _allDevices.length;
-      document.getElementById('info-device-count').textContent =
-        devCount > 0 ? '📦 ' + devCount + ' device terdaftar' : '⏳ Belum ada data device';
-
-      storeInfo.style.display = 'flex';
-      resultEl.style.display  = 'none';
-
-      buildBrandFilter();
-      renderChecklist();
-      updateTotalBadge();
-      updateSubmitSummary();
-      unlockLduStep();
-      updateProgress(2);
-
-      setTimeout(function() {
-        document.getElementById('step-ldu').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
+      onStoreVerified(store['Store Name'], store['Plant Code'], store['Region'], true);
     })
     .catch(function(err) {
       btnVerify.disabled = false;
