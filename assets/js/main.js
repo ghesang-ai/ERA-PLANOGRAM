@@ -458,7 +458,15 @@ function renderTable(data) {
 var _activeQuickFilter = '';
 
 function submittedThisMonth(d) {
-  return getSubmitPeriod(d['Last Submit']).key === 'this_month';
+  var lastSubmit = d['Last Submit'];
+  if (!lastSubmit || lastSubmit === '-') return false;
+  var submitDate = new Date(lastSubmit);
+  if (isNaN(submitDate.getTime())) {
+    submitDate = new Date(String(lastSubmit).replace(/(\d{2}) (\w{3}) (\d{4})/, '$2 $1 $3'));
+  }
+  if (isNaN(submitDate.getTime())) return false;
+  var windowStart = new Date(CONFIG.SUBMIT_WINDOW_START);
+  return submitDate >= windowStart;
 }
 
 function setQuickFilter(val) {

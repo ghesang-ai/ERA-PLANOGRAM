@@ -4,6 +4,10 @@ const CONFIG = {
   // Ganti dengan URL Apps Script Web App Anda setelah deploy
   API_URL: 'https://script.google.com/macros/s/AKfycbzdthnNSMJXw2aU1qCgFZ9xKD71DGkr5yRFXS1RrRGzieBfWKqVcEKn3LOlX6GyvoBC/exec',
 
+  // Tanggal mulai periode submit bulan ini (format: 'YYYY-MM-DD')
+  // Ganti setiap awal periode kampanye baru
+  SUBMIT_WINDOW_START: '2026-06-27',
+
   // Daftar semua kolom brand LDU (urutan sesuai Google Form)
   BRAND_LDU_COLUMNS: [
     'Apple', 'Samsung', 'Oppo', 'Vivo', 'Xiaomi', 'Infinix', 'Honor',
