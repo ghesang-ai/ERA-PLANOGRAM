@@ -146,6 +146,19 @@
     <!-- MONTH FILTER -->
     <div id="month-filter-wrap" style="display:none;align-items:center;gap:6px;flex-wrap:wrap;padding:0 0 10px 0"></div>
 
+    <!-- QUICK STATUS FILTER -->
+    <div class="quick-filter-bar" id="quick-filter-bar">
+      <button class="qf-pill qf-pill--all active" id="qf-all" onclick="setQuickFilter('')">
+        🏪 Semua Toko <span class="qf-count" id="qf-count-all">—</span>
+      </button>
+      <button class="qf-pill qf-pill--submitted" id="qf-submitted" onclick="setQuickFilter('Submitted')">
+        ✅ Sudah Submit <span class="qf-count" id="qf-count-submitted">—</span>
+      </button>
+      <button class="qf-pill qf-pill--pending" id="qf-pending" onclick="setQuickFilter('Pending')">
+        ⏳ Belum Submit <span class="qf-count" id="qf-count-pending">—</span>
+      </button>
+    </div>
+
     <!-- TABLE TOOLBAR -->
     <div class="table-toolbar">
       <span class="table-toolbar-title">Data Toko Terkini</span>

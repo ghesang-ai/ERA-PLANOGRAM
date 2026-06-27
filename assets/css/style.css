@@ -746,3 +746,37 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
   .hs-color-row { flex-direction: column; }
   .hs-color-preview-card { min-width: unset; width: 100%; }
 }
+
+/* ── Quick Filter Bar ── */
+.quick-filter-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.qf-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--gray-50, #f8fafc);
+  color: var(--gray-500, #64748b);
+}
+.qf-pill:hover { border-color: var(--gray-300, #cbd5e1); }
+.qf-count {
+  background: rgba(0,0,0,0.08);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 11px;
+}
+.qf-pill--all.active    { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
+.qf-pill--submitted.active { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+.qf-pill--pending.active   { background: #fef9c3; color: #854d0e; border-color: #fde047; }
+.qf-pill--submitted.active .qf-count { background: #dcfce7; }
+.qf-pill--pending.active   .qf-count { background: #fef08a; }

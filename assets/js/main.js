@@ -101,6 +101,7 @@ async function fetchData(params) {
     renderBrandComplianceCards(json.data);
     renderCharts(json.data);
     renderTopStores(json.data);
+    updateQuickFilterCounts(json.data);
     applyFilters();
     updateTopbarTime(json.lastUpdated);
 
@@ -451,6 +452,30 @@ function renderTable(data) {
       '<td><a href="store-detail.html?code=' + encodeURIComponent(row['Plant Code']) + '" class="btn btn-xs">Detail</a></td>' +
     '</tr>';
   }).join('');
+}
+
+function setQuickFilter(statusVal) {
+  var el = document.getElementById('filter-status');
+  if (el) el.value = statusVal;
+  // Update active pill
+  ['qf-all','qf-submitted','qf-pending'].forEach(function(id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  var activeId = statusVal === 'Submitted' ? 'qf-submitted' : statusVal === 'Pending' ? 'qf-pending' : 'qf-all';
+  var activeBtn = document.getElementById(activeId);
+  if (activeBtn) activeBtn.classList.add('active');
+  applyFilters();
+}
+
+function updateQuickFilterCounts(data) {
+  var total     = data.length;
+  var submitted = data.filter(function(d) { return (d['Status'] || 'Pending') === 'Submitted'; }).length;
+  var pending   = total - submitted;
+  var el;
+  el = document.getElementById('qf-count-all');       if (el) el.textContent = total;
+  el = document.getElementById('qf-count-submitted'); if (el) el.textContent = submitted;
+  el = document.getElementById('qf-count-pending');   if (el) el.textContent = pending;
 }
 
 function applyFilters() {
