@@ -57,12 +57,14 @@ function openDeviceModal(brand, row) {
     }
 
     // ── Foto ──
-    var lduFotoUrl  = row[brand + '_LDU_Foto']    || '';
-    var wallFotoUrl = row[brand + '_Wallbay_Foto'] || '';
-    if (lduFotoUrl || wallFotoUrl) {
+    var lduFotoUrl   = row[brand + '_LDU_Foto']     || '';
+    var ldu2FotoUrl  = row[brand + '_LDU2_Foto']    || '';
+    var wallFotoUrl  = row[brand + '_Wallbay_Foto'] || '';
+    var wall2FotoUrl = row[brand + '_Wallbay2_Foto']|| '';
+    if (lduFotoUrl || ldu2FotoUrl || wallFotoUrl || wall2FotoUrl) {
       fotoRow.style.display = 'flex';
       function fotoThumb(url, label) {
-        if (!url) return '<div style="flex:1;min-width:120px;text-align:center;color:var(--gray-300);font-size:12px;padding:12px">Tidak ada foto</div>';
+        if (!url) return '';
         var fileId = url.match(/\/d\/([^\/]+)/);
         var prev = fileId ? 'https://drive.google.com/thumbnail?id=' + fileId[1] + '&sz=w800' : url;
         return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-decoration:none">' +
@@ -72,8 +74,10 @@ function openDeviceModal(brand, row) {
         '</a>';
       }
       fotoRow.innerHTML =
-        fotoThumb(lduFotoUrl,  '📺 LDU Display') +
-        fotoThumb(wallFotoUrl, '🗂️ Wallbay');
+        fotoThumb(lduFotoUrl,   '📺 LDU Display 1') +
+        fotoThumb(ldu2FotoUrl,  '📺 LDU Display 2') +
+        fotoThumb(wallFotoUrl,  '🗂️ Wallbay 1') +
+        fotoThumb(wall2FotoUrl, '🗂️ Wallbay 2');
     } else {
       fotoRow.style.display = 'none';
     }
@@ -222,18 +226,14 @@ function renderFotoTab(row) {
   var container = document.getElementById('foto-gallery-container');
   if (!container) return;
 
-  // Collect brands that have any foto column
+  // Collect brands that have any foto column (LDU, LDU2, Wallbay, Wallbay2)
   var brandFotoMap = {};
   Object.keys(row).forEach(function(col) {
-    var lduMatch  = col.match(/^(.+)_LDU_Foto$/);
-    var wallMatch = col.match(/^(.+)_Wallbay_Foto$/);
-    var brand, type, url;
-    if (lduMatch)  { brand = lduMatch[1];  type = 'LDU';    url = row[col]; }
-    if (wallMatch) { brand = wallMatch[1]; type = 'Wallbay'; url = row[col]; }
-    if (brand && url) {
-      if (!brandFotoMap[brand]) brandFotoMap[brand] = {};
-      brandFotoMap[brand][type] = url;
-    }
+    var m = col.match(/^(.+)_(LDU2|LDU|Wallbay2|Wallbay)_Foto$/);
+    if (!m || !row[col]) return;
+    var brand = m[1], type = m[2];
+    if (!brandFotoMap[brand]) brandFotoMap[brand] = {};
+    brandFotoMap[brand][type] = row[col];
   });
 
   var brands = Object.keys(brandFotoMap);
@@ -242,31 +242,23 @@ function renderFotoTab(row) {
     return;
   }
 
+  function imgHtml(url, label) {
+    if (!url) return '';
+    var thumb = (function(u){ var m=u.match(/\/d\/([^\/]+)/); return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w600':u; })(url);
+    return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" class="foto-img-frame">' +
+             '<img src="' + escHtml(thumb) + '" alt="' + escHtml(label) + '" loading="lazy">' +
+           '</a>';
+  }
+
   container.className = 'foto-gallery';
   container.innerHTML = brands.map(function(brand) {
-    var lduUrl  = brandFotoMap[brand]['LDU']    || '';
-    var wallUrl = brandFotoMap[brand]['Wallbay'] || '';
-
-    function imgHtml(url, label) {
-      if (!url) return '<div class="foto-img-empty">Belum ada foto</div>';
-      var thumb = (function(u){ var m=u.match(/\/d\/([^\/]+)/); return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w600':u; })(url);
-      return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" class="foto-img-frame">' +
-               '<img src="' + escHtml(thumb) + '" alt="' + escHtml(label) + '" loading="lazy">' +
-             '</a>';
-    }
-
+    var f = brandFotoMap[brand];
+    var lduHtml  = (imgHtml(f['LDU'],  brand+' LDU 1')  || '') + (imgHtml(f['LDU2'],  brand+' LDU 2')  || '');
+    var wallHtml = (imgHtml(f['Wallbay'],brand+' WB 1')  || '') + (imgHtml(f['Wallbay2'],brand+' WB 2') || '');
     return '<div class="foto-gallery-brand-card">' +
       '<div class="foto-gallery-brand-title">' + escHtml(brand) + '</div>' +
-      '<div class="foto-cols">' +
-        '<div class="foto-col">' +
-          '<div class="foto-col-label ldu">📺 LDU Display</div>' +
-          imgHtml(lduUrl, brand + ' LDU') +
-        '</div>' +
-        '<div class="foto-col">' +
-          '<div class="foto-col-label wall">🗂️ Wallbay</div>' +
-          imgHtml(wallUrl, brand + ' Wallbay') +
-        '</div>' +
-      '</div>' +
+      (lduHtml  ? '<div class="foto-col-label ldu" style="margin:6px 0 4px">📺 LDU Display</div><div class="foto-cols">' + lduHtml + '</div>' : '') +
+      (wallHtml ? '<div class="foto-col-label wall" style="margin:8px 0 4px">🗂️ Wallbay</div><div class="foto-cols">' + wallHtml + '</div>' : '') +
     '</div>';
   }).join('');
 }
