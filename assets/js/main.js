@@ -70,8 +70,11 @@ function renderHeroStats(data) {
 }
 
 // ── Fetch ──
+var _activeMonth = '';
+
 async function fetchData(params) {
   params = params || {};
+  if (_activeMonth) params.month = _activeMonth;
   var url = new URL(CONFIG.API_URL);
   Object.keys(params).forEach(function(k) { url.searchParams.set(k, params[k]); });
   showLoading();
@@ -85,8 +88,13 @@ async function fetchData(params) {
     if (json.status !== 'success') throw new Error(json.message || 'API error');
     if (!Array.isArray(json.data)) throw new Error('Format data tidak valid');
 
+    // Simpan bulan aktif dari API
+    _activeMonth = json.activeMonth || _activeMonth;
     window._eraAllData      = json.data;
     window._eraFilteredData = json.data.slice();
+
+    // Update month filter dropdown
+    renderMonthFilter(json.availableMonths || [], json.activeMonth || '');
 
     renderHeroStats(json.data);
     renderSummaryCards(json.data);
@@ -105,6 +113,38 @@ async function fetchData(params) {
     showError('Gagal memuat data. ' + err.message);
     console.error('ERA-PLANOGRAM fetchData error:', err);
   }
+}
+
+function renderMonthFilter(months, activeMonth) {
+  var wrap = document.getElementById('month-filter-wrap');
+  if (!wrap) return;
+  if (!months || months.length <= 1) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+
+  var monthNames = { '01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'Mei','06':'Jun',
+                     '07':'Jul','08':'Agu','09':'Sep','10':'Okt','11':'Nov','12':'Des' };
+
+  function fmtMonth(m) {
+    if (!m) return m;
+    var parts = m.split('-');
+    return (monthNames[parts[1]] || parts[1]) + ' ' + parts[0];
+  }
+
+  wrap.innerHTML = '<span style="font-size:12px;font-weight:600;color:var(--gray-500);margin-right:6px">Periode:</span>' +
+    months.map(function(m) {
+      var isActive = m === activeMonth;
+      return '<button onclick="switchMonth(\'' + m + '\')" style="' +
+        'padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid ' +
+        (isActive ? 'var(--blue)' : 'var(--gray-200)') + ';background:' +
+        (isActive ? 'var(--blue)' : 'white') + ';color:' +
+        (isActive ? 'white' : 'var(--gray-600)') + '">' +
+        fmtMonth(m) + '</button>';
+    }).join('');
+}
+
+function switchMonth(month) {
+  _activeMonth = month;
+  fetchData();
 }
 
 function getColspan() {

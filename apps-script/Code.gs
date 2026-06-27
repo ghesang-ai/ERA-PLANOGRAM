@@ -7,6 +7,14 @@ const INV_SHEET        = 'DEVICE_INVENTORY';
 const LOG_SHEET        = 'DEVICE_LOG';
 const FOTO_ROOT_FOLDER_ID = '1LG9I2fhm3YY6rNUpRUBOHjP6dCQ0FeXc';
 
+// Jalankan fungsi ini SATU KALI di editor untuk grant izin Drive penuh
+function testDriveAccess() {
+  var root = DriveApp.getFolderById(FOTO_ROOT_FOLDER_ID);
+  var test = root.createFolder('_TEST_DELETE_ME');
+  test.setTrashed(true);
+  Logger.log('Drive createFolder OK: ' + root.getName());
+}
+
 // ── Helper: buat sheet jika belum ada ──
 function getOrCreateSheetWithHeaders(ss, name, headers) {
   var sheet = ss.getSheetByName(name);
@@ -268,38 +276,72 @@ function onFormSubmit(e) {
 
 // ── UPDATE BARIS DI SHEET BERDASARKAN PLANT CODE ──
 function updateMasterSheet(sheet, formData, plantCode) {
-  const lastCol = sheet.getLastColumn();
+  const now     = new Date();
+  const tz      = 'Asia/Jakarta';
+  const submitMonth = Utilities.formatDate(now, tz, 'yyyy-MM');   // e.g. "2026-07"
+  const submitTs    = Utilities.formatDate(now, tz, 'dd MMM yyyy HH:mm');
+
+  // ── Pastikan kolom Submit_Month ada di header ──
+  let lastCol = sheet.getLastColumn();
   const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const headerMap = {};
   headers.forEach(function(h, i) {
     if (h) headerMap[h.toString().toLowerCase().trim()] = i + 1;
   });
+  if (!headerMap['submit_month']) {
+    lastCol++;
+    sheet.getRange(1, lastCol).setValue('Submit_Month');
+    headerMap['submit_month'] = lastCol;
+  }
 
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { success: false, reason: 'Sheet kosong' };
-
-  const allRows = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
-  let targetRow = -1, storeName = '';
-  for (let i = 0; i < allRows.length; i++) {
-    if (allRows[i][0].toString().trim().toUpperCase() === plantCode) {
-      targetRow = i + 2; storeName = allRows[i][1].toString(); break;
+  // ── Cari storeName dari baris manapun yang punya Plant Code ini ──
+  const allRows = sheet.getDataRange().getValues();
+  let storeName = plantCode;
+  const pcColIdx = headerMap['plant code'];
+  const snColIdx = headerMap['store name'];
+  if (pcColIdx && snColIdx) {
+    for (let i = 1; i < allRows.length; i++) {
+      if (allRows[i][pcColIdx - 1].toString().trim().toUpperCase() === plantCode) {
+        storeName = allRows[i][snColIdx - 1].toString() || plantCode;
+        break;
+      }
     }
   }
-  if (targetRow === -1) return { success: false, reason: 'Plant Code "' + plantCode + '" tidak ditemukan.' };
 
-  const skipFields = ['plant code', 'store name', 'timestamp'];
+  // ── Cari baris bulan ini untuk plant code ini (update jika sudah ada) ──
+  const smColIdx = headerMap['submit_month'];
+  let targetRow = -1;
+  for (let i = 1; i < allRows.length; i++) {
+    const rowPc = (pcColIdx ? allRows[i][pcColIdx - 1] : allRows[i][0]).toString().trim().toUpperCase();
+    const rowSm = (smColIdx ? allRows[i][smColIdx - 1] : '').toString().trim();
+    if (rowPc === plantCode && rowSm === submitMonth) {
+      targetRow = i + 1; break;
+    }
+  }
+
+  // ── Kalau belum ada baris bulan ini → append baris baru ──
+  if (targetRow === -1) {
+    targetRow = sheet.getLastRow() + 1;
+    if (pcColIdx) sheet.getRange(targetRow, pcColIdx).setValue(plantCode);
+    if (snColIdx) sheet.getRange(targetRow, snColIdx).setValue(storeName);
+    sheet.getRange(targetRow, smColIdx).setValue(submitMonth);
+  }
+
+  // ── Tulis field-field dari formData ──
+  const skipFields = ['plant code', 'store name', 'timestamp', 'submit_month'];
   let currentLastCol = sheet.getLastColumn();
   Object.keys(formData).forEach(function(fieldName) {
-    if (skipFields.indexOf(fieldName.toLowerCase().trim()) !== -1) return;
-    let colIdx = headerMap[fieldName.toLowerCase().trim()];
+    const fKey = fieldName.toLowerCase().trim();
+    if (skipFields.indexOf(fKey) !== -1) return;
+    let colIdx = headerMap[fKey];
     if (!colIdx) {
       currentLastCol++;
       sheet.getRange(1, currentLastCol).setValue(fieldName);
-      headerMap[fieldName.toLowerCase().trim()] = currentLastCol;
+      headerMap[fKey] = currentLastCol;
       colIdx = currentLastCol;
     }
     const rawVal = (formData[fieldName][0] || '').toString().trim();
-    if (fieldName.toLowerCase().trim().endsWith('_devicestatus')) {
+    if (fKey.endsWith('_devicestatus') || fKey.endsWith('_foto') || fKey.endsWith('_wallbay_foto') || fKey.endsWith('_ldu_foto')) {
       sheet.getRange(targetRow, colIdx).setValue(rawVal);
     } else {
       const numVal = parseInt(rawVal, 10);
@@ -307,12 +349,14 @@ function updateMasterSheet(sheet, formData, plantCode) {
     }
   });
 
+  // ── Update Last Submit & Status ──
   const lastSubmitCol = headerMap['last submit'];
   const statusCol     = headerMap['status'];
-  if (lastSubmitCol) sheet.getRange(targetRow, lastSubmitCol).setValue(Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd MMM yyyy HH:mm'));
+  if (lastSubmitCol) sheet.getRange(targetRow, lastSubmitCol).setValue(submitTs);
   if (statusCol)     sheet.getRange(targetRow, statusCol).setValue('Submitted');
+  sheet.getRange(targetRow, smColIdx).setValue(submitMonth);
 
-  return { success: true, storeName: storeName };
+  return { success: true, storeName: storeName, submitMonth: submitMonth };
 }
 
 // ── Helper: get folder by name, buat jika belum ada ──
@@ -447,17 +491,53 @@ function doGet(e) {
     const headers = allData[0].map(function(h) { return h.toString().trim(); });
     const filterStore  = (params.store  || '').toUpperCase().trim();
     const filterStatus = (params.status || '').toLowerCase().trim();
-    const result = [];
+    const filterMonth  = (params.month  || '').trim(); // e.g. "2026-06"
+
+    // Kumpulkan semua baris jadi objek
+    const allObjs = [];
     for (let i = 1; i < allData.length; i++) {
       const row = allData[i];
       if (!row[0]) continue;
       const obj = {};
       headers.forEach(function(h, idx) { obj[h] = row[idx]; });
-      if (filterStore  && obj['Plant Code'].toString().toUpperCase() !== filterStore)  continue;
-      if (filterStatus && (obj['Status'] || '').toLowerCase() !== filterStatus) continue;
-      result.push(obj);
+      allObjs.push(obj);
     }
-    return jsonOut({ status: 'success', count: result.length, lastUpdated: new Date().toISOString(), data: result });
+
+    // Kumpulkan semua bulan yang tersedia (sorted desc)
+    const monthSet = {};
+    allObjs.forEach(function(o) {
+      const m = (o['Submit_Month'] || '').toString().trim();
+      if (m) monthSet[m] = true;
+    });
+    const availableMonths = Object.keys(monthSet).sort().reverse(); // ["2026-07","2026-06",...]
+
+    // Tentukan bulan yang dipakai: filterMonth atau bulan terbaru
+    const activeMonth = filterMonth || (availableMonths[0] || '');
+
+    // Filter per store: ambil baris bulan aktif (atau latest jika tidak ada Submit_Month)
+    // Untuk backward compat: baris tanpa Submit_Month dianggap bulan pertama tersedia
+    const storeMap = {};
+    allObjs.forEach(function(obj) {
+      const pc = (obj['Plant Code'] || '').toString().toUpperCase().trim();
+      if (!pc) return;
+      if (filterStore && pc !== filterStore) return;
+      if (filterStatus && (obj['Status'] || '').toString().toLowerCase() !== filterStatus) return;
+      const rowMonth = (obj['Submit_Month'] || '').toString().trim();
+      // Hanya ambil baris yang cocok bulan aktif, atau baris tanpa bulan (legacy) saat activeMonth adalah bulan pertama
+      if (rowMonth === activeMonth || (rowMonth === '' && activeMonth === (availableMonths[availableMonths.length - 1] || activeMonth))) {
+        storeMap[pc] = obj;
+      }
+    });
+
+    const result = Object.values(storeMap);
+    return jsonOut({
+      status: 'success',
+      count: result.length,
+      lastUpdated: new Date().toISOString(),
+      activeMonth: activeMonth,
+      availableMonths: availableMonths,
+      data: result
+    });
 
   } catch (err) {
     return jsonOut({ status: 'error', message: err.toString() });
@@ -466,6 +546,39 @@ function doGet(e) {
 
 function jsonOut(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// ── Backfill Submit_Month untuk data lama (jalankan SATU KALI) ──
+function backfillSubmitMonth() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) { Logger.log('Sheet tidak ditemukan'); return; }
+
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var headerMap = {};
+  headers.forEach(function(h, i) { if (h) headerMap[h.toString().toLowerCase().trim()] = i + 1; });
+
+  // Tambah kolom Submit_Month jika belum ada
+  if (!headerMap['submit_month']) {
+    lastCol++;
+    sheet.getRange(1, lastCol).setValue('Submit_Month');
+    headerMap['submit_month'] = lastCol;
+    Logger.log('Kolom Submit_Month ditambahkan di kolom ' + lastCol);
+  }
+
+  var smCol = headerMap['submit_month'];
+  var lastRow = sheet.getLastRow();
+  var smRange = sheet.getRange(2, smCol, lastRow - 1, 1).getValues();
+  var updated = 0;
+
+  for (var i = 0; i < smRange.length; i++) {
+    if (!smRange[i][0] || smRange[i][0].toString().trim() === '') {
+      sheet.getRange(i + 2, smCol).setValue('2026-06');
+      updated++;
+    }
+  }
+  Logger.log('Backfill selesai: ' + updated + ' baris diupdate ke 2026-06');
 }
 
 // ── TEST MANUAL ──
