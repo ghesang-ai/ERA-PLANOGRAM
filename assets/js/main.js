@@ -454,15 +454,22 @@ function renderTable(data) {
   }).join('');
 }
 
-function setQuickFilter(statusVal) {
-  var el = document.getElementById('filter-status');
-  if (el) el.value = statusVal;
-  // Update active pill
+// 'submitted_this_month' | 'pending_this_month' | ''
+var _activeQuickFilter = '';
+
+function submittedThisMonth(d) {
+  return getSubmitPeriod(d['Last Submit']).key === 'this_month';
+}
+
+function setQuickFilter(val) {
+  _activeQuickFilter = val;
   ['qf-all','qf-submitted','qf-pending'].forEach(function(id) {
     var btn = document.getElementById(id);
     if (btn) btn.classList.remove('active');
   });
-  var activeId = statusVal === 'Submitted' ? 'qf-submitted' : statusVal === 'Pending' ? 'qf-pending' : 'qf-all';
+  var activeId = val === 'submitted_this_month' ? 'qf-submitted'
+               : val === 'pending_this_month'   ? 'qf-pending'
+               : 'qf-all';
   var activeBtn = document.getElementById(activeId);
   if (activeBtn) activeBtn.classList.add('active');
   applyFilters();
@@ -470,12 +477,19 @@ function setQuickFilter(statusVal) {
 
 function updateQuickFilterCounts(data) {
   var total     = data.length;
-  var submitted = data.filter(function(d) { return (d['Status'] || 'Pending') === 'Submitted'; }).length;
+  var submitted = data.filter(submittedThisMonth).length;
   var pending   = total - submitted;
+  var now = new Date();
+  var bulan = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   var el;
   el = document.getElementById('qf-count-all');       if (el) el.textContent = total;
   el = document.getElementById('qf-count-submitted'); if (el) el.textContent = submitted;
   el = document.getElementById('qf-count-pending');   if (el) el.textContent = pending;
+  // Update label pill to show current month
+  var pillSub = document.getElementById('qf-submitted');
+  if (pillSub) pillSub.title = 'Submit di bulan ' + bulan;
+  var pillPend = document.getElementById('qf-pending');
+  if (pillPend) pillPend.title = 'Belum submit di bulan ' + bulan;
 }
 
 function applyFilters() {
@@ -490,6 +504,12 @@ function applyFilters() {
       (d['Store Name'] || '').toLowerCase().includes(searchVal) ||
       (d['Plant Code'] || '').toLowerCase().includes(searchVal);
     var matchStatus = !statusVal || (d['Status'] || 'Pending') === statusVal;
+    // Quick filter: by submit this month
+    if (_activeQuickFilter === 'submitted_this_month') {
+      if (!submittedThisMonth(d)) return false;
+    } else if (_activeQuickFilter === 'pending_this_month') {
+      if (submittedThisMonth(d)) return false;
+    }
     var matchPeriod = true;
     if (periodVal) {
       var p = getSubmitPeriod(d['Last Submit']);
