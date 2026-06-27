@@ -313,7 +313,10 @@ function updateMasterSheet(sheet, formData, plantCode) {
   let targetRow = -1;
   for (let i = 1; i < allRows.length; i++) {
     const rowPc = (pcColIdx ? allRows[i][pcColIdx - 1] : allRows[i][0]).toString().trim().toUpperCase();
-    const rowSm = (smColIdx ? allRows[i][smColIdx - 1] : '').toString().trim();
+    const smRaw = smColIdx ? allRows[i][smColIdx - 1] : '';
+    const rowSm = smRaw instanceof Date
+      ? Utilities.formatDate(smRaw, 'Asia/Jakarta', 'yyyy-MM')
+      : (smRaw || '').toString().trim();
     if (rowPc === plantCode && rowSm === submitMonth) {
       targetRow = i + 1; break;
     }
@@ -520,10 +523,17 @@ function doGet(e) {
       allObjs.push(obj);
     }
 
+    // Helper: baca Submit_Month sebagai string yyyy-MM (handle Date object dari Sheets)
+    function readMonth(val) {
+      if (!val) return '';
+      if (val instanceof Date) return Utilities.formatDate(val, 'Asia/Jakarta', 'yyyy-MM');
+      return val.toString().trim();
+    }
+
     // Kumpulkan semua bulan yang tersedia (sorted desc)
     const monthSet = {};
     allObjs.forEach(function(o) {
-      const m = (o['Submit_Month'] || '').toString().trim();
+      const m = readMonth(o['Submit_Month']);
       if (m) monthSet[m] = true;
     });
     const availableMonths = Object.keys(monthSet).sort().reverse(); // ["2026-07","2026-06",...]
@@ -539,7 +549,7 @@ function doGet(e) {
       if (!pc) return;
       if (filterStore && pc !== filterStore) return;
       if (filterStatus && (obj['Status'] || '').toString().toLowerCase() !== filterStatus) return;
-      const rowMonth = (obj['Submit_Month'] || '').toString().trim();
+      const rowMonth = readMonth(obj['Submit_Month']);
       // Hanya ambil baris yang cocok bulan aktif, atau baris tanpa bulan (legacy) saat activeMonth adalah bulan pertama
       if (rowMonth === activeMonth || (rowMonth === '' && activeMonth === (availableMonths[availableMonths.length - 1] || activeMonth))) {
         storeMap[pc] = obj;
