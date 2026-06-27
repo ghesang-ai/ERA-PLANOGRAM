@@ -356,11 +356,44 @@
 .toast-error { background: #b91c1c; color: white; }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 480px) {
+@media (max-width: 600px) {
   .submit-main { padding: 1rem .75rem 4rem; }
   .form-card { padding: 1.25rem 1rem; }
-  .add-new-row { flex-direction: column; }
-  .add-new-input { width: 100%; }
-  .new-item-note-input { width: 120px; }
   .store-info-check { display: none; }
+
+  /* Filter bar: search full width, brand+count+button di baris kedua */
+  .checklist-filter-bar { gap: 6px; }
+  .checklist-search-wrap { min-width: 100%; order: 1; }
+  #cl-brand { order: 2; flex: 1; }
+  .cl-count { order: 3; }
+  .btn-check-all { order: 4; }
+
+  /* Device list tidak terlalu tinggi di mobile */
+  .checklist-device-list { max-height: none; }
+
+  /* Device item lebih ringkas */
+  .cl-item-name { font-size: 12.5px; }
+  .cl-item-top { padding: 10px 10px 8px; gap: 8px; }
+  .cl-item-note-row { padding: 7px 10px 8px 38px; }
+
+  /* Status buttons di mobile */
+  .cl-status-row { padding: 6px 10px 8px 38px; gap: 6px; }
+  .cl-status-btn { font-size: 11px; padding: 4px 8px; }
+
+  /* Tambah Item Baru */
+  .add-new-row { flex-direction: column; gap: 8px; }
+  .add-new-input { width: 100%; min-width: 0; }
+  .add-new-bottom-row {
+    display: flex; gap: 8px; width: 100%;
+  }
+  .add-new-select { flex: 1; height: 40px; font-size: 14px; }
+  .btn-add-new { height: 40px; font-size: 14px; padding: 0 18px; }
+
+  /* New items list di mobile */
+  .new-item-row { flex-wrap: wrap; gap: 6px; }
+  .new-item-name { min-width: 100%; order: 1; }
+  .new-item-note-input { flex: 1; width: auto; min-width: 0; order: 3; }
+  .new-item-icon { order: 0; }
+  .cl-brand-pill.bp-NEW { order: 2; }
+  .btn-del-new { order: 4; }
 }

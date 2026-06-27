@@ -116,19 +116,21 @@
         </div>
         <div class="add-new-row">
           <input type="text" id="new-item-name" class="add-new-input" placeholder="Nama device baru... (contoh: OPPO Reno 16 Pro 12/256GB Demo)" onkeydown="if(event.key==='Enter') addNewItem()">
-          <select id="new-item-brand" class="add-new-select">
-            <option value="APPLE">APPLE</option>
-            <option value="SAMSUNG">SAMSUNG</option>
-            <option value="OPPO">OPPO</option>
-            <option value="Vivo">Vivo</option>
-            <option value="XIAOMI">XIAOMI</option>
-            <option value="Infinix">Infinix</option>
-            <option value="Honor">Honor</option>
-            <option value="Realme">Realme</option>
-            <option value="HUAWEI">HUAWEI</option>
-            <option value="Lainnya">Lainnya</option>
-          </select>
-          <button class="btn btn-add-new" onclick="addNewItem()">＋ Tambah</button>
+          <div class="add-new-bottom-row">
+            <select id="new-item-brand" class="add-new-select">
+              <option value="APPLE">APPLE</option>
+              <option value="SAMSUNG">SAMSUNG</option>
+              <option value="OPPO">OPPO</option>
+              <option value="Vivo">Vivo</option>
+              <option value="XIAOMI">XIAOMI</option>
+              <option value="Infinix">Infinix</option>
+              <option value="Honor">Honor</option>
+              <option value="Realme">Realme</option>
+              <option value="HUAWEI">HUAWEI</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+            <button class="btn btn-add-new" onclick="addNewItem()">＋ Tambah</button>
+          </div>
         </div>
         <div id="new-items-list" class="new-items-list"></div>
       </div>
