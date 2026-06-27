@@ -7,11 +7,33 @@ var _status           = {};
 var _notes            = {};
 var _newItems         = [];
 var _deviceData       = null;
+var _prevMonthData    = null;
 var _pendingBrandCount      = {};
 var _pendingStatusCount     = {};
 var _pendingDeviceStatusMap = {};
 var _pendingPlantCode       = '';
 var _pendingStoreName       = '';
+
+function showPrevSubmitBanner(data, month) {
+  var el = document.getElementById('prev-submit-banner');
+  if (!el) return;
+  // Cari brand mana saja yang sudah ada datanya (nilai > 0)
+  var submittedBrands = [];
+  CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
+    var val = parseInt(data[brand] || 0, 10);
+    if (val > 0) submittedBrands.push(brand);
+  });
+  if (submittedBrands.length === 0) { el.style.display = 'none'; return; }
+  var monthNames = {'01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'Mei','06':'Jun',
+                    '07':'Jul','08':'Agu','09':'Sep','10':'Okt','11':'Nov','12':'Des'};
+  var parts = month.split('-');
+  var monthLabel = (monthNames[parts[1]] || parts[1]) + ' ' + parts[0];
+  el.style.display = 'flex';
+  el.innerHTML = '<span style="font-size:16px">✅</span>' +
+    '<div><strong>Submit sebagian bulan ' + monthLabel + ' terdeteksi</strong>' +
+    '<div style="font-size:12px;color:var(--gray-500);margin-top:2px">Brand sudah submit: <strong>' +
+    submittedBrands.join(', ') + '</strong> — brand lain bisa ditambahkan tanpa mengulang yang sudah ada.</div></div>';
+}
 
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -73,6 +95,7 @@ function verifyPlantCode() {
     _checked    = {};
     _notes      = {};
     _newItems   = [];
+    _prevMonthData = null;
 
     if (_deviceData && _deviceData[plantCode]) {
       _allDevices = _deviceData[plantCode].devices || [];
@@ -85,10 +108,33 @@ function verifyPlantCode() {
     storeInfo.style.display = 'flex';
     resultEl.style.display  = 'none';
 
-    buildBrandFilter();
-    renderChecklist();
-    updateTotalBadge();
-    updateSubmitSummary();
+    // Load data bulan ini dari Google Sheet (untuk pre-fill checklist)
+    var nowYM = (function() {
+      var d = new Date();
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    })();
+    var sheetUrl = new URL(CONFIG.API_URL);
+    sheetUrl.searchParams.set('store', plantCode);
+    sheetUrl.searchParams.set('month', nowYM);
+    fetch(sheetUrl.toString())
+      .then(function(r) { return r.json(); })
+      .then(function(json) {
+        if (json.status === 'success' && json.data && json.data.length > 0) {
+          _prevMonthData = json.data[0];
+          showPrevSubmitBanner(_prevMonthData, nowYM);
+        }
+        buildBrandFilter();
+        renderChecklist();
+        updateTotalBadge();
+        updateSubmitSummary();
+      })
+      .catch(function() {
+        buildBrandFilter();
+        renderChecklist();
+        updateTotalBadge();
+        updateSubmitSummary();
+      });
+
     unlockLduStep();
     updateProgress(2);
 

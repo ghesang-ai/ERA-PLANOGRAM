@@ -327,9 +327,15 @@ function updateMasterSheet(sheet, formData, plantCode) {
     sheet.getRange(targetRow, smColIdx).setValue(submitMonth);
   }
 
-  // ── Tulis field-field dari formData ──
+  // ── Tulis field-field dari formData (merge: tidak overwrite nilai existing dengan 0) ──
   const skipFields = ['plant code', 'store name', 'timestamp', 'submit_month'];
   let currentLastCol = sheet.getLastColumn();
+
+  // Baca nilai existing di baris target untuk merge
+  const existingVals = targetRow <= sheet.getLastRow()
+    ? sheet.getRange(targetRow, 1, 1, currentLastCol).getValues()[0]
+    : [];
+
   Object.keys(formData).forEach(function(fieldName) {
     const fKey = fieldName.toLowerCase().trim();
     if (skipFields.indexOf(fKey) !== -1) return;
@@ -341,11 +347,22 @@ function updateMasterSheet(sheet, formData, plantCode) {
       colIdx = currentLastCol;
     }
     const rawVal = (formData[fieldName][0] || '').toString().trim();
-    if (fKey.endsWith('_devicestatus') || fKey.endsWith('_foto') || fKey.endsWith('_wallbay_foto') || fKey.endsWith('_ldu_foto')) {
-      sheet.getRange(targetRow, colIdx).setValue(rawVal);
+    const isTextCol = fKey.endsWith('_devicestatus') || fKey.endsWith('_foto') ||
+                      fKey.endsWith('_wallbay_foto') || fKey.endsWith('_ldu_foto');
+    if (isTextCol) {
+      // Hanya update jika nilai baru tidak kosong
+      if (rawVal !== '') sheet.getRange(targetRow, colIdx).setValue(rawVal);
     } else {
       const numVal = parseInt(rawVal, 10);
-      sheet.getRange(targetRow, colIdx).setValue(isNaN(numVal) ? 0 : numVal);
+      const existingNum = parseInt((existingVals[colIdx - 1] || '0').toString(), 10) || 0;
+      // Merge: ambil nilai terbesar antara existing dan baru (atau tulis jika baru > 0)
+      if (!isNaN(numVal) && numVal > 0) {
+        sheet.getRange(targetRow, colIdx).setValue(numVal);
+      } else if (existingNum > 0) {
+        // Pertahankan nilai existing
+      } else {
+        sheet.getRange(targetRow, colIdx).setValue(0);
+      }
     }
   });
 
