@@ -93,7 +93,7 @@ function renderFotoTypeZone(brand, type, num) {
       '</div>' +
       '<div class="foto-upload-btn-wrap">' +
         '<label class="foto-upload-btn" for="finput-' + key + '">📁 Pilih Foto</label>' +
-        '<input type="file" id="finput-' + key + '" accept="image/*" capture="environment" style="display:none" ' +
+        '<input type="file" id="finput-' + key + '" accept="image/*" style="display:none" ' +
           'onchange="onFotoSelect(\'' + brand.replace(/'/g, "\\'") + '\',\'' + type + '\',this)">' +
         '<div class="foto-upload-info" id="finfo-' + key + '">JPG/PNG · Max 5MB</div>' +
       '</div>' +
