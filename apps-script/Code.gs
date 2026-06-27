@@ -311,22 +311,27 @@ function updateMasterSheet(sheet, formData, plantCode, storeNameHint) {
   // ── Cari baris bulan ini untuk plant code ini (update jika sudah ada) ──
   const smColIdx = headerMap['submit_month'];
   let targetRow = -1;
+  let fallbackRow = -1; // baris dengan PC sama tapi Submit_Month kosong
   for (let i = 1; i < allRows.length; i++) {
     const rowPc = (pcColIdx ? allRows[i][pcColIdx - 1] : allRows[i][0]).toString().trim().toUpperCase();
+    if (rowPc !== plantCode) continue;
     const smRaw = smColIdx ? allRows[i][smColIdx - 1] : '';
     const rowSm = smRaw instanceof Date
       ? Utilities.formatDate(smRaw, 'Asia/Jakarta', 'yyyy-MM')
       : (smRaw || '').toString().trim();
-    if (rowPc === plantCode && rowSm === submitMonth) {
-      targetRow = i + 1; break;
-    }
+    if (rowSm === submitMonth) { targetRow = i + 1; break; }
+    if (!rowSm && fallbackRow === -1) fallbackRow = i + 1; // baris kosong Submit_Month
   }
 
-  // ── Kalau belum ada baris bulan ini → append baris baru ──
+  // ── Kalau belum ada baris bulan ini → pakai fallback atau append baris baru ──
   if (targetRow === -1) {
-    targetRow = sheet.getLastRow() + 1;
-    if (pcColIdx) sheet.getRange(targetRow, pcColIdx).setValue(plantCode);
-    if (snColIdx) sheet.getRange(targetRow, snColIdx).setValue(storeName);
+    if (fallbackRow !== -1) {
+      targetRow = fallbackRow; // pakai baris existing yang Submit_Month-nya kosong
+    } else {
+      targetRow = sheet.getLastRow() + 1;
+      if (pcColIdx) sheet.getRange(targetRow, pcColIdx).setValue(plantCode);
+      if (snColIdx) sheet.getRange(targetRow, snColIdx).setValue(storeName);
+    }
     sheet.getRange(targetRow, smColIdx).setValue(submitMonth);
   }
 
