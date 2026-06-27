@@ -63,19 +63,27 @@ function buildFotoAccordion(brandsWithCount) {
         '<span id="fbadge-' + key + '" class="foto-badge-zero">0 foto</span>' +
       '</div>' +
       '<div class="foto-brand-body" id="fbbody-' + key + '" style="display:none">' +
-        renderFotoTypeZone(brandName, 'LDU') +
-        renderFotoTypeZone(brandName, 'Wallbay') +
+        '<div class="foto-row-pair">' +
+          renderFotoTypeZone(brandName, 'LDU', '1') +
+          renderFotoTypeZone(brandName, 'LDU2', '2') +
+        '</div>' +
+        '<div class="foto-row-pair">' +
+          renderFotoTypeZone(brandName, 'Wallbay', '1') +
+          renderFotoTypeZone(brandName, 'Wallbay2', '2') +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
 }
 
-function renderFotoTypeZone(brand, type) {
+function renderFotoTypeZone(brand, type, num) {
   var safeKey  = brand.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
   var key      = safeKey + '_' + type;
-  var labelClass = type === 'LDU' ? 'foto-type-label--ldu' : 'foto-type-label--wall';
-  var icon       = type === 'LDU' ? '📺' : '🗂️';
-  var label      = type === 'LDU' ? 'FOTO LDU DISPLAY' : 'FOTO WALLBAY';
+  var isLDU    = type === 'LDU' || type === 'LDU2';
+  var labelClass = isLDU ? 'foto-type-label--ldu' : 'foto-type-label--wall';
+  var icon       = isLDU ? '📺' : '🗂️';
+  var baseLabel  = isLDU ? 'FOTO LDU DISPLAY' : 'FOTO WALLBAY';
+  var label      = baseLabel + (num ? ' ' + num : '');
 
   return '<div class="foto-type-section">' +
     '<div class="foto-type-label ' + labelClass + '"><span class="dot"></span>' + icon + ' ' + label + '</div>' +
@@ -122,7 +130,8 @@ function onFotoSelect(brand, type, input) {
 function updateFotoBadge(brand) {
   var safeKey = brand.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
   var count   = Object.keys(_fotoData).filter(function(k) {
-    return k === brand + '_LDU' || k === brand + '_Wallbay';
+    return k === brand + '_LDU' || k === brand + '_LDU2' ||
+           k === brand + '_Wallbay' || k === brand + '_Wallbay2';
   }).length;
   var badge = document.getElementById('fbadge-' + safeKey);
   if (!badge) return;
