@@ -275,7 +275,7 @@ function onFormSubmit(e) {
 }
 
 // ── UPDATE BARIS DI SHEET BERDASARKAN PLANT CODE ──
-function updateMasterSheet(sheet, formData, plantCode) {
+function updateMasterSheet(sheet, formData, plantCode, storeNameHint) {
   const now     = new Date();
   const tz      = 'Asia/Jakarta';
   const submitMonth = Utilities.formatDate(now, tz, 'yyyy-MM');   // e.g. "2026-07"
@@ -296,7 +296,7 @@ function updateMasterSheet(sheet, formData, plantCode) {
 
   // ── Cari storeName dari baris manapun yang punya Plant Code ini ──
   const allRows = sheet.getDataRange().getValues();
-  let storeName = plantCode;
+  let storeName = storeNameHint || plantCode;
   const pcColIdx = headerMap['plant code'];
   const snColIdx = headerMap['store name'];
   if (pcColIdx && snColIdx) {
@@ -491,12 +491,13 @@ function doGet(e) {
       if (!sheet) throw new Error('Sheet tidak ditemukan: ' + SHEET_NAME);
       const plantCode = (params.store || '').toString().trim().toUpperCase();
       if (!plantCode) throw new Error('Plant Code kosong');
-      const skipKeys = ['action', 'store'];
+      const storeNameParam = (params.storeName || '').toString().trim();
+      const skipKeys = ['action', 'store', 'storeName'];
       const formData = {};
       Object.keys(params).forEach(function(k) {
         if (skipKeys.indexOf(k) === -1) formData[k] = [params[k] !== undefined ? params[k].toString() : '0'];
       });
-      const result = updateMasterSheet(sheet, formData, plantCode);
+      const result = updateMasterSheet(sheet, formData, plantCode, storeNameParam);
       if (!result.success) return jsonOut({ status: 'error', message: result.reason || 'Gagal menyimpan data' });
       return jsonOut({ status: 'success', message: 'Data berhasil disimpan untuk ' + plantCode, storeName: result.storeName });
     }

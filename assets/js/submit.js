@@ -487,6 +487,7 @@ function doActualSubmit(fotoMap) {
   var submitUrl = new URL(CONFIG.API_URL);
   submitUrl.searchParams.set('action', 'submit');
   submitUrl.searchParams.set('store', _pendingPlantCode);
+  if (_pendingStoreName) submitUrl.searchParams.set('storeName', _pendingStoreName);
   CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
     submitUrl.searchParams.set(brand, _pendingBrandCount[brand] || 0);
     var sc = _pendingStatusCount[brand] || {};
