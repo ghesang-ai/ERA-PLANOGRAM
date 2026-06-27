@@ -29,6 +29,7 @@ function showPrevSubmitBanner(data, month) {
   var parts = month.split('-');
   var monthLabel = (monthNames[parts[1]] || parts[1]) + ' ' + parts[0];
   el.style.display = 'flex';
+  setTimeout(function() { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
   el.innerHTML = '<span style="font-size:16px">✅</span>' +
     '<div><strong>Submit sebagian bulan ' + monthLabel + ' terdeteksi</strong>' +
     '<div style="font-size:12px;color:var(--gray-500);margin-top:2px">Brand sudah submit: <strong>' +
@@ -407,7 +408,6 @@ function preparePendingData() {
   if (missingStatus.length > 0) {
     missingStatus.forEach(function(k) { _status[parseInt(k)] = 'display'; });
     renderChecklist();
-    showToast('ℹ️ ' + missingStatus.length + ' device belum ada status → otomatis diset Display.');
   }
 
   var brandMap = {};
