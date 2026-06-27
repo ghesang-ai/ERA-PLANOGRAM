@@ -477,7 +477,7 @@ function applyHeaderSettings() {
   var heroBg      = document.querySelector('.hero-banner-bg');
   var bannerImg = document.getElementById('hero-banner-img');
   if (bannerImg) {
-    bannerImg.src = s.bgImage || 'assets/img/banner-default.jpg';
+    bannerImg.src = 'assets/img/banner-default.jpg';
     bannerImg.style.display = 'block';
   }
   banner.style.backgroundImage = '';
