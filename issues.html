@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device Issues — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .issues-header { background:#fff; border-bottom:1px solid var(--gray-100); padding:12px 20px; display:flex; align-items:center; gap:12px; }
+    .issues-title  { font-size:16px; font-weight:700; color:var(--gray-800); }
+    .issues-sub    { font-size:12px; color:var(--gray-400); }
+    .issues-body   { max-width:1100px; margin:24px auto; padding:0 16px; }
+
+    .issues-stats  { display:flex; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+    .issues-stat   { background:#fff; border:1px solid var(--gray-100); border-radius:10px; padding:14px 20px; flex:1; min-width:140px; text-align:center; }
+    .issues-stat-num   { font-size:28px; font-weight:800; }
+    .issues-stat-label { font-size:11px; color:var(--gray-400); margin-top:2px; }
+    .stat--total   .issues-stat-num { color:var(--blue); }
+    .stat--tidak   .issues-stat-num { color:#a16207; }
+    .stat--rusak   .issues-stat-num { color:#dc2626; }
+
+    .issues-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+    .issues-toolbar input, .issues-toolbar select { padding:7px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:13px; outline:none; }
+    .issues-toolbar input { flex:1; min-width:200px; }
+
+    .issues-table  { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .issues-table th { padding:10px 14px; font-size:11px; font-weight:700; color:var(--gray-400); text-align:left; background:var(--gray-50); border-bottom:1px solid var(--gray-100); }
+    .issues-table td { padding:10px 14px; font-size:13px; border-bottom:1px solid var(--gray-50); vertical-align:top; }
+    .issues-table tr:last-child td { border-bottom:none; }
+    .issues-table tr:hover td { background:#f8fafc; }
+
+    .badge-tidak { display:inline-block; padding:2px 8px; border-radius:20px; background:#fef9c3; color:#a16207; font-size:11px; font-weight:700; }
+    .badge-rusak { display:inline-block; padding:2px 8px; border-radius:20px; background:#fee2e2; color:#dc2626; font-size:11px; font-weight:700; }
+
+    .note-cell  { color:var(--gray-500); font-size:12px; font-style:italic; margin-top:2px; }
+    .no-note    { color:var(--gray-300); font-size:12px; }
+    .store-link { color:var(--blue); text-decoration:none; font-weight:600; }
+    .store-link:hover { text-decoration:underline; }
+
+    .issues-count { font-size:12px; color:var(--gray-400); margin-left:auto; }
+    .empty-state  { text-align:center; padding:48px 20px; color:var(--gray-400); }
+    .empty-icon   { font-size:40px; margin-bottom:12px; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="issues-header">
+    <a href="index.html" style="color:var(--blue);font-size:13px;text-decoration:none">← Dashboard</a>
+    <div>
+      <div class="issues-title">⚠️ Monitor Device Issues</div>
+      <div class="issues-sub">Device Tidak Display &amp; Rusak · Semua Toko Region 5</div>
+    </div>
+    <button onclick="loadIssues()" style="margin-left:auto;padding:6px 14px;border-radius:8px;border:1px solid var(--gray-200);background:#fff;font-size:13px;cursor:pointer">🔄 Refresh</button>
+  </div>
+
+  <div class="issues-body">
+
+    <!-- STATS -->
+    <div class="issues-stats" id="issues-stats">
+      <div class="issues-stat stat--total"><div class="issues-stat-num" id="stat-total">—</div><div class="issues-stat-label">Total Issues</div></div>
+      <div class="issues-stat stat--tidak"><div class="issues-stat-num" id="stat-tidak">—</div><div class="issues-stat-label">Tidak Display</div></div>
+      <div class="issues-stat stat--rusak"><div class="issues-stat-num" id="stat-rusak">—</div><div class="issues-stat-label">Rusak</div></div>
+      <div class="issues-stat" style="background:#f0fdf4;border-color:#86efac"><div class="issues-stat-num" style="color:#15803d" id="stat-stores">—</div><div class="issues-stat-label">Toko Terdampak</div></div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="issues-toolbar">
+      <input type="text" id="iss-search" placeholder="🔍 Cari toko, device, atau SN..." oninput="renderIssues()">
+      <select id="iss-filter-status" onchange="renderIssues()">
+        <option value="">Semua Status</option>
+        <option value="tidak">Tidak Display</option>
+        <option value="rusak">Rusak</option>
+      </select>
+      <select id="iss-filter-brand" onchange="renderIssues()">
+        <option value="">Semua Brand</option>
+      </select>
+      <span class="issues-count" id="iss-count">—</span>
+    </div>
+
+    <!-- TABLE -->
+    <table class="issues-table" id="issues-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Toko</th>
+          <th>Brand</th>
+          <th>Device / SN</th>
+          <th>Status</th>
+          <th>Catatan Store Leader</th>
+          <th>Last Submit</th>
+        </tr>
+      </thead>
+      <tbody id="issues-tbody">
+        <tr><td colspan="7" class="empty-state"><div class="empty-icon">⏳</div>Memuat data...</td></tr>
+      </tbody>
+    </table>
+
+  </div>
+
+  <script src="assets/js/config.js"></script>
+  <script>
+    var _allIssues = [];
+
+    function escHtml(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    async function loadIssues() {
+      document.getElementById('issues-tbody').innerHTML =
+        '<tr><td colspan="7" class="empty-state"><div class="empty-icon">⏳</div>Memuat data...</td></tr>';
+
+      try {
+        var url = new URL(CONFIG.API_URL);
+        url.searchParams.set('action', 'getIssues');
+        var res  = await fetch(url.toString());
+        var json = await res.json();
+
+        if (json.status !== 'success') throw new Error(json.message || 'Gagal memuat');
+        _allIssues = json.data || [];
+        updateStats();
+        populateBrandFilter();
+        renderIssues();
+      } catch(err) {
+        document.getElementById('issues-tbody').innerHTML =
+          '<tr><td colspan="7" class="empty-state"><div class="empty-icon">⚠️</div>' + escHtml(err.message) + '</td></tr>';
+      }
+    }
+
+    function updateStats() {
+      var nTidak  = _allIssues.filter(function(d) { return d.status === 'tidak'; }).length;
+      var nRusak  = _allIssues.filter(function(d) { return d.status === 'rusak'; }).length;
+      var stores  = new Set(_allIssues.map(function(d) { return d.plantCode; })).size;
+      document.getElementById('stat-total').textContent  = _allIssues.length;
+      document.getElementById('stat-tidak').textContent  = nTidak;
+      document.getElementById('stat-rusak').textContent  = nRusak;
+      document.getElementById('stat-stores').textContent = stores;
+    }
+
+    function populateBrandFilter() {
+      var brands = [...new Set(_allIssues.map(function(d) { return d.brand; }))].sort();
+      var sel = document.getElementById('iss-filter-brand');
+      sel.innerHTML = '<option value="">Semua Brand</option>' +
+        brands.map(function(b) { return '<option value="' + escHtml(b) + '">' + escHtml(b) + '</option>'; }).join('');
+    }
+
+    function renderIssues() {
+      var search  = (document.getElementById('iss-search').value || '').toLowerCase();
+      var fStatus = document.getElementById('iss-filter-status').value;
+      var fBrand  = document.getElementById('iss-filter-brand').value;
+
+      var filtered = _allIssues.filter(function(d) {
+        if (fStatus && d.status !== fStatus) return false;
+        if (fBrand  && d.brand  !== fBrand)  return false;
+        if (search) {
+          var hay = (d.storeName + ' ' + d.plantCode + ' ' + d.device + ' ' + d.brand).toLowerCase();
+          if (!hay.includes(search)) return false;
+        }
+        return true;
+      });
+
+      document.getElementById('iss-count').textContent = filtered.length + ' issue';
+
+      if (filtered.length === 0) {
+        document.getElementById('issues-tbody').innerHTML =
+          '<tr><td colspan="7" class="empty-state"><div class="empty-icon">✅</div>Tidak ada device bermasalah ditemukan.</td></tr>';
+        return;
+      }
+
+      document.getElementById('issues-tbody').innerHTML = filtered.map(function(d, i) {
+        var badge   = d.status === 'rusak'
+          ? '<span class="badge-rusak">Rusak</span>'
+          : '<span class="badge-tidak">Tidak Display</span>';
+        var noteHtml = d.note
+          ? '<div class="note-cell">💬 ' + escHtml(d.note) + '</div>'
+          : '<span class="no-note">—</span>';
+        var storeUrl = 'store-detail.html?code=' + encodeURIComponent(d.plantCode);
+        var lastSubmit = d.lastSubmit ? new Date(d.lastSubmit).toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'}) : '-';
+
+        return '<tr>' +
+          '<td style="color:var(--gray-400);font-size:12px">' + (i + 1) + '</td>' +
+          '<td><a href="' + storeUrl + '" class="store-link">' + escHtml(d.storeName) + '</a><div style="font-size:11px;color:var(--gray-400)">' + escHtml(d.plantCode) + '</div></td>' +
+          '<td style="font-weight:600">' + escHtml(d.brand) + '</td>' +
+          '<td style="font-size:12px;max-width:220px">' + escHtml(d.device) + '</td>' +
+          '<td>' + badge + '</td>' +
+          '<td>' + noteHtml + '</td>' +
+          '<td style="font-size:12px;color:var(--gray-400);white-space:nowrap">' + escHtml(lastSubmit) + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', loadIssues);
+  </script>
+</body>
+</html>

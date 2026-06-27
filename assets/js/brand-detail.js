@@ -6,7 +6,15 @@ function escHtml(s) {
 
 var _allDevices    = [];
 var _deviceStatus  = {};   // SN/name → 'display'|'tidak'|'rusak'
+var _deviceNotes   = {};   // SN/name → catatan teks
 var _activeFilter  = null; // null | 'display' | 'tidak' | 'rusak'
+
+function parseDeviceStatus(raw) {
+  // raw: "tidak" atau "tidak|catatan teks"
+  if (!raw) return { status: '', note: '' };
+  var parts = raw.split('|');
+  return { status: parts[0] || '', note: parts.slice(1).join('|') };
+}
 
 function setFilter(status) {
   _activeFilter = (_activeFilter === status) ? null : status;
@@ -17,7 +25,7 @@ function setFilter(status) {
 function renderStatCards() {
   var nTotal   = _allDevices.length;
   var nDisplay = _allDevices.filter(function(d) { return _deviceStatus[d._key] === 'display'; }).length;
-  var nTidak   = _allDevices.filter(function(d) { return _deviceStatus[d._key] === 'tidak';   }).length;
+  var nTidak   = _allDevices.filter(function(d) { return _deviceStatus[d._key] === 'tidak' || _deviceStatus[d._key] === 'tidak display'; }).length;
   var nRusak   = _allDevices.filter(function(d) { return _deviceStatus[d._key] === 'rusak';   }).length;
   var hasStatus = Object.keys(_deviceStatus).length > 0;
 
@@ -79,11 +87,13 @@ function renderDeviceList() {
     if (st === 'tidak')   stBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#fef9c3;color:#a16207;font-weight:700;margin-left:6px">Tidak Display</span>';
     if (st === 'rusak')   stBadge = '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#fee2e2;color:#dc2626;font-weight:700;margin-left:6px">Rusak</span>';
 
+    var note = _deviceNotes[d._key] || '';
     return '<div class="bd-device-item">' +
       '<div class="bd-device-num">' + (i + 1) + '</div>' +
       '<div>' +
         '<div class="bd-device-name">' + escHtml(d.name) + stBadge + '</div>' +
         '<div class="bd-device-sn">SN: ' + escHtml(d.sn || '-') + '</div>' +
+        (note ? '<div class="bd-device-note">💬 ' + escHtml(note) + '</div>' : '') +
       '</div>' +
     '</div>';
   }).join('');
@@ -128,11 +138,19 @@ async function loadBrandDetail() {
   var lduFoto   = row[brand + '_LDU_Foto']    || '';
   var wallFoto  = row[brand + '_Wallbay_Foto'] || '';
 
-  // Parse per-device status JSON
+  // Parse per-device status JSON (format: "status" or "status|catatan")
   var deviceStatusRaw = row[brand + '_DeviceStatus'] || '';
   _deviceStatus = {};
+  _deviceNotes  = {};
   if (deviceStatusRaw) {
-    try { _deviceStatus = JSON.parse(deviceStatusRaw); } catch(e) {}
+    try {
+      var raw = JSON.parse(deviceStatusRaw);
+      Object.keys(raw).forEach(function(key) {
+        var parsed = parseDeviceStatus(raw[key]);
+        _deviceStatus[key] = parsed.status;
+        if (parsed.note) _deviceNotes[key] = parsed.note;
+      });
+    } catch(e) {}
   }
   var hasDeviceStatus = Object.keys(_deviceStatus).length > 0;
 

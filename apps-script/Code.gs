@@ -446,6 +446,62 @@ function saveFotoUrls(payload) {
   return { status: 'success', updated: Object.keys(fotoMap).length };
 }
 
+// ── Device Issues: kumpulkan semua device Tidak Display / Rusak dari master sheet ──
+function getIssues(ss, params) {
+  var sheet   = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) return { status: 'error', message: 'Sheet tidak ditemukan' };
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0].map(function(h) { return h.toString().trim(); });
+
+  // Temukan kolom _DeviceStatus
+  var dsColIdxs = []; // { col: idx, brand: "Honor" }
+  headers.forEach(function(h, idx) {
+    var m = h.match(/^(.+)_DeviceStatus$/i);
+    if (m) dsColIdxs.push({ idx: idx, brand: m[1] });
+  });
+
+  // Temukan kolom store name, plant code, last submit
+  var storeNameIdx  = headers.indexOf('Store Name');
+  var plantCodeIdx  = headers.indexOf('Plant Code');
+  var lastSubmitIdx = headers.indexOf('Last Submit');
+
+  var issues = [];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
+    if (!row[plantCodeIdx]) continue;
+    var plantCode = row[plantCodeIdx].toString().trim();
+    var storeName = row[storeNameIdx] ? row[storeNameIdx].toString().trim() : plantCode;
+    var lastSubmit = row[lastSubmitIdx] ? row[lastSubmitIdx].toString() : '';
+
+    dsColIdxs.forEach(function(ds) {
+      var raw = row[ds.idx] ? row[ds.idx].toString().trim() : '';
+      if (!raw) return;
+      var parsed;
+      try { parsed = JSON.parse(raw); } catch(e) { return; }
+      Object.keys(parsed).forEach(function(deviceKey) {
+        var val    = parsed[deviceKey] || '';
+        var parts  = val.split('|');
+        var status = parts[0].trim();
+        var note   = parts.slice(1).join('|').trim();
+        if (status === 'tidak' || status === 'rusak') {
+          issues.push({
+            plantCode:  plantCode,
+            storeName:  storeName,
+            brand:      ds.brand,
+            device:     deviceKey,
+            status:     status,
+            note:       note,
+            lastSubmit: lastSubmit
+          });
+        }
+      });
+    });
+  }
+
+  return { status: 'success', count: issues.length, data: issues };
+}
+
 // ── doPost ──
 function doPost(e) {
   try {
@@ -504,6 +560,7 @@ function doGet(e) {
 
     if (params.action === 'getInventory') return jsonOut(getInventory(params));
     if (params.action === 'getLog')       return jsonOut(getLog(params));
+    if (params.action === 'getIssues')    return jsonOut(getIssues(ss, params));
 
     // Default: baca ERA-PLANOGRAM sheet
     const sheet   = ss.getSheetByName(SHEET_NAME);

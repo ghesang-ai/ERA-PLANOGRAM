@@ -443,13 +443,15 @@ function preparePendingData() {
     statusCount[colName]['display']++;
   });
 
-  // Build per-device status map: { BrandCol: { "SN_or_name": "display"|"tidak"|"rusak" } }
+  // Build per-device status map: { BrandCol: { "SN_or_name": "status|catatan" } }
   var deviceStatusMap = {};
   _allDevices.forEach(function(d, i) {
     var colName = brandMap[(d.brand || '').toUpperCase()] || d.brand;
     if (!deviceStatusMap[colName]) deviceStatusMap[colName] = {};
-    var key = (d.sn && d.sn !== '-') ? d.sn : d.name;
-    deviceStatusMap[colName][key] = _checked[i] ? (_status[i] || 'display') : 'tidak';
+    var key  = (d.sn && d.sn !== '-') ? d.sn : d.name;
+    var st   = _checked[i] ? (_status[i] || 'display') : 'tidak';
+    var note = _notes[i] || '';
+    deviceStatusMap[colName][key] = note ? (st + '|' + note) : st;
   });
 
   _pendingBrandCount      = brandCount;
