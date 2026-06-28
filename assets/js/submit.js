@@ -426,32 +426,25 @@ function preparePendingData() {
     brandCount[colName] = (brandCount[colName] || 0) + 1;
   });
 
+  // statusCount dan deviceStatusMap HANYA untuk brand yang di-centang
+  // Brand yang tidak di-centang TIDAK dikirim agar tidak menimpa data submit sebelumnya
   var statusCount = {};
+  var deviceStatusMap = {};
   _allDevices.forEach(function(d, i) {
     var colName = brandMap[(d.brand || '').toUpperCase()] || d.brand;
+    if (!brandCount[colName]) return; // skip brand yang tidak di-centang sama sekali
     if (!statusCount[colName]) statusCount[colName] = { display: 0, tidak: 0, rusak: 0 };
-    if (_checked[i]) {
-      var st = _status[i] || 'tidak';
-      statusCount[colName][st]++;
-    } else {
-      statusCount[colName]['tidak']++;
-    }
+    if (!deviceStatusMap[colName]) deviceStatusMap[colName] = {};
+    var key  = (d.sn && d.sn !== '-') ? d.sn : d.name;
+    var st   = _checked[i] ? (_status[i] || 'display') : 'tidak';
+    var note = _notes[i] || '';
+    statusCount[colName][st ? st : 'tidak']++;
+    deviceStatusMap[colName][key] = note ? (st + '|' + note) : st;
   });
   _newItems.forEach(function(it) {
     var colName = brandMap[(it.brand || '').toUpperCase()] || it.brand;
     if (!statusCount[colName]) statusCount[colName] = { display: 0, tidak: 0, rusak: 0 };
     statusCount[colName]['display']++;
-  });
-
-  // Build per-device status map: { BrandCol: { "SN_or_name": "status|catatan" } }
-  var deviceStatusMap = {};
-  _allDevices.forEach(function(d, i) {
-    var colName = brandMap[(d.brand || '').toUpperCase()] || d.brand;
-    if (!deviceStatusMap[colName]) deviceStatusMap[colName] = {};
-    var key  = (d.sn && d.sn !== '-') ? d.sn : d.name;
-    var st   = _checked[i] ? (_status[i] || 'display') : 'tidak';
-    var note = _notes[i] || '';
-    deviceStatusMap[colName][key] = note ? (st + '|' + note) : st;
   });
 
   _pendingBrandCount      = brandCount;
