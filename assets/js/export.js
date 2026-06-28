@@ -58,7 +58,14 @@ function exportAllExcel() {
 }
 
 function exportFilteredExcel() {
-  exportToExcel(window._eraFilteredData || [], 'ERA-PLANOGRAM-FILTERED');
+  var label = 'FILTERED';
+  if (typeof _activeQuickFilter !== 'undefined') {
+    if (_activeQuickFilter === 'pending_this_month')   label = 'BELUM-SUBMIT-BULAN-INI';
+    if (_activeQuickFilter === 'submitted_this_month') label = 'SUDAH-SUBMIT-BULAN-INI';
+  }
+  var now = new Date();
+  var dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  exportToExcel(window._eraFilteredData || [], 'ERA-PLANOGRAM-' + label + '_' + dateStr);
 }
 
 function exportStoreExcel(plantCode, storeName) {
