@@ -12,6 +12,7 @@ function exportToExcel(data, filename) {
     var obj = {
       'Plant Code':  row['Plant Code']  || '',
       'Store Name':  row['Store Name']  || '',
+      'Area':        row['Area']        || '',
       'Region':      row['Region']      || '',
       'Status':      row['Status']      || 'Pending',
       'Last Submit': row['Last Submit'] || ''
