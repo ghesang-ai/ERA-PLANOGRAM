@@ -281,7 +281,7 @@ function toggleDevice(i) {
 
 function setDeviceStatus(i, s) {
   if (!_checked[i]) return;
-  _status[i] = (_status[i] === s) ? null : s;
+  _status[i] = s;
   renderChecklist();
   updateSubmitSummary();
 }
