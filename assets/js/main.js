@@ -6,6 +6,7 @@ window._eraViewMode     = 'summary';
 var _refreshTimer = null;
 var _trendChart   = null;
 var _donutChart   = null;
+var _storeAreas   = {};
 
 // Brand avatar colors + logos
 var BRAND_AVATAR = {
@@ -90,8 +91,13 @@ async function fetchData(params) {
 
     // Simpan bulan aktif dari API
     _activeMonth = json.activeMonth || _activeMonth;
+    // Inject area dari store-areas.json ke setiap row
+    json.data.forEach(function(d) {
+      d['Area'] = _storeAreas[d['Plant Code']] || '';
+    });
     window._eraAllData      = json.data;
     window._eraFilteredData = json.data.slice();
+    populateAreaFilter(json.data);
 
     // Update month filter dropdown
     renderMonthFilter(json.availableMonths || [], json.activeMonth || '');
@@ -443,7 +449,9 @@ function renderTable(data) {
 
     return '<tr class="' + (status !== 'Submitted' ? 'row-pending' : '') + '">' +
       '<td><code>' + escHtml(row['Plant Code']) + '</code></td>' +
-      '<td class="col-store">' + escHtml(row['Store Name']) + '</td>' +
+      '<td class="col-store">' + escHtml(row['Store Name']) +
+        (row['Area'] ? '<div style="font-size:11px;color:var(--gray-400);margin-top:2px;font-weight:500">📍 ' + escHtml(row['Area']) + '</div>' : '') +
+      '</td>' +
       '<td><span style="font-size:12px;color:var(--gray-600)">' + escHtml(CONFIG.detectBrandToko(row['Store Name'])) + '</span></td>' +
       '<td>' + periodBadge + '</td>' +
       brandCols +
@@ -500,19 +508,36 @@ function updateQuickFilterCounts(data) {
   if (pillPend) pillPend.title = 'Belum submit di bulan ' + bulan;
 }
 
+function populateAreaFilter(data) {
+  var sel = document.getElementById('filter-area');
+  if (!sel) return;
+  var areas = [];
+  data.forEach(function(d) {
+    if (d['Area'] && areas.indexOf(d['Area']) === -1) areas.push(d['Area']);
+  });
+  areas.sort();
+  var current = sel.value;
+  sel.innerHTML = '<option value="">Semua Area</option>' +
+    areas.map(function(a) {
+      return '<option value="' + escHtml(a) + '"' + (a === current ? ' selected' : '') + '>' + escHtml(a) + '</option>';
+    }).join('');
+}
+
 function applyFilters() {
   var brandVal  = (document.getElementById('filter-brand')  || {}).value || '';
+  var areaVal   = (document.getElementById('filter-area')   || {}).value || '';
   var searchVal = ((document.getElementById('search-store') || {}).value || '').toLowerCase();
   var statusVal = (document.getElementById('filter-status') || {}).value || '';
   var periodVal = (document.getElementById('filter-period') || {}).value || '';
 
   window._eraFilteredData = window._eraAllData.filter(function(d) {
     var matchBrand  = !brandVal  || CONFIG.detectBrandToko(d['Store Name']).toLowerCase() === brandVal.toLowerCase();
+    var matchArea   = !areaVal   || (d['Area'] || '') === areaVal;
     var matchSearch = !searchVal ||
       (d['Store Name'] || '').toLowerCase().includes(searchVal) ||
-      (d['Plant Code'] || '').toLowerCase().includes(searchVal);
+      (d['Plant Code'] || '').toLowerCase().includes(searchVal) ||
+      (d['Area'] || '').toLowerCase().includes(searchVal);
     var matchStatus = !statusVal || (d['Status'] || 'Pending') === statusVal;
-    // Quick filter: by submit this month
     if (_activeQuickFilter === 'submitted_this_month') {
       if (!submittedThisMonth(d)) return false;
     } else if (_activeQuickFilter === 'pending_this_month') {
@@ -527,7 +552,7 @@ function applyFilters() {
         matchPeriod = p.key === periodVal;
       }
     }
-    return matchBrand && matchSearch && matchStatus && matchPeriod;
+    return matchBrand && matchArea && matchSearch && matchStatus && matchPeriod;
   });
 
   renderTable(window._eraFilteredData);
@@ -538,7 +563,11 @@ function refreshData() { fetchData(); }
 document.addEventListener('DOMContentLoaded', function() {
   applyHeaderSettings();
   startCountdown();
-  fetchData();
+  fetch('assets/data/store-areas.json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { _storeAreas = data; })
+    .catch(function() {})
+    .finally(function() { fetchData(); });
   _refreshTimer = setInterval(fetchData, 5 * 60 * 1000);
 });
 
