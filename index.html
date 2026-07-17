@@ -181,12 +181,12 @@
       <select class="toolbar-select" id="filter-area" onchange="applyFilters()">
         <option value="">Semua Area</option>
       </select>
-      <select class="toolbar-select" id="filter-status" onchange="applyFilters()">
+      <select class="toolbar-select" id="filter-status" onchange="resetQuickFilterOnDropdownChange()">
         <option value="">Semua Status</option>
         <option value="Submitted">Sudah Submit</option>
         <option value="Pending">Belum Submit</option>
       </select>
-      <select class="toolbar-select toolbar-select--period" id="filter-period" onchange="applyFilters()">
+      <select class="toolbar-select toolbar-select--period" id="filter-period" onchange="resetQuickFilterOnDropdownChange()">
         <option value="">Semua Periode</option>
         <option value="this_month">📅 Bulan Ini</option>
         <option value="last_month">📆 Bulan Lalu</option>

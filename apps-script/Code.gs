@@ -454,12 +454,28 @@ function saveFotoUrls(payload) {
   var headerMap = {};
   headers.forEach(function(h, i) { if (h) headerMap[h.toString().trim()] = i + 1; });
 
-  var allRows = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var pcColIdx = headerMap['Plant Code'];
+  var smColIdx = headerMap['Submit_Month'];
+  var submitMonth = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM');
+
+  var allRows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var targetRow = -1;
+  var emptyMonthRow = -1; // baris Plant Code sama dgn Submit_Month kosong (belum pernah submit bulan manapun)
   for (var i = 0; i < allRows.length; i++) {
-    if (allRows[i][0].toString().trim().toUpperCase() === plantCode) { targetRow = i + 2; break; }
+    var rowPc = (pcColIdx ? allRows[i][pcColIdx - 1] : allRows[i][0]).toString().trim().toUpperCase();
+    if (rowPc !== plantCode) continue;
+    var smRaw = smColIdx ? allRows[i][smColIdx - 1] : '';
+    var rowSm = smRaw instanceof Date
+      ? Utilities.formatDate(smRaw, 'Asia/Jakarta', 'yyyy-MM')
+      : (smRaw || '').toString().trim();
+    // Cocokkan baris bulan aktif ini, agar foto/DeviceStatus tersimpan di baris yang sama
+    // dengan submit angka LDU (updateMasterSheet), bukan baris bulan lama toko yang sama.
+    if (rowSm === submitMonth) { targetRow = i + 2; break; }
+    if (!rowSm && emptyMonthRow === -1) emptyMonthRow = i + 2; // hanya baris kosong yang boleh jadi fallback
   }
-  if (targetRow === -1) throw new Error('Plant Code tidak ditemukan: ' + plantCode);
+  if (targetRow === -1) targetRow = emptyMonthRow;
+  // Jangan pernah jatuh ke baris bulan lama yang sudah terisi — itu akan menimpa data bulan lain.
+  if (targetRow === -1) throw new Error('Baris submit bulan ' + submitMonth + ' belum ditemukan untuk Plant Code: ' + plantCode + ' (submit checklist LDU dulu sebelum upload foto)');
 
   Object.keys(fotoMap).forEach(function(colName) {
     var colIdx = headerMap[colName];
@@ -625,8 +641,26 @@ function doGet(e) {
     });
     const availableMonths = Object.keys(monthSet).sort().reverse(); // ["2026-07","2026-06",...]
 
-    // Tentukan bulan yang dipakai: filterMonth atau bulan terbaru
-    const activeMonth = filterMonth || (availableMonths[0] || '');
+    // Tentukan bulan yang dipakai: filterMonth, atau bulan terbaru MILIK toko ini
+    // (kalau filter per-toko), atau bulan terbaru di seluruh sheet (kalau tidak difilter).
+    // Tidak boleh pakai bulan terbaru GLOBAL untuk toko spesifik — toko yang belum
+    // submit bulan terbaru akan salah dianggap "tidak ditemukan".
+    let activeMonth = filterMonth;
+    if (!activeMonth) {
+      if (filterStore) {
+        const storeMonths = {};
+        allObjs.forEach(function(o) {
+          const pc = (o['Plant Code'] || '').toString().toUpperCase().trim();
+          if (pc !== filterStore) return;
+          const m = readMonth(o['Submit_Month']);
+          if (m) storeMonths[m] = true;
+        });
+        const storeAvailableMonths = Object.keys(storeMonths).sort().reverse();
+        activeMonth = storeAvailableMonths[0] || availableMonths[0] || '';
+      } else {
+        activeMonth = availableMonths[0] || '';
+      }
+    }
 
     // Filter per store: ambil baris bulan aktif (atau latest jika tidak ada Submit_Month)
     // Untuk backward compat: baris tanpa Submit_Month dianggap bulan pertama tersedia
@@ -642,6 +676,24 @@ function doGet(e) {
         storeMap[pc] = obj;
       }
     });
+
+    // Kalau activeMonth adalah bulan TERBARU (periode yang sedang berjalan), toko yang belum
+    // submit bulan ini tidak akan punya baris yang cocok di atas — jadi hilang dari daftar.
+    // Supaya "Belum Submit Bulan Ini" tetap kelihatan di tabel, isi toko yang belum ada
+    // pakai data submission terakhir mereka (bulan sebelumnya). Untuk bulan LAMA/histori
+    // (bukan bulan terbaru) tidak dilakukan fallback ini, supaya snapshot historisnya akurat.
+    if (!filterStore && activeMonth === availableMonths[0]) {
+      const latestPerStore = {}; // pc -> { obj, month }
+      allObjs.forEach(function(obj) {
+        const pc = (obj['Plant Code'] || '').toString().toUpperCase().trim();
+        if (!pc || storeMap[pc]) return;
+        if (filterStatus && (obj['Status'] || '').toString().toLowerCase() !== filterStatus) return;
+        const rowMonth = readMonth(obj['Submit_Month']);
+        const existing = latestPerStore[pc];
+        if (!existing || rowMonth > existing.month) latestPerStore[pc] = { obj: obj, month: rowMonth };
+      });
+      Object.keys(latestPerStore).forEach(function(pc) { storeMap[pc] = latestPerStore[pc].obj; });
+    }
 
     const result = Object.values(storeMap);
     return jsonOut({
@@ -693,6 +745,223 @@ function backfillSubmitMonth() {
     }
   }
   Logger.log('Backfill selesai: ' + updated + ' baris diupdate ke 2026-06');
+}
+
+// ── PERBAIKAN DATA SATU KALI: pindahkan URL foto Juli yang kesasar ke baris Juni ──
+// Bug lama di saveFotoUrls() menulis link foto submission bulan berjalan ke baris
+// bulan LAMA milik toko yang sama (lihat fix di saveFotoUrls di atas). Jalankan fungsi
+// ini SATU KALI dari editor untuk pindahkan foto yang sudah kesasar ke baris bulan
+// yang benar. Aman dipakai berulang (idempotent) — hanya memindah kalau ketemu match.
+function migrateMisplacedFoto() {
+  var TARGET_MONTH  = '2026-07';                 // bulan yang fotonya kesasar
+  var MONTH_FOLDER  = '2026-07 July';             // nama folder Drive utk bulan itu
+
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) { Logger.log('Sheet tidak ditemukan'); return; }
+
+  var lastCol = sheet.getLastColumn();
+  var lastRow = sheet.getLastRow();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var headerMap = {};
+  headers.forEach(function(h, i) { if (h) headerMap[h.toString().trim()] = i + 1; });
+  var pcColIdx = headerMap['Plant Code'];
+  var smColIdx = headerMap['Submit_Month'];
+  if (!pcColIdx || !smColIdx) { Logger.log('Kolom Plant Code / Submit_Month tidak ditemukan'); return; }
+
+  var fotoColIdx = [];
+  headers.forEach(function(h, i) {
+    var name = (h || '').toString().trim();
+    if (/_Foto$/.test(name)) fotoColIdx.push({ name: name, col: i + 1 });
+  });
+
+  // Semua Plant Code unik di sheet ini (bukan daftar tetap) — supaya jalan utk semua toko
+  var AFFECTED_CODES = (function() {
+    var seen = {};
+    var all = sheet.getRange(2, pcColIdx, sheet.getLastRow() - 1, 1).getValues();
+    all.forEach(function(r) {
+      var pc = (r[0] || '').toString().trim().toUpperCase();
+      if (pc) seen[pc] = true;
+    });
+    return Object.keys(seen);
+  })();
+
+  // Ambil root folder foto bulan Juli, index semua subfolder toko SEKALI di awal (bukan per toko)
+  var root = DriveApp.getFolderById(FOTO_ROOT_FOLDER_ID);
+  var monthFolders = root.getFoldersByName(MONTH_FOLDER);
+  if (!monthFolders.hasNext()) { Logger.log('Folder bulan ' + MONTH_FOLDER + ' tidak ditemukan di Drive'); return; }
+  var monthFolder = monthFolders.next();
+
+  var storeFolderByCode = {}; // "<PLANTCODE>" -> Folder
+  var storeSubIter = monthFolder.getFolders();
+  while (storeSubIter.hasNext()) {
+    var sf = storeSubIter.next();
+    var code = sf.getName().trim().split(' ')[0].toUpperCase();
+    if (code && !storeFolderByCode[code]) storeFolderByCode[code] = sf;
+  }
+
+  var allRows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  AFFECTED_CODES.forEach(function(plantCode) {
+    var storeFolder = storeFolderByCode[plantCode.toUpperCase()];
+    if (!storeFolder) { Logger.log(plantCode + ': folder Juli tidak ditemukan, skip'); return; }
+
+    var julyFileIds = {};
+    var fIter = storeFolder.getFiles();
+    while (fIter.hasNext()) julyFileIds[fIter.next().getId()] = true;
+
+    // Cari baris Submit_Month == TARGET_MONTH (tujuan) dan baris lain milik plant code sama (sumber)
+    var targetRow = -1;
+    var sourceRows = [];
+    for (var i = 0; i < allRows.length; i++) {
+      var rowPc = (allRows[i][pcColIdx - 1] || '').toString().trim().toUpperCase();
+      if (rowPc !== plantCode.toUpperCase()) continue;
+      var smRaw = allRows[i][smColIdx - 1];
+      var rowSm = smRaw instanceof Date
+        ? Utilities.formatDate(smRaw, 'Asia/Jakarta', 'yyyy-MM')
+        : (smRaw || '').toString().trim();
+      if (rowSm === TARGET_MONTH) targetRow = i + 2;
+      else sourceRows.push(i + 2);
+    }
+    if (targetRow === -1) { Logger.log(plantCode + ': baris ' + TARGET_MONTH + ' tidak ditemukan, skip'); return; }
+    if (sourceRows.length === 0) { Logger.log(plantCode + ': tidak ada baris lain utk dicek, skip'); return; }
+
+    var moved = 0;
+    sourceRows.forEach(function(srcRow) {
+      fotoColIdx.forEach(function(fc) {
+        var srcVal = sheet.getRange(srcRow, fc.col).getValue();
+        if (!srcVal) return;
+        var m = srcVal.toString().match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (!m || !julyFileIds[m[1]]) return; // bukan file dari folder Juli toko ini
+        var dstVal = sheet.getRange(targetRow, fc.col).getValue();
+        if (dstVal) return; // jangan timpa kalau baris Juli sudah ada isinya
+        sheet.getRange(targetRow, fc.col).setValue(srcVal);
+        sheet.getRange(srcRow, fc.col).setValue('');
+        moved++;
+        Logger.log(plantCode + ': pindah ' + fc.name + ' dari baris ' + srcRow + ' ke baris ' + targetRow);
+      });
+    });
+    Logger.log(plantCode + ': selesai, ' + moved + ' kolom foto dipindah ke baris ' + targetRow);
+  });
+
+  Logger.log('Migrasi selesai.');
+}
+
+// ── PERBAIKAN DATA SATU KALI: pindahkan JSON DeviceStatus (checklist per-device) yang kesasar ──
+// Bug yang sama dengan migrateMisplacedFoto() di atas juga menimpa kolom "<Brand>_DeviceStatus"
+// (dipakai untuk menandai status Display/Tidak Display/Rusak per unit device). Karena DeviceStatus
+// bukan link Drive, kita tidak bisa cek "file asli"-nya — sebagai gantinya kita validasi dengan
+// mencocokkan isi JSON (jumlah status "tidak"/"rusak"/total) terhadap angka agregat resmi bulan
+// TARGET_MONTH (kolom <Brand>_TidakDisplay / <Brand>_Rusak / <Brand>) yang SUDAH benar (tidak
+// terpengaruh bug ini). Kalau cocok persis baru dipindah; kalau tidak cocok, dibiarkan & dicatat
+// di log untuk dicek manual (supaya tidak salah timpa data asli bulan lama).
+function migrateMisplacedDeviceStatus() {
+  var TARGET_MONTH   = '2026-07';
+
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) { Logger.log('Sheet tidak ditemukan'); return; }
+
+  var lastCol = sheet.getLastColumn();
+  var lastRow = sheet.getLastRow();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var headerMap = {};
+  headers.forEach(function(h, i) { if (h) headerMap[h.toString().trim()] = i + 1; });
+  var pcColIdx = headerMap['Plant Code'];
+  var smColIdx = headerMap['Submit_Month'];
+  if (!pcColIdx || !smColIdx) { Logger.log('Kolom Plant Code / Submit_Month tidak ditemukan'); return; }
+
+  var statusColIdx = [];
+  headers.forEach(function(h, i) {
+    var name = (h || '').toString().trim();
+    var m = name.match(/^(.+)_DeviceStatus$/);
+    if (m) statusColIdx.push({ name: name, brand: m[1], col: i + 1 });
+  });
+
+  var allRows = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  // Semua Plant Code unik di sheet ini (bukan daftar tetap) — supaya jalan utk semua toko
+  var AFFECTED_CODES = (function() {
+    var seen = {};
+    allRows.forEach(function(r) {
+      var pc = (r[pcColIdx - 1] || '').toString().trim().toUpperCase();
+      if (pc) seen[pc] = true;
+    });
+    return Object.keys(seen);
+  })();
+
+  function tally(jsonStr) {
+    var obj;
+    try { obj = JSON.parse(jsonStr); } catch (e) { return null; }
+    var out = { total: 0, tidak: 0, rusak: 0, display: 0 };
+    Object.keys(obj).forEach(function(k) {
+      out.total++;
+      var st = (obj[k] || '').toString().split('|')[0].trim().toLowerCase();
+      if (st === 'tidak') out.tidak++;
+      else if (st === 'rusak') out.rusak++;
+      else out.display++;
+    });
+    return out;
+  }
+
+  AFFECTED_CODES.forEach(function(plantCode) {
+    var targetRow = -1;
+    var sourceRows = [];
+    for (var i = 0; i < allRows.length; i++) {
+      var rowPc = (allRows[i][pcColIdx - 1] || '').toString().trim().toUpperCase();
+      if (rowPc !== plantCode.toUpperCase()) continue;
+      var smRaw = allRows[i][smColIdx - 1];
+      var rowSm = smRaw instanceof Date
+        ? Utilities.formatDate(smRaw, 'Asia/Jakarta', 'yyyy-MM')
+        : (smRaw || '').toString().trim();
+      if (rowSm === TARGET_MONTH) targetRow = i + 2;
+      else sourceRows.push(i + 2);
+    }
+    if (targetRow === -1) { Logger.log(plantCode + ': baris ' + TARGET_MONTH + ' tidak ditemukan, skip'); return; }
+    if (sourceRows.length === 0) { Logger.log(plantCode + ': tidak ada baris lain utk dicek, skip'); return; }
+
+    var moved = 0, skipped = 0;
+    sourceRows.forEach(function(srcRow) {
+      statusColIdx.forEach(function(sc) {
+        var srcVal = sheet.getRange(srcRow, sc.col).getValue();
+        if (!srcVal) return;
+        var dstVal = sheet.getRange(targetRow, sc.col).getValue();
+        if (dstVal) return; // baris target sudah terisi, jangan timpa
+
+        var t = tally(srcVal.toString());
+        if (!t) return; // bukan JSON valid, skip
+
+        var brandColIdx    = headerMap[sc.brand];
+        var tidakColIdx     = headerMap[sc.brand + '_TidakDisplay'];
+        var rusakColIdx     = headerMap[sc.brand + '_Rusak'];
+        var targetTotal     = brandColIdx ? Number(sheet.getRange(targetRow, brandColIdx).getValue()) || 0 : null;
+        var targetTidak     = tidakColIdx ? Number(sheet.getRange(targetRow, tidakColIdx).getValue()) || 0 : null;
+        var targetRusak     = rusakColIdx ? Number(sheet.getRange(targetRow, rusakColIdx).getValue()) || 0 : null;
+
+        // Tidak/Rusak harus cocok PERSIS (itu yang menandakan JSON ini benar milik bulan target).
+        // Total JSON boleh <= agregat target — selisihnya wajar kalau ada item baru ditambahkan
+        // setelah checklist diisi (item baru dihitung "display" di agregat tapi belum ada di JSON).
+        var cocok = (targetTidak === null || targetTidak === t.tidak) &&
+                    (targetRusak === null || targetRusak === t.rusak) &&
+                    (targetTotal === null || t.total <= targetTotal);
+
+        if (!cocok) {
+          skipped++;
+          Logger.log(plantCode + ': ' + sc.name + ' TIDAK dipindah (tidak cocok dgn agregat ' + TARGET_MONTH +
+            ' — JSON: total=' + t.total + ' tidak=' + t.tidak + ' rusak=' + t.rusak +
+            ' | agregat: total=' + targetTotal + ' tidak=' + targetTidak + ' rusak=' + targetRusak + '). Cek manual.');
+          return;
+        }
+        sheet.getRange(targetRow, sc.col).setValue(srcVal);
+        sheet.getRange(srcRow, sc.col).setValue('');
+        moved++;
+        Logger.log(plantCode + ': pindah ' + sc.name + ' dari baris ' + srcRow + ' ke baris ' + targetRow);
+      });
+    });
+    Logger.log(plantCode + ': selesai, ' + moved + ' kolom DeviceStatus dipindah, ' + skipped + ' dilewati (perlu cek manual) ke baris ' + targetRow);
+  });
+
+  Logger.log('Migrasi DeviceStatus selesai.');
 }
 
 // ── TEST MANUAL ──

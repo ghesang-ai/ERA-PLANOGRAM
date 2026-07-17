@@ -103,6 +103,7 @@ async function loadBrandDetail() {
   var params    = new URLSearchParams(window.location.search);
   var plantCode = (params.get('code')  || '').toUpperCase();
   var brand     = params.get('brand')  || '';
+  var month     = params.get('month')  || '';
 
   if (!plantCode || !brand) {
     document.getElementById('page-content').innerHTML =
@@ -111,12 +112,13 @@ async function loadBrandDetail() {
   }
 
   document.title = brand.toUpperCase() + ' — ' + plantCode + ' · ERA-PLANOGRAM';
-  document.getElementById('back-link').href = 'store-detail.html?code=' + encodeURIComponent(plantCode);
+  document.getElementById('back-link').href = 'store-detail.html?code=' + encodeURIComponent(plantCode) + (month ? '&month=' + encodeURIComponent(month) : '');
   var invLink = document.getElementById('inv-link');
-  if (invLink) invLink.href = 'inventory.html?code=' + encodeURIComponent(plantCode) + '&brand=' + encodeURIComponent(brand);
+  if (invLink) invLink.href = 'inventory.html?code=' + encodeURIComponent(plantCode) + '&brand=' + encodeURIComponent(brand) + (month ? '&month=' + encodeURIComponent(month) : '');
 
   var urlObj = new URL(CONFIG.API_URL);
   urlObj.searchParams.set('store', plantCode);
+  if (month) urlObj.searchParams.set('month', month);
 
   var [apiJson, deviceData] = await Promise.all([
     fetch(urlObj.toString()).then(function(r) { return r.json(); }),

@@ -33,18 +33,20 @@ async function loadInventory() {
   var params    = new URLSearchParams(window.location.search);
   _plantCode    = (params.get('code') || '').toUpperCase();
   var brand     = params.get('brand') || '';
+  var month     = params.get('month') || '';
 
   if (!_plantCode) {
     document.getElementById('inv-title').textContent = 'Plant Code tidak ditemukan di URL';
     return;
   }
 
-  document.getElementById('back-link').href = 'store-detail.html?code=' + encodeURIComponent(_plantCode);
+  document.getElementById('back-link').href = 'store-detail.html?code=' + encodeURIComponent(_plantCode) + (month ? '&month=' + encodeURIComponent(month) : '');
   document.getElementById('log-link').href  = 'device-log.html?code=' + encodeURIComponent(_plantCode);
 
   // Fetch store name + inventory in parallel
   var apiUrl = new URL(CONFIG.API_URL);
   apiUrl.searchParams.set('store', _plantCode);
+  if (month) apiUrl.searchParams.set('month', month);
   var invUrl = new URL(CONFIG.API_URL);
   invUrl.searchParams.set('action', 'getInventory');
   invUrl.searchParams.set('store', _plantCode);

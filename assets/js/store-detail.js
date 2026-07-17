@@ -8,6 +8,7 @@ function escHtml(s) {
 window._eraAllData  = [];
 var _deviceData     = null;  // full ldu-devices.json
 var _currentPlant   = null;
+var _currentMonth   = '';
 
 async function loadDeviceData() {
   try {
@@ -124,6 +125,7 @@ async function loadStoreDetail() {
   var params = new URLSearchParams(window.location.search);
   var plantCode = params.get('code');
   _currentPlant = plantCode;
+  _currentMonth = params.get('month') || '';
   loadDeviceData();
 
   if (!plantCode) {
@@ -139,6 +141,7 @@ async function loadStoreDetail() {
   try {
     var urlObj = new URL(CONFIG.API_URL);
     urlObj.searchParams.set('store', plantCode);
+    if (_currentMonth) urlObj.searchParams.set('month', _currentMonth);
     var res  = await fetch(urlObj.toString());
     var json = await res.json();
 
@@ -178,7 +181,7 @@ function renderStoreDetail(row, plantCode) {
   var gridHtml = CONFIG.BRAND_LDU_COLUMNS.map(function(col) {
     var val  = parseInt(row[col]) || 0;
     var zero = val === 0 ? ' zero' : '';
-    var href = 'brand-detail.html?code=' + encodeURIComponent(plantCode) + '&brand=' + encodeURIComponent(col);
+    var href = 'brand-detail.html?code=' + encodeURIComponent(plantCode) + '&brand=' + encodeURIComponent(col) + (_currentMonth ? '&month=' + encodeURIComponent(_currentMonth) : '');
     return '<a class="ldu-card ldu-card--clickable" href="' + href + '" style="text-decoration:none;color:inherit">' +
         '<div class="ldu-card-brand">' + escHtml(col) + '</div>' +
         '<div class="ldu-card-count' + zero + '">' + val + '</div>' +
@@ -191,7 +194,7 @@ function renderStoreDetail(row, plantCode) {
   renderFotoTab(row);
 
   var invBtn = document.getElementById('inv-btn');
-  if (invBtn) invBtn.href = 'inventory.html?code=' + encodeURIComponent(plantCode);
+  if (invBtn) invBtn.href = 'inventory.html?code=' + encodeURIComponent(plantCode) + (_currentMonth ? '&month=' + encodeURIComponent(_currentMonth) : '');
 
   var exportBtn = document.getElementById('export-btn');
   if (exportBtn) {

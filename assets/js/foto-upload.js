@@ -193,7 +193,7 @@ async function uploadAllFotos(plantCode, storeName) {
 async function saveFotoUrlsToSheet(plantCode, fotoMap) {
   if (!fotoMap || Object.keys(fotoMap).length === 0) return;
   try {
-    await fetch(CONFIG.API_URL, {
+    var res = await fetch(CONFIG.API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
@@ -202,8 +202,13 @@ async function saveFotoUrlsToSheet(plantCode, fotoMap) {
         fotoMap:   fotoMap
       })
     });
+    var json = JSON.parse(await res.text());
+    if (json.status !== 'success') {
+      alert('Gagal menyimpan link foto ke sheet:\n' + (json.message || JSON.stringify(json)));
+    }
   } catch (err) {
     console.warn('saveFotoUrls error:', err);
+    alert('Gagal menyimpan link foto ke sheet: ' + err.message);
   }
 }
 

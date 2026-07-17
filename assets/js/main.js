@@ -107,8 +107,7 @@ async function fetchData(params) {
     renderBrandComplianceCards(json.data);
     renderCharts(json.data);
     renderTopStores(json.data);
-    updateQuickFilterCounts(json.data);
-    applyFilters();
+    applyFilters(); // juga meng-update badge qf-count-* sesuai filter aktif
     updateTopbarTime(json.lastUpdated);
 
     var el = document.getElementById('last-updated');
@@ -457,7 +456,7 @@ function renderTable(data) {
       brandCols +
       '<td class="col-total">' + (totalLDU > 0 ? totalLDU : '—') + '</td>' +
       '<td style="color:var(--gray-600);font-size:12px">' + lastSubmit + '</td>' +
-      '<td><a href="store-detail.html?code=' + encodeURIComponent(row['Plant Code']) + '" class="btn btn-xs">Detail</a></td>' +
+      '<td><a href="store-detail.html?code=' + encodeURIComponent(row['Plant Code']) + (_activeMonth ? '&month=' + encodeURIComponent(_activeMonth) : '') + '" class="btn btn-xs">Detail</a></td>' +
     '</tr>';
   }).join('');
 }
@@ -488,6 +487,30 @@ function setQuickFilter(val) {
                : 'qf-all';
   var activeBtn = document.getElementById(activeId);
   if (activeBtn) activeBtn.classList.add('active');
+
+  // Dropdown Status & Periode punya definisi "submit" sendiri yang beda dari tab ini
+  // (lihat matchStatus/matchPeriod di applyFilters) — kalau dibiarkan aktif bareng tab
+  // quick-filter, kombinasinya bisa saling meniadakan dan selalu menghasilkan 0 toko.
+  // Reset keduanya tiap ganti tab supaya tidak kejebak kombinasi yang kontradiktif.
+  var statusSel = document.getElementById('filter-status');
+  if (statusSel) statusSel.value = '';
+  var periodSel = document.getElementById('filter-period');
+  if (periodSel) periodSel.value = '';
+
+  applyFilters();
+}
+
+// Dropdown Status/Periode filter berdasarkan Last Submit — kalau dipakai bareng tab
+// quick-filter (Semua/Sudah/Belum Submit) bisa saling bertentangan (lihat setQuickFilter).
+// Reset tab quick-filter ke "Semua Toko" tiap kali salah satu dropdown ini diganti manual.
+function resetQuickFilterOnDropdownChange() {
+  _activeQuickFilter = 'all';
+  ['qf-all','qf-submitted','qf-pending'].forEach(function(id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  var allBtn = document.getElementById('qf-all');
+  if (allBtn) allBtn.classList.add('active');
   applyFilters();
 }
 
@@ -523,14 +546,17 @@ function populateAreaFilter(data) {
     }).join('');
 }
 
-function applyFilters() {
+// Terapkan semua filter KECUALI quick-filter (Semua/Sudah/Belum Submit) — dipakai sebagai
+// dasar penghitungan badge tab, supaya badge selalu selaras dengan Brand/Area/Cari/Status/Periode
+// yang sedang aktif (tidak lagi menghitung dari semua toko tanpa filter).
+function computeBaseFilteredData() {
   var brandVal  = (document.getElementById('filter-brand')  || {}).value || '';
   var areaVal   = (document.getElementById('filter-area')   || {}).value || '';
   var searchVal = ((document.getElementById('search-store') || {}).value || '').toLowerCase();
   var statusVal = (document.getElementById('filter-status') || {}).value || '';
   var periodVal = (document.getElementById('filter-period') || {}).value || '';
 
-  window._eraFilteredData = window._eraAllData.filter(function(d) {
+  return window._eraAllData.filter(function(d) {
     var matchBrand  = !brandVal  || CONFIG.detectBrandToko(d['Store Name']).toLowerCase() === brandVal.toLowerCase();
     var matchArea   = !areaVal   || (d['Area'] || '') === areaVal;
     var matchSearch = !searchVal ||
@@ -538,11 +564,6 @@ function applyFilters() {
       (d['Plant Code'] || '').toLowerCase().includes(searchVal) ||
       (d['Area'] || '').toLowerCase().includes(searchVal);
     var matchStatus = !statusVal || (d['Status'] || 'Pending') === statusVal;
-    if (_activeQuickFilter === 'submitted_this_month') {
-      if (!submittedThisMonth(d)) return false;
-    } else if (_activeQuickFilter === 'pending_this_month') {
-      if (submittedThisMonth(d)) return false;
-    }
     var matchPeriod = true;
     if (periodVal) {
       var p = getSubmitPeriod(d['Last Submit']);
@@ -553,6 +574,20 @@ function applyFilters() {
       }
     }
     return matchBrand && matchArea && matchSearch && matchStatus && matchPeriod;
+  });
+}
+
+function applyFilters() {
+  var baseData = computeBaseFilteredData();
+
+  // Badge tab (Semua Toko / Sudah Submit / Belum Submit) dihitung dari baseData —
+  // ikut filter Brand/Area/Cari/Status/Periode, tapi tidak ikut quick-filter itu sendiri.
+  updateQuickFilterCounts(baseData);
+
+  window._eraFilteredData = baseData.filter(function(d) {
+    if (_activeQuickFilter === 'submitted_this_month') return submittedThisMonth(d);
+    if (_activeQuickFilter === 'pending_this_month')   return !submittedThisMonth(d);
+    return true;
   });
 
   renderTable(window._eraFilteredData);
