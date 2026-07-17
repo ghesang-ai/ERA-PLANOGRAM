@@ -25,6 +25,25 @@ function escHtml(s) {
 }
 
 // ── Period Helper ──
+var MONTH_NAMES_ID = { '01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'Mei','06':'Jun',
+                        '07':'Jul','08':'Agu','09':'Sep','10':'Okt','11':'Nov','12':'Des' };
+
+// "2026-07" -> "Jul 2026"
+function formatMonthLabel(m) {
+  if (!m) return m;
+  var parts = m.split('-');
+  return (MONTH_NAMES_ID[parts[1]] || parts[1]) + ' ' + parts[0];
+}
+
+// Baca Submit_Month sebuah row jadi "yyyy-MM" (API bisa kirim ISO date string atau teks biasa)
+function rowSubmitMonth(row) {
+  var v = row['Submit_Month'];
+  if (!v) return '';
+  var d = new Date(v);
+  if (isNaN(d.getTime())) return String(v).trim();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
 function getSubmitPeriod(lastSubmitVal) {
   if (!lastSubmitVal || lastSubmitVal === '' || lastSubmitVal === '-') {
     return { key: 'never', label: 'Belum Pernah', short: '—' };
@@ -127,15 +146,6 @@ function renderMonthFilter(months, activeMonth) {
   if (!months || months.length <= 1) { wrap.style.display = 'none'; return; }
   wrap.style.display = 'flex';
 
-  var monthNames = { '01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'Mei','06':'Jun',
-                     '07':'Jul','08':'Agu','09':'Sep','10':'Okt','11':'Nov','12':'Des' };
-
-  function fmtMonth(m) {
-    if (!m) return m;
-    var parts = m.split('-');
-    return (monthNames[parts[1]] || parts[1]) + ' ' + parts[0];
-  }
-
   wrap.innerHTML = '<span style="font-size:12px;font-weight:600;color:var(--gray-500);margin-right:6px">Periode:</span>' +
     months.map(function(m) {
       var isActive = m === activeMonth;
@@ -144,7 +154,7 @@ function renderMonthFilter(months, activeMonth) {
         (isActive ? 'var(--blue)' : 'var(--gray-200)') + ';background:' +
         (isActive ? 'var(--blue)' : 'white') + ';color:' +
         (isActive ? 'white' : 'var(--gray-600)') + '">' +
-        fmtMonth(m) + '</button>';
+        formatMonthLabel(m) + '</button>';
     }).join('');
 }
 
@@ -427,16 +437,20 @@ function renderTable(data) {
     var status     = row['Status'] || 'Pending';
     var lastSubmit = CONFIG.formatDate(row['Last Submit']);
     var totalLDU   = CONFIG.calcTotalLDU(row);
-    var period     = getSubmitPeriod(row['Last Submit']);
 
+    // Badge dibandingkan terhadap PERIODE YANG SEDANG DILIHAT (_activeMonth / tab Jul-Jun di
+    // atas), bukan tanggal kalender hari ini — supaya toko yang belum submit periode aktif
+    // tetap kelihatan jelas "Belum Submit <periode aktif>", bukan menunjukkan bulan lain
+    // (data fallback-nya) yang membingungkan seperti "⚠️ Jun 2026" saat sedang lihat tab Juli.
     var periodBadge;
     if (status !== 'Submitted') {
       periodBadge = '<span class="badge badge-period badge-period--never">❌ Belum Submit</span>';
-    } else if (period.key === 'this_month') {
-      periodBadge = '<span class="badge badge-period badge-period--this">✅ ' + period.short + '</span>';
-    } else if (period.key === 'last_month') {
-      periodBadge = '<span class="badge badge-period badge-period--last">⚠️ ' + period.short + '</span>';
+    } else if (_activeMonth && rowSubmitMonth(row) === _activeMonth) {
+      periodBadge = '<span class="badge badge-period badge-period--this">✅ Submit ' + formatMonthLabel(_activeMonth) + '</span>';
+    } else if (_activeMonth) {
+      periodBadge = '<span class="badge badge-period badge-period--last">⚠️ Belum Submit ' + formatMonthLabel(_activeMonth) + '</span>';
     } else {
+      var period = getSubmitPeriod(row['Last Submit']);
       periodBadge = '<span class="badge badge-period badge-period--old">🕐 ' + period.short + '</span>';
     }
 
