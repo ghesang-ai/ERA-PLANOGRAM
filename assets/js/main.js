@@ -80,7 +80,7 @@ function updateTopbarTime(isoStr) {
 function renderHeroStats(data) {
   var total     = data.length;
   var submitted = data.filter(function(d) { return d['Status'] === 'Submitted'; }).length;
-  var thisMonth = data.filter(function(d) { return getSubmitPeriod(d['Last Submit']).key === 'this_month'; }).length;
+  var thisMonth = data.filter(submittedThisMonth).length;
   var totalLDU  = data.reduce(function(s, d) { return s + CONFIG.calcTotalLDU(d); }, 0);
   var set = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
   set('hs-toko',   total);
@@ -184,10 +184,10 @@ function renderSummaryCards(data) {
   var pct        = total > 0 ? Math.round((submitted / total) * 100) : 0;
   var totalLDU   = data.reduce(function(s, d) { return s + CONFIG.calcTotalLDU(d); }, 0);
 
-  var thisMonth     = data.filter(function(d) { return getSubmitPeriod(d['Last Submit']).key === 'this_month'; }).length;
+  var thisMonth     = data.filter(submittedThisMonth).length;
   var belumBulanIni = total - thisMonth;
   var pctBulanIni   = total > 0 ? Math.round((thisMonth / total) * 100) : 0;
-  var nowLabel      = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  var nowLabel      = _activeMonth ? formatMonthLabel(_activeMonth) : new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
   var totalRusak = 0;
   var tokoRusak  = 0;
@@ -478,7 +478,14 @@ function renderTable(data) {
 // 'submitted_this_month' | 'pending_this_month' | ''
 var _activeQuickFilter = '';
 
+// "Sudah submit" = baris ini punya Submit_Month yang sama dengan periode yang sedang
+// dilihat (_activeMonth) — definisi yang SAMA dipakai badge status di tabel, supaya tab
+// quick-filter dan badge tidak lagi saling bertentangan (dulu quick-filter pakai
+// SUBMIT_WINDOW_START yang berbeda dari Submit_Month, jadi toko yang submit akhir Juni
+// bisa lolos hitung "sudah submit Juli" padahal Submit_Month-nya masih Juni).
 function submittedThisMonth(d) {
+  if (_activeMonth) return rowSubmitMonth(d) === _activeMonth;
+  // Fallback kalau activeMonth belum ke-set (mis. sebelum fetch pertama selesai)
   var lastSubmit = d['Last Submit'];
   if (!lastSubmit || lastSubmit === '-') return false;
   var submitDate = new Date(lastSubmit);
@@ -532,8 +539,7 @@ function updateQuickFilterCounts(data) {
   var total     = data.length;
   var submitted = data.filter(submittedThisMonth).length;
   var pending   = total - submitted;
-  var now = new Date();
-  var bulan = now.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  var bulan = _activeMonth ? formatMonthLabel(_activeMonth) : new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   var el;
   el = document.getElementById('qf-count-all');       if (el) el.textContent = total;
   el = document.getElementById('qf-count-submitted'); if (el) el.textContent = submitted;
