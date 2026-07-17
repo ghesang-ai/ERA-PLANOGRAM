@@ -695,6 +695,22 @@ function doGet(e) {
       Object.keys(latestPerStore).forEach(function(pc) { storeMap[pc] = latestPerStore[pc].obj; });
     }
 
+    // Query per-toko spesifik (mis. halaman Detail dibuka dengan &month=2026-07 dari link
+    // dashboard) tapi toko itu belum punya baris di bulan tsb → jangan tampilkan "tidak
+    // ditemukan", fallback ke data submission terakhir toko ini apa pun bulannya, dan
+    // koreksi activeMonth di response supaya sesuai data yang benar-benar dikembalikan.
+    if (filterStore && Object.keys(storeMap).length === 0) {
+      let bestRow = null, bestMonth = '';
+      allObjs.forEach(function(obj) {
+        const pc = (obj['Plant Code'] || '').toString().toUpperCase().trim();
+        if (pc !== filterStore) return;
+        if (filterStatus && (obj['Status'] || '').toString().toLowerCase() !== filterStatus) return;
+        const rowMonth = readMonth(obj['Submit_Month']);
+        if (!bestRow || rowMonth > bestMonth) { bestRow = obj; bestMonth = rowMonth; }
+      });
+      if (bestRow) { storeMap[filterStore] = bestRow; activeMonth = bestMonth || activeMonth; }
+    }
+
     const result = Object.values(storeMap);
     return jsonOut({
       status: 'success',
