@@ -653,6 +653,7 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
 .foto-gallery-brand-name { font-size: 13px; font-weight: 700; color: var(--gray-800); }
 .foto-cols { display: flex; gap: 8px; }
 .foto-col { flex: 1; min-width: 0; }
+.foto-item-wrap { flex: 1; min-width: 0; }
 .foto-col-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
 .foto-col-label.ldu  { color: var(--blue); }
 .foto-col-label.wall { color: var(--green); }
@@ -666,6 +667,13 @@ th.col-brand-full { font-size: 10px; padding: 6px; white-space: normal; text-ali
 .foto-img-frame:hover img { opacity: .85; }
 .foto-img-empty { font-size: 11px; color: var(--gray-400); text-align: center; height: 160px; display:flex; align-items:center; justify-content:center; border-radius:8px; border:1.5px dashed var(--gray-200); }
 .foto-img-date { font-size: 10px; color: var(--gray-400); margin-top: 4px; }
+.foto-meta { margin-top: 6px; }
+.foto-meta-row {
+  font-size: 10.5px; color: var(--gray-400); line-height: 1.6;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.foto-meta-row a { color: var(--blue); text-decoration: none; }
+.foto-meta-row a:hover { text-decoration: underline; }
 
 /* ── DETAIL TABS ── */
 .detail-tab-row { display: flex; gap: 6px; margin-bottom: 16px; }

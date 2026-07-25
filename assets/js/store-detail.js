@@ -5,6 +5,36 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function parseFotoMeta(raw) {
+  if (!raw) return null;
+  try {
+    var m = JSON.parse(raw);
+    return (m && typeof m.lat === 'number' && typeof m.lng === 'number') ? m : null;
+  } catch (e) { return null; }
+}
+
+function formatMetaDate(iso) {
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  var days   = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  var hh = String(d.getHours()).padStart(2, '0');
+  var mm = String(d.getMinutes()).padStart(2, '0');
+  return days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear() + ' · ' + hh + '.' + mm;
+}
+
+// HTML kecil di bawah tiap thumbnail foto: tanggal ambil, device, dan lokasi (link Google Maps).
+function fotoMetaHtml(meta) {
+  if (!meta) return '';
+  var mapUrl = 'https://maps.google.com/?q=' + meta.lat + ',' + meta.lng;
+  var addr = meta.address || (meta.lat.toFixed(5) + ', ' + meta.lng.toFixed(5));
+  return '<div class="foto-meta">' +
+    (meta.takenAt ? '<div class="foto-meta-row">🕒 ' + escHtml(formatMetaDate(meta.takenAt)) + '</div>' : '') +
+    (meta.device && meta.device !== 'Unknown device' ? '<div class="foto-meta-row">📱 ' + escHtml(meta.device) + '</div>' : '') +
+    '<div class="foto-meta-row">📍 <a href="' + escHtml(mapUrl) + '" target="_blank" rel="noopener">' + escHtml(addr) + '</a></div>' +
+  '</div>';
+}
+
 window._eraAllData  = [];
 var _deviceData     = null;  // full ldu-devices.json
 var _currentPlant   = null;
@@ -62,23 +92,30 @@ function openDeviceModal(brand, row) {
     var ldu2FotoUrl  = row[brand + '_LDU2_Foto']    || '';
     var wallFotoUrl  = row[brand + '_Wallbay_Foto'] || '';
     var wall2FotoUrl = row[brand + '_Wallbay2_Foto']|| '';
+    var lduMeta   = parseFotoMeta(row[brand + '_LDU_Meta']);
+    var ldu2Meta  = parseFotoMeta(row[brand + '_LDU2_Meta']);
+    var wallMeta  = parseFotoMeta(row[brand + '_Wallbay_Meta']);
+    var wall2Meta = parseFotoMeta(row[brand + '_Wallbay2_Meta']);
     if (lduFotoUrl || ldu2FotoUrl || wallFotoUrl || wall2FotoUrl) {
       fotoRow.style.display = 'flex';
-      function fotoThumb(url, label) {
+      function fotoThumb(url, label, meta) {
         if (!url) return '';
         var fileId = url.match(/\/d\/([^\/]+)/);
         var prev = fileId ? 'https://drive.google.com/thumbnail?id=' + fileId[1] + '&sz=w800' : url;
-        return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" style="flex:1;min-width:120px;text-decoration:none">' +
-          '<div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;font-weight:600">' + label + '</div>' +
-          '<img src="' + escHtml(prev) + '" alt="' + escHtml(label) + '" ' +
-               'style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-100)">' +
-        '</a>';
+        return '<div style="flex:1;min-width:120px">' +
+          '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" style="text-decoration:none;display:block">' +
+            '<div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;font-weight:600">' + label + '</div>' +
+            '<img src="' + escHtml(prev) + '" alt="' + escHtml(label) + '" ' +
+                 'style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--gray-100)">' +
+          '</a>' +
+          fotoMetaHtml(meta) +
+        '</div>';
       }
       fotoRow.innerHTML =
-        fotoThumb(lduFotoUrl,   '📺 LDU Display 1') +
-        fotoThumb(ldu2FotoUrl,  '📺 LDU Display 2') +
-        fotoThumb(wallFotoUrl,  '🗂️ Wallbay 1') +
-        fotoThumb(wall2FotoUrl, '🗂️ Wallbay 2');
+        fotoThumb(lduFotoUrl,   '📺 LDU Display 1', lduMeta) +
+        fotoThumb(ldu2FotoUrl,  '📺 LDU Display 2', ldu2Meta) +
+        fotoThumb(wallFotoUrl,  '🗂️ Wallbay 1', wallMeta) +
+        fotoThumb(wall2FotoUrl, '🗂️ Wallbay 2', wall2Meta);
     } else {
       fotoRow.style.display = 'none';
     }
@@ -238,6 +275,14 @@ function renderFotoTab(row) {
     if (!brandFotoMap[brand]) brandFotoMap[brand] = {};
     brandFotoMap[brand][type] = row[col];
   });
+  var brandMetaMap = {};
+  Object.keys(row).forEach(function(col) {
+    var m = col.match(/^(.+)_(LDU2|LDU|Wallbay2|Wallbay)_Meta$/);
+    if (!m || !row[col]) return;
+    var brand = m[1], type = m[2];
+    if (!brandMetaMap[brand]) brandMetaMap[brand] = {};
+    brandMetaMap[brand][type] = parseFotoMeta(row[col]);
+  });
 
   var brands = Object.keys(brandFotoMap);
   if (brands.length === 0) {
@@ -245,19 +290,23 @@ function renderFotoTab(row) {
     return;
   }
 
-  function imgHtml(url, label) {
+  function imgHtml(url, label, meta) {
     if (!url) return '';
     var thumb = (function(u){ var m=u.match(/\/d\/([^\/]+)/); return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w600':u; })(url);
-    return '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" class="foto-img-frame">' +
-             '<img src="' + escHtml(thumb) + '" alt="' + escHtml(label) + '" loading="lazy">' +
-           '</a>';
+    return '<div class="foto-item-wrap">' +
+      '<a href="' + escHtml(url) + '" target="_blank" rel="noopener" class="foto-img-frame">' +
+        '<img src="' + escHtml(thumb) + '" alt="' + escHtml(label) + '" loading="lazy">' +
+      '</a>' +
+      fotoMetaHtml(meta) +
+    '</div>';
   }
 
   container.className = 'foto-gallery';
   container.innerHTML = brands.map(function(brand) {
     var f = brandFotoMap[brand];
-    var lduHtml  = (imgHtml(f['LDU'],  brand+' LDU 1')  || '') + (imgHtml(f['LDU2'],  brand+' LDU 2')  || '');
-    var wallHtml = (imgHtml(f['Wallbay'],brand+' WB 1')  || '') + (imgHtml(f['Wallbay2'],brand+' WB 2') || '');
+    var fm = brandMetaMap[brand] || {};
+    var lduHtml  = (imgHtml(f['LDU'],  brand+' LDU 1', fm['LDU'])  || '') + (imgHtml(f['LDU2'],  brand+' LDU 2', fm['LDU2'])  || '');
+    var wallHtml = (imgHtml(f['Wallbay'],brand+' WB 1', fm['Wallbay'])  || '') + (imgHtml(f['Wallbay2'],brand+' WB 2', fm['Wallbay2']) || '');
     return '<div class="foto-gallery-brand-card">' +
       '<div class="foto-gallery-brand-title">' + escHtml(brand) + '</div>' +
       (lduHtml  ? '<div class="foto-col-label ldu" style="margin:6px 0 4px">📺 LDU Display</div><div class="foto-cols">' + lduHtml + '</div>' : '') +
