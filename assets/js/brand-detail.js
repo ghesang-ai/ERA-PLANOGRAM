@@ -200,7 +200,7 @@ async function loadBrandDetail() {
         var addr = meta.address || (meta.lat.toFixed(5) + ', ' + meta.lng.toFixed(5));
         metaHtml = '<div class="bd-foto-meta">' +
           (meta.takenAt ? '<div class="bd-foto-meta-row">🕒 ' + escHtml(formatMetaDate(meta.takenAt)) + '</div>' : '') +
-          (meta.device  ? '<div class="bd-foto-meta-row">📱 ' + escHtml(meta.device) + '</div>' : '') +
+          (meta.device && meta.device !== 'Unknown device' ? '<div class="bd-foto-meta-row">📱 ' + escHtml(meta.device) + '</div>' : '') +
           '<div class="bd-foto-meta-row">📍 <a href="' + escHtml(mapUrl) + '" target="_blank" rel="noopener">' + escHtml(addr) + '</a></div>' +
         '</div>';
       }

@@ -115,8 +115,7 @@ function showFotoError(infoEl, input, msg) {
   if (input) input.value = '';
 }
 
-// Foto harus baru diambil, bukan cuma "punya EXIF" — mencegah pakai foto lama
-// yang kebetulan masih ada metadatanya (mis. hasil export ke Files/iCloud Drive).
+// Foto lama (dari galeri) tetap ditolak kalau EXIF-nya masih ada & sudah basi.
 var FOTO_MAX_AGE_MIN = 30;
 
 function formatFotoAge(ageMin) {
@@ -124,9 +123,34 @@ function formatFotoAge(ageMin) {
   return Math.round(ageMin) + ' menit';
 }
 
-// Foto wajib punya EXIF GPS + tanggal ambil (bukti diambil langsung di toko saat itu juga).
-// Foto lama / hasil forward WhatsApp / screenshot umumnya sudah kehilangan data ini.
-function onFotoSelect(brand, type, input) {
+// Lokasi diambil dari GPS browser saat itu juga (navigator.geolocation), BUKAN dari EXIF foto.
+// Alasan: foto hasil "Take Photo" di Safari (kamera dalam browser) hampir selalu tidak
+// disisipi GPS EXIF sama sekali, meski izin lokasi app Camera aktif — itu batasan privasi
+// WebKit, bukan sesuatu yang bisa diakali dari sisi kode. GPS browser konsisten di semua
+// cara pilih foto (Take Photo / Photo Library / Choose File).
+var _lastGeo = null; // { lat, lng, ts }
+var GEO_CACHE_MS = 3 * 60 * 1000;
+
+function getCurrentLocation() {
+  return new Promise(function(resolve, reject) {
+    if (_lastGeo && (Date.now() - _lastGeo.ts) < GEO_CACHE_MS) {
+      resolve(_lastGeo);
+      return;
+    }
+    if (!navigator.geolocation) {
+      reject({ code: -1, message: 'Browser tidak mendukung akses lokasi.' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      _lastGeo = { lat: pos.coords.latitude, lng: pos.coords.longitude, ts: Date.now() };
+      resolve(_lastGeo);
+    }, function(err) {
+      reject(err);
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  });
+}
+
+async function onFotoSelect(brand, type, input) {
   if (!input.files || !input.files[0]) return;
   var file    = input.files[0];
   var safeKey = brand.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
@@ -135,59 +159,62 @@ function onFotoSelect(brand, type, input) {
   var thumbEl = document.getElementById('fthumb-' + key);
   var dataKey = brand + '_' + type;
 
-  if (infoEl) { infoEl.style.color = ''; infoEl.textContent = '⏳ Membaca data EXIF...'; }
+  if (infoEl) { infoEl.style.color = ''; infoEl.textContent = '⏳ Membaca data foto...'; }
 
-  if (typeof exifr === 'undefined') {
-    showFotoError(infoEl, input, '❌ Gagal memuat pembaca EXIF. Refresh halaman lalu coba lagi.');
+  // EXIF di sini cuma untuk info device + guard "foto lama dari galeri" — best-effort,
+  // tidak menggagalkan upload kalau kosong (foto dari kamera-web memang sering tanpa EXIF).
+  var device  = '';
+  var takenAt = null;
+  if (typeof exifr !== 'undefined') {
+    try {
+      var tags = await exifr.parse(file, { exif: true, tiff: true, translateValues: true });
+      tags = tags || {};
+      device = [tags.Make, tags.Model].filter(Boolean).join(' ').trim();
+      var takenAtRaw = tags.DateTimeOriginal || tags.CreateDate || tags.ModifyDate;
+      if (takenAtRaw) {
+        var d = takenAtRaw instanceof Date ? takenAtRaw : new Date(takenAtRaw);
+        if (!isNaN(d.getTime())) takenAt = d;
+      }
+    } catch (e) { /* tidak apa-apa, lanjut tanpa info EXIF */ }
+  }
+
+  if (takenAt) {
+    var ageMin = (Date.now() - takenAt.getTime()) / 60000;
+    if (ageMin > FOTO_MAX_AGE_MIN || ageMin < -5) {
+      showFotoError(infoEl, input,
+        '❌ Foto ini diambil ' + formatFotoAge(Math.abs(ageMin)) + ' ' + (ageMin < 0 ? 'ke depan (jam HP salah?)' : 'lalu') +
+        '. Foto harus baru (maks ' + FOTO_MAX_AGE_MIN + ' menit) — ambil foto langsung dari kamera sekarang.');
+      return;
+    }
+  }
+
+  if (infoEl) infoEl.textContent = '⏳ Mengambil lokasi GPS...';
+  var geo;
+  try {
+    geo = await getCurrentLocation();
+  } catch (err) {
+    var msg = (err && err.code === 1)
+      ? '❌ Izin lokasi ditolak. Aktifkan izin Lokasi untuk browser ini (Settings HP → Privacy → Location Services), lalu coba lagi.'
+      : '❌ Gagal ambil lokasi GPS. Pastikan GPS aktif & sinyal bagus, lalu coba lagi.';
+    showFotoError(infoEl, input, msg);
     return;
   }
 
-  exifr.parse(file, { gps: true, exif: true, tiff: true, translateValues: true })
-    .then(function(tags) {
-      tags = tags || {};
-      var lat = tags.latitude, lng = tags.longitude;
-      var takenAtRaw = tags.DateTimeOriginal || tags.CreateDate || tags.ModifyDate;
+  var meta = {
+    lat: geo.lat,
+    lng: geo.lng,
+    takenAt: (takenAt || new Date()).toISOString(),
+    device: device || 'Unknown device'
+  };
 
-      if (typeof lat !== 'number' || typeof lng !== 'number' || !takenAtRaw) {
-        showFotoError(infoEl, input,
-          '❌ Foto tanpa data GPS/tanggal (EXIF). Pilih "Take Photo" untuk ambil foto langsung dari kamera dengan Location Services aktif.');
-        return;
-      }
-
-      var takenAt = takenAtRaw instanceof Date ? takenAtRaw : new Date(takenAtRaw);
-      if (isNaN(takenAt.getTime())) {
-        showFotoError(infoEl, input, '❌ Format tanggal EXIF foto tidak valid. Ambil foto baru dari kamera.');
-        return;
-      }
-
-      var ageMin = (Date.now() - takenAt.getTime()) / 60000;
-      if (ageMin > FOTO_MAX_AGE_MIN || ageMin < -5) {
-        showFotoError(infoEl, input,
-          '❌ Foto ini diambil ' + formatFotoAge(Math.abs(ageMin)) + ' ' + (ageMin < 0 ? 'ke depan (jam HP salah?)' : 'lalu') +
-          '. Foto harus baru (maks ' + FOTO_MAX_AGE_MIN + ' menit) — ambil foto langsung dari kamera sekarang.');
-        return;
-      }
-
-      var device = [tags.Make, tags.Model].filter(Boolean).join(' ').trim() || 'Unknown device';
-      var meta = {
-        lat: lat,
-        lng: lng,
-        takenAt: isNaN(takenAt.getTime()) ? String(takenAtRaw) : takenAt.toISOString(),
-        device: device
-      };
-
-      if (infoEl) { infoEl.style.color = ''; infoEl.textContent = '⏳ Memproses...'; }
-      compressImage(file, 800, function(base64) {
-        var sizeKB = Math.round(base64.length * 0.75 / 1024);
-        _fotoData[dataKey] = { base64: base64, brand: brand, type: type, meta: meta };
-        if (thumbEl) thumbEl.innerHTML = '<img src="' + base64 + '" alt="">';
-        if (infoEl)  infoEl.textContent = '✅ ' + sizeKB + 'KB — siap upload';
-        updateFotoBadge(brand);
-      });
-    })
-    .catch(function() {
-      showFotoError(infoEl, input, '❌ Gagal baca EXIF foto. Coba foto lain / ambil ulang dari kamera.');
-    });
+  if (infoEl) { infoEl.style.color = ''; infoEl.textContent = '⏳ Memproses...'; }
+  compressImage(file, 800, function(base64) {
+    var sizeKB = Math.round(base64.length * 0.75 / 1024);
+    _fotoData[dataKey] = { base64: base64, brand: brand, type: type, meta: meta };
+    if (thumbEl) thumbEl.innerHTML = '<img src="' + base64 + '" alt="">';
+    if (infoEl)  infoEl.textContent = '✅ ' + sizeKB + 'KB — siap upload';
+    updateFotoBadge(brand);
+  });
 }
 
 function updateFotoBadge(brand) {
