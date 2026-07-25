@@ -415,6 +415,20 @@ function getOrCreateFolder(parentFolder, name) {
   return parentFolder.createFolder(name);
 }
 
+// Reverse-geocode lat/lng → alamat pakai Maps Service bawaan Apps Script.
+// Soft-fail: kalau quota habis / service error, alamat kosong tapi lat/lng tetap disimpan.
+function reverseGeocodeSafe(lat, lng) {
+  try {
+    var geo = Maps.newGeocoder().reverseGeocode(lat, lng);
+    if (geo && geo.results && geo.results.length > 0) {
+      return geo.results[0].formatted_address || '';
+    }
+  } catch (e) {
+    Logger.log('reverseGeocode error: ' + e.message);
+  }
+  return '';
+}
+
 // ── Upload foto ke Drive ──
 function uploadFotoToDrive(payload) {
   var plantCode = (payload.plantCode || '').toUpperCase().trim();
@@ -423,6 +437,7 @@ function uploadFotoToDrive(payload) {
   var type      = (payload.type  || '').trim();
   var fileData  = payload.fileData || '';
   var fileName  = payload.fileName || (brand + '_' + type + '.jpg');
+  var meta      = payload.meta || null;
 
   var base64 = fileData.replace(/^data:image\/\w+;base64,/, '');
   var blob   = Utilities.newBlob(Utilities.base64Decode(base64), 'image/jpeg', fileName);
@@ -436,7 +451,24 @@ function uploadFotoToDrive(payload) {
 
   var file = tokoFolder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return { status: 'success', url: 'https://drive.google.com/file/d/' + file.getId() + '/view', fileId: file.getId() };
+
+  var resultMeta = null;
+  if (meta && typeof meta.lat === 'number' && typeof meta.lng === 'number') {
+    resultMeta = {
+      takenAt: meta.takenAt || '',
+      device:  meta.device  || '',
+      lat:     meta.lat,
+      lng:     meta.lng,
+      address: reverseGeocodeSafe(meta.lat, meta.lng)
+    };
+  }
+
+  return {
+    status: 'success',
+    url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+    fileId: file.getId(),
+    meta: resultMeta
+  };
 }
 
 // ── Simpan URL foto / DeviceStatus ke kolom sheet ──

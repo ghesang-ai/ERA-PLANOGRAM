@@ -107,6 +107,16 @@ function toggleFotoAccordion(key) {
   body.style.display = body.style.display === 'none' ? 'block' : 'none';
 }
 
+function showFotoError(infoEl, input, msg) {
+  if (infoEl) {
+    infoEl.style.color = 'var(--red)';
+    infoEl.textContent = msg;
+  }
+  if (input) input.value = '';
+}
+
+// Foto wajib punya EXIF GPS + tanggal ambil (bukti diambil langsung di toko saat itu juga).
+// Foto lama / hasil forward WhatsApp / screenshot umumnya sudah kehilangan data ini.
 function onFotoSelect(brand, type, input) {
   if (!input.files || !input.files[0]) return;
   var file    = input.files[0];
@@ -116,15 +126,46 @@ function onFotoSelect(brand, type, input) {
   var thumbEl = document.getElementById('fthumb-' + key);
   var dataKey = brand + '_' + type;
 
-  if (infoEl) infoEl.textContent = '⏳ Memproses...';
+  if (infoEl) { infoEl.style.color = ''; infoEl.textContent = '⏳ Membaca data EXIF...'; }
 
-  compressImage(file, 800, function(base64) {
-    var sizeKB = Math.round(base64.length * 0.75 / 1024);
-    _fotoData[dataKey] = { base64: base64, brand: brand, type: type };
-    if (thumbEl) thumbEl.innerHTML = '<img src="' + base64 + '" alt="">';
-    if (infoEl)  infoEl.textContent = '✅ ' + sizeKB + 'KB — siap upload';
-    updateFotoBadge(brand);
-  });
+  if (typeof exifr === 'undefined') {
+    showFotoError(infoEl, input, '❌ Gagal memuat pembaca EXIF. Refresh halaman lalu coba lagi.');
+    return;
+  }
+
+  exifr.parse(file, { gps: true, exif: true, tiff: true, translateValues: true })
+    .then(function(tags) {
+      tags = tags || {};
+      var lat = tags.latitude, lng = tags.longitude;
+      var takenAtRaw = tags.DateTimeOriginal || tags.CreateDate || tags.ModifyDate;
+
+      if (typeof lat !== 'number' || typeof lng !== 'number' || !takenAtRaw) {
+        showFotoError(infoEl, input,
+          '❌ Foto tanpa data GPS/tanggal (EXIF). Pilih "Take Photo" untuk ambil foto langsung dari kamera dengan Location Services aktif.');
+        return;
+      }
+
+      var device = [tags.Make, tags.Model].filter(Boolean).join(' ').trim() || 'Unknown device';
+      var takenAt = takenAtRaw instanceof Date ? takenAtRaw : new Date(takenAtRaw);
+      var meta = {
+        lat: lat,
+        lng: lng,
+        takenAt: isNaN(takenAt.getTime()) ? String(takenAtRaw) : takenAt.toISOString(),
+        device: device
+      };
+
+      if (infoEl) { infoEl.style.color = ''; infoEl.textContent = '⏳ Memproses...'; }
+      compressImage(file, 800, function(base64) {
+        var sizeKB = Math.round(base64.length * 0.75 / 1024);
+        _fotoData[dataKey] = { base64: base64, brand: brand, type: type, meta: meta };
+        if (thumbEl) thumbEl.innerHTML = '<img src="' + base64 + '" alt="">';
+        if (infoEl)  infoEl.textContent = '✅ ' + sizeKB + 'KB — siap upload';
+        updateFotoBadge(brand);
+      });
+    })
+    .catch(function() {
+      showFotoError(infoEl, input, '❌ Gagal baca EXIF foto. Coba foto lain / ambil ulang dari kamera.');
+    });
 }
 
 function updateFotoBadge(brand) {
@@ -172,7 +213,8 @@ async function uploadAllFotos(plantCode, storeName) {
           brand:     brand,
           type:      type,
           fileData:  entry.base64,
-          fileName:  fileName
+          fileName:  fileName,
+          meta:      entry.meta || null
         })
       });
       var rawText = await res.text();
@@ -180,6 +222,9 @@ async function uploadAllFotos(plantCode, storeName) {
       try { json = JSON.parse(rawText); } catch(pe) { throw new Error('Non-JSON response: ' + rawText.substring(0, 300)); }
       if (json.status === 'success') {
         fotoMap[colName] = json.url;
+        if (json.meta) {
+          fotoMap[colName.replace(/_Foto$/, '_Meta')] = JSON.stringify(json.meta);
+        }
       } else {
         alert('Upload foto GAGAL:\nBrand: ' + brand + ' · ' + type + '\nPesan: ' + (json.message || JSON.stringify(json)));
       }

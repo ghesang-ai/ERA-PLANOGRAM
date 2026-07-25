@@ -9,6 +9,24 @@ var _deviceStatus  = {};   // SN/name → 'display'|'tidak'|'rusak'
 var _deviceNotes   = {};   // SN/name → catatan teks
 var _activeFilter  = null; // null | 'display' | 'tidak' | 'rusak'
 
+function parseFotoMeta(raw) {
+  if (!raw) return null;
+  try {
+    var m = JSON.parse(raw);
+    return (m && typeof m.lat === 'number' && typeof m.lng === 'number') ? m : null;
+  } catch (e) { return null; }
+}
+
+function formatMetaDate(iso) {
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  var days   = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  var months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  var hh = String(d.getHours()).padStart(2, '0');
+  var mm = String(d.getMinutes()).padStart(2, '0');
+  return days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear() + ' · ' + hh + '.' + mm;
+}
+
 function parseDeviceStatus(raw) {
   // raw: "tidak" atau "tidak|catatan teks"
   if (!raw) return { status: '', note: '' };
@@ -139,6 +157,8 @@ async function loadBrandDetail() {
   var nRusak    = parseInt(row[brand + '_Rusak'])        || 0;
   var lduFoto   = row[brand + '_LDU_Foto']    || '';
   var wallFoto  = row[brand + '_Wallbay_Foto'] || '';
+  var lduMeta   = parseFotoMeta(row[brand + '_LDU_Meta']);
+  var wallMeta  = parseFotoMeta(row[brand + '_Wallbay_Meta']);
 
   // Parse per-device status JSON (format: "status" or "status|catatan")
   var deviceStatusRaw = row[brand + '_DeviceStatus'] || '';
@@ -170,22 +190,33 @@ async function loadBrandDetail() {
   // Foto HTML
   var fotoHtml = '';
   if (lduFoto || wallFoto) {
-    function fotoItem(url, label) {
+    function fotoItem(url, label, meta) {
       if (!url) return '<div class="bd-foto-item"><div class="bd-foto-label">' + label + '</div><div class="bd-foto-empty">Tidak ada foto</div></div>';
       var fileId = url.match(/\/d\/([^\/]+)/);
       var prev = fileId ? 'https://drive.google.com/thumbnail?id=' + fileId[1] + '&sz=w800' : url;
+      var metaHtml = '';
+      if (meta) {
+        var mapUrl = 'https://maps.google.com/?q=' + meta.lat + ',' + meta.lng;
+        var addr = meta.address || (meta.lat.toFixed(5) + ', ' + meta.lng.toFixed(5));
+        metaHtml = '<div class="bd-foto-meta">' +
+          (meta.takenAt ? '<div class="bd-foto-meta-row">🕒 ' + escHtml(formatMetaDate(meta.takenAt)) + '</div>' : '') +
+          (meta.device  ? '<div class="bd-foto-meta-row">📱 ' + escHtml(meta.device) + '</div>' : '') +
+          '<div class="bd-foto-meta-row">📍 <a href="' + escHtml(mapUrl) + '" target="_blank" rel="noopener">' + escHtml(addr) + '</a></div>' +
+        '</div>';
+      }
       return '<div class="bd-foto-item">' +
         '<div class="bd-foto-label">' + label + '</div>' +
         '<a href="' + escHtml(url) + '" target="_blank" rel="noopener">' +
           '<img src="' + escHtml(prev) + '" class="bd-foto-img" alt="' + escHtml(label) + '">' +
         '</a>' +
+        metaHtml +
       '</div>';
     }
     fotoHtml = '<div class="bd-card"><div class="bd-section">' +
       '<div class="bd-section-title">📷 Foto LDU &amp; Wallbay</div>' +
       '<div class="bd-foto-grid">' +
-        fotoItem(lduFoto,  '📺 LDU Display') +
-        fotoItem(wallFoto, '🗂️ Wallbay') +
+        fotoItem(lduFoto,  '📺 LDU Display', lduMeta) +
+        fotoItem(wallFoto, '🗂️ Wallbay', wallMeta) +
       '</div>' +
     '</div></div>';
   }
