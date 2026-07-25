@@ -123,6 +123,24 @@ function formatFotoAge(ageMin) {
   return Math.round(ageMin) + ' menit';
 }
 
+// Fallback kalau EXIF Make/Model kosong (kasus umum untuk foto hasil "Take Photo" di
+// Safari — WebKit tidak menyisipkan Make/Model sama sekali ke foto hasil kamera-web,
+// sama seperti kasus GPS). Dibaca dari User-Agent browser saat ini supaya kolom device
+// tidak pernah kosong, walau presisinya lebih kasar dari EXIF (mis. "iPhone" tanpa nomor seri).
+function parseUserAgentDevice(ua) {
+  ua = ua || '';
+  var m;
+  if ((m = ua.match(/iPhone;?\s*CPU iPhone OS (\d+)_(\d+)/))) return 'iPhone (iOS ' + m[1] + '.' + m[2] + ')';
+  if (/iPhone/.test(ua)) return 'iPhone';
+  if ((m = ua.match(/iPad;?\s*CPU OS (\d+)_(\d+)/))) return 'iPad (iOS ' + m[1] + '.' + m[2] + ')';
+  if (/iPad/.test(ua)) return 'iPad';
+  if ((m = ua.match(/Android\s[\d.]+;\s*([^;)]+)\)/))) return m[1].trim();
+  if (/Android/.test(ua)) return 'Android';
+  if (/Macintosh/.test(ua)) return 'Mac';
+  if (/Windows/.test(ua)) return 'Windows PC';
+  return '';
+}
+
 // Lokasi diambil dari GPS browser saat itu juga (navigator.geolocation), BUKAN dari EXIF foto.
 // Alasan: foto hasil "Take Photo" di Safari (kamera dalam browser) hampir selalu tidak
 // disisipi GPS EXIF sama sekali, meski izin lokasi app Camera aktif — itu batasan privasi
@@ -199,6 +217,8 @@ async function onFotoSelect(brand, type, input) {
     showFotoError(infoEl, input, msg);
     return;
   }
+
+  if (!device) device = parseUserAgentDevice(navigator.userAgent);
 
   var meta = {
     lat: geo.lat,
