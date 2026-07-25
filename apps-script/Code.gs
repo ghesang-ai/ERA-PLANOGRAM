@@ -11,6 +11,10 @@ const FOTO_ROOT_FOLDER_ID = '1LG9I2fhm3YY6rNUpRUBOHjP6dCQ0FeXc';
 // Ganti setiap awal periode kampanye baru (format: 'YYYY-MM-DD')
 const SUBMIT_WINDOW_START = '2026-06-27';
 
+// Foto LDU/Wallbay harus diambil maks sekian menit sebelum di-upload —
+// dicek di sini juga (bukan cuma client) supaya tidak bisa dilewati via DevTools/API langsung.
+const FOTO_MAX_AGE_MIN = 30;
+
 // Jalankan fungsi ini SATU KALI di editor untuk grant izin Drive penuh
 function testDriveAccess() {
   var root = DriveApp.getFolderById(FOTO_ROOT_FOLDER_ID);
@@ -438,6 +442,18 @@ function uploadFotoToDrive(payload) {
   var fileData  = payload.fileData || '';
   var fileName  = payload.fileName || (brand + '_' + type + '.jpg');
   var meta      = payload.meta || null;
+
+  if (!meta || typeof meta.lat !== 'number' || typeof meta.lng !== 'number' || !meta.takenAt) {
+    return { status: 'error', message: 'Metadata foto (GPS/tanggal EXIF) tidak lengkap. Ambil foto langsung dari kamera.' };
+  }
+  var takenAtMs = new Date(meta.takenAt).getTime();
+  if (isNaN(takenAtMs)) {
+    return { status: 'error', message: 'Format tanggal EXIF foto tidak valid.' };
+  }
+  var ageMin = (Date.now() - takenAtMs) / 60000;
+  if (ageMin > FOTO_MAX_AGE_MIN || ageMin < -5) {
+    return { status: 'error', message: 'Foto harus baru diambil (maks ' + FOTO_MAX_AGE_MIN + ' menit sebelum upload). Ambil ulang foto dari kamera.' };
+  }
 
   var base64 = fileData.replace(/^data:image\/\w+;base64,/, '');
   var blob   = Utilities.newBlob(Utilities.base64Decode(base64), 'image/jpeg', fileName);

@@ -115,6 +115,15 @@ function showFotoError(infoEl, input, msg) {
   if (input) input.value = '';
 }
 
+// Foto harus baru diambil, bukan cuma "punya EXIF" — mencegah pakai foto lama
+// yang kebetulan masih ada metadatanya (mis. hasil export ke Files/iCloud Drive).
+var FOTO_MAX_AGE_MIN = 30;
+
+function formatFotoAge(ageMin) {
+  if (ageMin >= 60) return Math.round(ageMin / 60) + ' jam';
+  return Math.round(ageMin) + ' menit';
+}
+
 // Foto wajib punya EXIF GPS + tanggal ambil (bukti diambil langsung di toko saat itu juga).
 // Foto lama / hasil forward WhatsApp / screenshot umumnya sudah kehilangan data ini.
 function onFotoSelect(brand, type, input) {
@@ -145,8 +154,21 @@ function onFotoSelect(brand, type, input) {
         return;
       }
 
-      var device = [tags.Make, tags.Model].filter(Boolean).join(' ').trim() || 'Unknown device';
       var takenAt = takenAtRaw instanceof Date ? takenAtRaw : new Date(takenAtRaw);
+      if (isNaN(takenAt.getTime())) {
+        showFotoError(infoEl, input, '❌ Format tanggal EXIF foto tidak valid. Ambil foto baru dari kamera.');
+        return;
+      }
+
+      var ageMin = (Date.now() - takenAt.getTime()) / 60000;
+      if (ageMin > FOTO_MAX_AGE_MIN || ageMin < -5) {
+        showFotoError(infoEl, input,
+          '❌ Foto ini diambil ' + formatFotoAge(Math.abs(ageMin)) + ' ' + (ageMin < 0 ? 'ke depan (jam HP salah?)' : 'lalu') +
+          '. Foto harus baru (maks ' + FOTO_MAX_AGE_MIN + ' menit) — ambil foto langsung dari kamera sekarang.');
+        return;
+      }
+
+      var device = [tags.Make, tags.Model].filter(Boolean).join(' ').trim() || 'Unknown device';
       var meta = {
         lat: lat,
         lng: lng,
