@@ -6,7 +6,7 @@ const CONFIG = {
 
   // Tanggal mulai periode submit bulan ini (format: 'YYYY-MM-DD')
   // Ganti setiap awal periode kampanye baru
-  SUBMIT_WINDOW_START: '2026-06-27',
+  SUBMIT_WINDOW_START: '2026-08-01',
 
   // Daftar semua kolom brand LDU (urutan sesuai Google Form)
   BRAND_LDU_COLUMNS: [

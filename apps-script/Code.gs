@@ -9,7 +9,7 @@ const FOTO_ROOT_FOLDER_ID = '1LG9I2fhm3YY6rNUpRUBOHjP6dCQ0FeXc';
 
 // Tanggal mulai periode submit yang valid — data sebelum ini dianggap lama
 // Ganti setiap awal periode kampanye baru (format: 'YYYY-MM-DD')
-const SUBMIT_WINDOW_START = '2026-06-27';
+const SUBMIT_WINDOW_START = '2026-08-01';
 
 // Foto LDU/Wallbay harus diambil maks sekian menit sebelum di-upload —
 // dicek di sini juga (bukan cuma client) supaya tidak bisa dilewati via DevTools/API langsung.
@@ -1043,4 +1043,226 @@ function testGetInventory() {
 function testGetLog() {
   const result = getLog({ store: 'E281', limit: '10' });
   Logger.log(JSON.stringify(result).substring(0, 500));
+}
+
+var BRAND_LDU_COLUMNS_GS = ["Apple", "Samsung", "Oppo", "Vivo", "Xiaomi", "Infinix", "Honor", "Realme", "Tecno", "Sharp", "IQOO", "Huawei", "Motorola", "Advan", "Apple Macbook", "Acer Laptop", "Asus Laptop", "HP Laptop", "Huawei Laptop", "Lenovo Laptop", "Others Laptop", "Samsung CE", "Xiaomi CE", "Infinix CE", "Toshiba CE", "LG CE", "Polytron CE", "Sharp CE", "TCL CE", "Sony CE", "Changhong CE", "Accesories C-Brand"];
+
+var AGU2026_SEED = {
+  'E027': { n: "ERAFONE DAAN MOGOT MALL", c: {"Apple": 14, "Samsung": 35, "Oppo": 20, "Vivo": 9, "Xiaomi": 25, "Infinix": 5, "Honor": 10, "Realme": 7, "IQOO": 4, "Huawei": 8, "Samsung CE": 1, "Xiaomi CE": 2, "Toshiba CE": 1, "Accesories C-Brand": 5} },
+  'E028': { n: "ERAFONE MAL PURI INDAH", c: {"Apple": 12, "Samsung": 23, "Oppo": 18, "Vivo": 9, "Xiaomi": 12, "Honor": 5, "Realme": 6, "Sharp": 3, "IQOO": 4, "Huawei": 14, "Accesories C-Brand": 5} },
+  'E029': { n: "ERAFONE PX PAVILION ST MORITS", c: {"Apple": 8, "Samsung": 28, "Oppo": 20, "Vivo": 10, "Xiaomi": 13, "Infinix": 5, "Honor": 8, "Realme": 5, "Tecno": 1, "IQOO": 2, "Huawei": 16, "Motorola": 5, "Samsung CE": 1, "Toshiba CE": 2, "Sharp CE": 1, "TCL CE": 3, "Accesories C-Brand": 6} },
+  'E037': { n: "ERAFONE GAJAH MADA PLAZA", c: {"Apple": 6, "Samsung": 25, "Oppo": 11, "Vivo": 6, "Xiaomi": 13, "Honor": 1, "Realme": 3, "Tecno": 3, "Huawei": 6, "Samsung CE": 1, "Xiaomi CE": 4, "Polytron CE": 1, "TCL CE": 1, "Accesories C-Brand": 5} },
+  'E038': { n: "ERAFONE MAL ATRIUM SENEN (ERAFONE MILLENIUM MALL)", c: {"Apple": 5, "Samsung": 17, "Oppo": 7, "Vivo": 5, "Xiaomi": 3, "Infinix": 3, "Honor": 6, "Realme": 3, "Tecno": 1, "IQOO": 2, "Huawei": 2, "Toshiba CE": 2, "Polytron CE": 1, "TCL CE": 1} },
+  'E043': { n: "ERAFONE PLAZA BINTARO JAYA", c: {"Apple": 14, "Samsung": 27, "Oppo": 12, "Vivo": 8, "Xiaomi": 12, "Infinix": 7, "Honor": 15, "Realme": 7, "Tecno": 3, "IQOO": 2, "Huawei": 24, "Motorola": 4, "Accesories C-Brand": 1} },
+  'E047': { n: "ERAFONE 1 ITC CEMPAKA MAS", c: {"Apple": 3, "Samsung": 13, "Oppo": 10, "Vivo": 4, "Xiaomi": 5, "Honor": 4, "Realme": 2, "Tecno": 3, "Accesories C-Brand": 3} },
+  'E081': { n: "ERAFONE MALL OF SERANG", c: {"Apple": 5, "Samsung": 21, "Oppo": 13, "Vivo": 10, "Xiaomi": 17, "Infinix": 6, "Honor": 6, "Realme": 3, "Tecno": 4, "IQOO": 2, "Huawei": 3, "Samsung CE": 1, "Xiaomi CE": 2, "Toshiba CE": 1, "TCL CE": 1, "Accesories C-Brand": 1} },
+  'E082': { n: "ERAFONE LIVING WORLD ALAM SUTERA", c: {"Apple": 13, "Samsung": 24, "Oppo": 15, "Vivo": 7, "Xiaomi": 15, "Infinix": 6, "Honor": 8, "Realme": 6, "Tecno": 3, "Sharp": 1, "IQOO": 2, "Huawei": 4, "Advan": 2, "Apple Macbook": 1, "Samsung CE": 1, "Toshiba CE": 2, "Sharp CE": 1, "TCL CE": 2, "Accesories C-Brand": 5} },
+  'E084': { n: "ERAFONE 1 SUPERMALL KARAWACI", c: {"Apple": 25, "Samsung": 37, "Oppo": 24, "Vivo": 9, "Xiaomi": 23, "Infinix": 6, "Honor": 8, "Realme": 10, "Tecno": 6, "IQOO": 4, "Huawei": 27, "Motorola": 6, "Apple Macbook": 2, "Xiaomi CE": 4, "Toshiba CE": 1, "Accesories C-Brand": 13} },
+  'E087': { n: "ERAFONE ITC BSD", c: {"Apple": 4, "Samsung": 16, "Oppo": 5, "Vivo": 8, "Xiaomi": 2, "IQOO": 1, "Accesories C-Brand": 2} },
+  'E088': { n: "ERAFONE AEON MAL BSD CITY", c: {"Apple": 11, "Samsung": 36, "Oppo": 21, "Vivo": 13, "Xiaomi": 25, "Infinix": 8, "Honor": 8, "Realme": 4, "IQOO": 3, "Huawei": 26, "Xiaomi CE": 1, "Accesories C-Brand": 7} },
+  'E096': { n: "ERAFONE 2 ITC ROXY MAS", c: {"Samsung": 12, "Oppo": 7, "Vivo": 7, "Xiaomi": 12, "Realme": 4, "Tecno": 2, "Accesories C-Brand": 1} },
+  'E113': { n: "ERAFONE GRAND INDONESIA", c: {"Apple": 18, "Samsung": 30, "Oppo": 20, "Vivo": 10, "Xiaomi": 15, "Infinix": 5, "Honor": 6, "Sharp": 2, "IQOO": 3, "Huawei": 10, "Motorola": 6, "Advan": 2, "Samsung CE": 1, "Xiaomi CE": 2, "Toshiba CE": 1, "Accesories C-Brand": 20} },
+  'E119': { n: "ERAFONE TANGERANG CITY MALL", c: {"Apple": 15, "Samsung": 29, "Oppo": 14, "Vivo": 8, "Xiaomi": 11, "Infinix": 6, "Honor": 6, "Realme": 5, "Tecno": 5, "Huawei": 3, "Samsung CE": 1, "Xiaomi CE": 1, "Infinix CE": 1, "Toshiba CE": 1, "Polytron CE": 1, "Sharp CE": 1, "TCL CE": 1, "Accesories C-Brand": 2} },
+  'E137': { n: "ERAFONE GREEN PRAMUKA SQUARE", c: {"Apple": 9, "Samsung": 25, "Oppo": 18, "Vivo": 9, "Xiaomi": 17, "Infinix": 5, "Honor": 9, "Realme": 3, "Tecno": 2, "IQOO": 1, "Huawei": 17, "Samsung CE": 1, "Xiaomi CE": 2, "Toshiba CE": 1, "Polytron CE": 1, "Sharp CE": 1, "Accesories C-Brand": 3} },
+  'E150': { n: "ERAFONE CILEGON CENTER MALL", c: {"Apple": 14, "Samsung": 31, "Oppo": 18, "Vivo": 8, "Xiaomi": 7, "Infinix": 7, "Honor": 9, "Realme": 3, "Tecno": 6, "IQOO": 3, "Huawei": 26, "Advan": 2, "Samsung CE": 1, "Xiaomi CE": 1, "Infinix CE": 1, "Toshiba CE": 1, "LG CE": 1, "TCL CE": 3, "Accesories C-Brand": 7} },
+  'E158': { n: "ERAFONE MAL CIPUTRA JAKARTA", c: {"Apple": 4, "Samsung": 18, "Oppo": 10, "Vivo": 6, "Xiaomi": 7, "Infinix": 6, "Honor": 7, "Realme": 6, "Xiaomi CE": 1} },
+  'E160': { n: "ERAFONE RUKO CEGER TANGERANG", c: {"Apple": 7, "Samsung": 18, "Oppo": 13, "Vivo": 8, "Xiaomi": 11, "Infinix": 6, "Honor": 6, "Realme": 6, "Tecno": 1, "Sharp": 1, "IQOO": 2, "Huawei": 7, "Sharp CE": 1, "Accesories C-Brand": 4} },
+  'E164': { n: "ERAFONE MAL TAMAN ANGGREK", c: {"Apple": 13, "Samsung": 38, "Oppo": 30, "Vivo": 13, "Xiaomi": 21, "Infinix": 5, "Honor": 8, "Realme": 7, "Tecno": 1, "IQOO": 2, "Huawei": 30, "Motorola": 3, "Advan": 2, "Samsung CE": 1, "Accesories C-Brand": 24} },
+  'E172': { n: "ERAFONE RUKO KEBON JERUK BINUS", c: {"Apple": 5, "Samsung": 27, "Oppo": 21, "Vivo": 9, "Xiaomi": 18, "Infinix": 4, "Honor": 7, "Realme": 7, "Tecno": 2, "IQOO": 2, "Huawei": 4, "Advan": 2, "Samsung CE": 1, "Xiaomi CE": 1, "Toshiba CE": 1, "Polytron CE": 3, "TCL CE": 1, "Changhong CE": 1, "Accesories C-Brand": 3} },
+  'E191': { n: "ERAFONE RUKO SURYA KENCANA PAMULANG", c: {"Apple": 7, "Samsung": 17, "Oppo": 12, "Vivo": 10, "Xiaomi": 11, "Infinix": 6, "Honor": 6, "Realme": 6, "Tecno": 6, "IQOO": 2, "Huawei": 14, "Polytron CE": 1, "Accesories C-Brand": 4} },
+  'E194': { n: "ERAFONE RUKO RANGKASBITUNG", c: {"Apple": 6, "Samsung": 25, "Oppo": 13, "Vivo": 7, "Xiaomi": 10, "Infinix": 6, "Honor": 7, "Realme": 6, "Tecno": 2, "IQOO": 2, "Huawei": 9, "Xiaomi CE": 1, "TCL CE": 1, "Accesories C-Brand": 3} },
+  'E201': { n: "ERAFONE RUKO KRESEK BALARAJA", c: {"Apple": 5, "Samsung": 19, "Oppo": 9, "Vivo": 5, "Xiaomi": 12, "Infinix": 5, "Honor": 10, "Realme": 3, "Tecno": 5, "IQOO": 2, "Huawei": 3, "Xiaomi CE": 3, "Toshiba CE": 1, "TCL CE": 1, "Accesories C-Brand": 3} },
+  'E209': { n: "ERAFONE RUKO AHMAD YANI SERANG", c: {"Apple": 16, "Samsung": 34, "Oppo": 22, "Vivo": 12, "Xiaomi": 12, "Infinix": 6, "Honor": 7, "Realme": 6, "Tecno": 8, "IQOO": 3, "Huawei": 17, "Motorola": 3, "Advan": 1, "Apple Macbook": 1, "Samsung CE": 1, "Xiaomi CE": 3, "Infinix CE": 1, "Polytron CE": 1, "TCL CE": 3, "Accesories C-Brand": 4} },
+  'E215': { n: "ERAFONE GREEN SEDAYU MALL", c: {"Apple": 7, "Samsung": 26, "Oppo": 13, "Vivo": 9, "Xiaomi": 9, "Honor": 6, "Realme": 6, "IQOO": 2, "Huawei": 14, "Accesories C-Brand": 5} },
+  'E216': { n: "ERAFONE SENAYAN PARK", c: {"Apple": 4, "Samsung": 22, "Oppo": 12, "Vivo": 6, "Xiaomi": 12, "Honor": 2, "Realme": 4, "Tecno": 4, "Huawei": 2, "Accesories C-Brand": 8} },
+  'E221': { n: "ERAFONE MALL CITRARAYA TANGERANG", c: {"Apple": 10, "Samsung": 33, "Oppo": 17, "Vivo": 10, "Xiaomi": 24, "Infinix": 7, "Honor": 16, "Realme": 8, "Tecno": 7, "Sharp": 3, "IQOO": 4, "Huawei": 22, "Motorola": 2, "Advan": 4, "Samsung CE": 1, "Xiaomi CE": 4, "Infinix CE": 1, "Toshiba CE": 1, "LG CE": 2, "Polytron CE": 1, "TCL CE": 3, "Accesories C-Brand": 6} },
+  'E231': { n: "ERAFONE RUKO COKROAMINOTO CILEDUG", c: {"Apple": 15, "Samsung": 25, "Oppo": 9, "Vivo": 9, "Xiaomi": 12, "Infinix": 5, "Honor": 7, "Realme": 7, "IQOO": 2, "Huawei": 9, "Motorola": 1, "Apple Macbook": 1, "Xiaomi CE": 3, "Accesories C-Brand": 1} },
+  'E233': { n: "ERAFONE RUKO TAMAN SURYA JAKBA", c: {"Apple": 3, "Samsung": 24, "Oppo": 12, "Vivo": 7, "Xiaomi": 9, "Infinix": 7, "Honor": 7, "Realme": 6, "IQOO": 3, "Huawei": 11, "Xiaomi CE": 1, "LG CE": 1, "Polytron CE": 1, "TCL CE": 1, "Accesories C-Brand": 5} },
+  'E253': { n: "ERAFONE RUKO CURUG TANGERANG", c: {"Apple": 5, "Samsung": 20, "Oppo": 11, "Vivo": 10, "Xiaomi": 7, "Infinix": 6, "Realme": 3, "Tecno": 3, "Xiaomi CE": 1, "Accesories C-Brand": 2} },
+  'E281': { n: "ERAFONE 3.0 SENAYAN CITY", c: {"Apple": 18, "Samsung": 33, "Oppo": 23, "Vivo": 9, "Xiaomi": 11, "Infinix": 5, "Honor": 8, "Realme": 3, "Tecno": 4, "Sharp": 4, "IQOO": 4, "Huawei": 28, "Motorola": 7, "Accesories C-Brand": 41} },
+  'E290': { n: "ERAFONE FRANCHISE RUKO PORIS", c: {"Apple": 6, "Samsung": 25, "Oppo": 10, "Vivo": 9, "Xiaomi": 12, "Infinix": 5, "Honor": 8, "Realme": 3, "Xiaomi CE": 2, "Accesories C-Brand": 5} },
+  'E308': { n: "ERAFONE RUKO MAYOR SAFEI SERANG", c: {"Apple": 5, "Samsung": 22, "Oppo": 12, "Vivo": 8, "Xiaomi": 22, "Infinix": 4, "Honor": 5, "Realme": 13, "Tecno": 6, "Xiaomi CE": 2, "Toshiba CE": 1, "Accesories C-Brand": 1} },
+  'E312': { n: "ERAFONE KRESEK KOSAMBI", c: {"Apple": 5, "Samsung": 20, "Oppo": 7, "Vivo": 8, "Xiaomi": 7, "Infinix": 5, "Honor": 1, "Realme": 5, "IQOO": 1, "Accesories C-Brand": 5} },
+  'E320': { n: "ERAFONE RUKO PANDEGLANG BANTEN", c: {"Apple": 5, "Samsung": 14, "Oppo": 10, "Vivo": 7, "Xiaomi": 16, "Infinix": 3, "Honor": 5, "Realme": 4, "Tecno": 1, "Xiaomi CE": 3, "Accesories C-Brand": 5} },
+  'E321': { n: "ERAFONE RUKO SUDIMARA CIPUTAT", c: {"Apple": 5, "Samsung": 16, "Oppo": 13, "Vivo": 7, "Xiaomi": 19, "Infinix": 6, "Honor": 7, "Realme": 2, "IQOO": 2, "Huawei": 7, "Motorola": 3, "Advan": 1, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E322': { n: "ERAFONE RUKO MERUYA", c: {"Apple": 5, "Samsung": 16, "Oppo": 11, "Vivo": 8, "Xiaomi": 18, "Infinix": 7, "Realme": 4, "IQOO": 2, "Xiaomi CE": 2, "Accesories C-Brand": 4} },
+  'E369': { n: "ERAFONE FRANCHISE RUKO BOROBUDUR RAYA", c: {"Apple": 5, "Samsung": 13, "Oppo": 6, "Vivo": 7, "Xiaomi": 11, "Infinix": 7, "Honor": 2, "Realme": 2, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E370': { n: "ERAFONE FRANCHISE RUKO BERINGIN KARAWACI", c: {"Apple": 5, "Samsung": 14, "Oppo": 7, "Vivo": 9, "Xiaomi": 16, "Infinix": 5, "Realme": 4, "Xiaomi CE": 4, "Toshiba CE": 1, "Accesories C-Brand": 4} },
+  'E381': { n: "ERAFONE RUKO PETA BARAT JAKBAR", c: {"Apple": 4, "Samsung": 18, "Oppo": 11, "Vivo": 11, "Xiaomi": 18, "Infinix": 1, "Honor": 8, "Realme": 3, "Tecno": 5, "IQOO": 2, "Xiaomi CE": 4, "Toshiba CE": 1, "TCL CE": 1, "Accesories C-Brand": 3} },
+  'E391': { n: "ERAFONE RUKO WR SUPRATMAN CIPUTAT", c: {"Apple": 5, "Samsung": 15, "Oppo": 9, "Vivo": 5, "Xiaomi": 14, "Infinix": 6, "Honor": 5, "Realme": 1, "Tecno": 1, "Xiaomi CE": 2, "Accesories C-Brand": 4} },
+  'E396': { n: "ERAFONE ANDMORE RUKO ITC ROXY MAS", c: {"Apple": 8, "Samsung": 22, "Oppo": 18, "Vivo": 9, "Xiaomi": 28, "Infinix": 7, "Honor": 12, "Realme": 6, "Tecno": 8, "IQOO": 3, "Huawei": 18, "Motorola": 1, "Advan": 2, "Apple Macbook": 1, "Xiaomi CE": 4, "Infinix CE": 1, "Toshiba CE": 3, "TCL CE": 7, "Accesories C-Brand": 23} },
+  'E408': { n: "ERAFONE FRANCHISE RUKO SUMUR BATU", c: {"Apple": 5, "Samsung": 18, "Oppo": 8, "Vivo": 7, "Xiaomi": 17, "Infinix": 5, "Honor": 7, "Realme": 6, "IQOO": 1, "Huawei": 6, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E413': { n: "ERAFONE RUKO GOLDEN GREEN KEDOYA", c: {"Apple": 5, "Samsung": 14, "Oppo": 8, "Vivo": 7, "Xiaomi": 14, "Infinix": 5, "Honor": 8, "Realme": 7, "IQOO": 2, "Xiaomi CE": 1, "Accesories C-Brand": 4} },
+  'E414': { n: "ERAFONE RUKO PERCETAKAN NEGARA", c: {"Apple": 9, "Samsung": 16, "Oppo": 12, "Vivo": 8, "Xiaomi": 17, "Infinix": 6, "Honor": 8, "Realme": 6, "Tecno": 1, "IQOO": 1, "Huawei": 11, "Samsung CE": 1, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E422': { n: "ERAFONE RUKO M TOHA TANGERANG", c: {"Apple": 9, "Samsung": 22, "Oppo": 15, "Vivo": 10, "Xiaomi": 26, "Infinix": 3, "Realme": 3, "Xiaomi CE": 4, "Toshiba CE": 2, "LG CE": 1, "Accesories C-Brand": 3} },
+  'E453': { n: "ERAFONE RUKO DURI KOSAMBI", c: {"Apple": 4, "Samsung": 12, "Oppo": 11, "Vivo": 7, "Xiaomi": 10, "Infinix": 5, "Honor": 8, "Realme": 7, "IQOO": 2, "Motorola": 3, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E465': { n: "ERAFONE RUKO KEBAYORAN LAMA", c: {"Apple": 5, "Samsung": 16, "Oppo": 12, "Vivo": 7, "Xiaomi": 12, "Honor": 5, "Realme": 5, "Tecno": 3, "IQOO": 2, "Xiaomi CE": 2, "Accesories C-Brand": 2} },
+  'E484': { n: "ERAFONE SERPONG PARADISE WALK", c: {"Apple": 11, "Samsung": 31, "Oppo": 11, "Vivo": 10, "Xiaomi": 14, "Honor": 5, "Huawei": 14, "Xiaomi CE": 1, "Accesories C-Brand": 1} },
+  'E499': { n: "ERAFONE LABUAN PANDEGLANG", c: {"Apple": 5, "Samsung": 13, "Oppo": 6, "Vivo": 9, "Xiaomi": 10, "Infinix": 4, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E508': { n: "ERAFONE JEMBATAN LIMA", c: {"Apple": 5, "Samsung": 13, "Oppo": 11, "Vivo": 8, "Xiaomi": 22, "Honor": 8, "Huawei": 5, "Xiaomi CE": 1, "Accesories C-Brand": 4} },
+  'E514': { n: "ERAFONE FRANCHISE RUKO MERUYA SELATAN", c: {"Apple": 5, "Samsung": 14, "Oppo": 11, "Vivo": 7, "Xiaomi": 7, "Honor": 6, "Xiaomi CE": 2, "Accesories C-Brand": 1} },
+  'E544': { n: "ERAFONE RUKO MULTIBRAND CILEGON", c: {"Apple": 7, "Samsung": 20, "Oppo": 11, "Vivo": 14, "Xiaomi": 14, "Honor": 6, "Realme": 1, "Tecno": 1, "Huawei": 12, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E582': { n: "ERAFONE MB SRENGSENG", c: {"Apple": 5, "Samsung": 20, "Oppo": 10, "Vivo": 8, "Xiaomi": 18, "Honor": 8, "Realme": 3, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E586': { n: "ERAFONE RUKO GRAHA RAYA", c: {"Apple": 5, "Samsung": 17, "Oppo": 11, "Vivo": 7, "Xiaomi": 12, "Honor": 4, "Xiaomi CE": 1, "Accesories C-Brand": 4} },
+  'E589': { n: "ERAFONE RUKO PANIMBANG PANDEGLANG", c: {"Apple": 5, "Samsung": 7, "Oppo": 6, "Vivo": 8, "Xiaomi": 10, "Huawei": 2, "Xiaomi CE": 2, "Accesories C-Brand": 4} },
+  'E593': { n: "ERAFONE MANGGA BESAR", c: {"Apple": 5, "Samsung": 25, "Oppo": 14, "Vivo": 9, "Xiaomi": 17, "Honor": 6, "Realme": 6, "IQOO": 2, "Huawei": 11, "Samsung CE": 1, "Xiaomi CE": 1, "Accesories C-Brand": 1} },
+  'E612': { n: "ERAFONE RUKO JOMBANG TANGSEL", c: {"Apple": 5, "Samsung": 14, "Oppo": 10, "Vivo": 5, "Xiaomi": 13, "Infinix": 1, "Honor": 7, "Realme": 1, "Tecno": 1, "Huawei": 2, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E616': { n: "ERAFONE MERUYA ILIR", c: {"Apple": 5, "Samsung": 10, "Oppo": 8, "Vivo": 7, "Xiaomi": 7, "Honor": 4, "Realme": 1, "IQOO": 2, "Xiaomi CE": 2, "Toshiba CE": 1, "LG CE": 2, "TCL CE": 2, "Accesories C-Brand": 4} },
+  'E620': { n: "ERAFONE 2.5 PAJAJARAN PAMULANG", c: {"Apple": 5, "Samsung": 13, "Oppo": 8, "Vivo": 6, "Xiaomi": 8, "Honor": 6, "Tecno": 7, "Sharp": 1, "Xiaomi CE": 3, "Toshiba CE": 1, "Polytron CE": 1, "TCL CE": 1, "Accesories C-Brand": 3} },
+  'E627': { n: "ERAFONE RUKO CISOKA", c: {"Apple": 11, "Samsung": 16, "Oppo": 8, "Vivo": 6, "Xiaomi": 10, "Realme": 3, "IQOO": 2, "Xiaomi CE": 3, "Toshiba CE": 1, "Polytron CE": 1, "TCL CE": 1, "Accesories C-Brand": 4} },
+  'E646': { n: "ERAFONE BATU CEPER", c: {"Apple": 10, "Samsung": 14, "Oppo": 10, "Vivo": 10, "Xiaomi": 21, "Infinix": 3, "Honor": 4, "Realme": 2, "Tecno": 1, "Huawei": 3, "Xiaomi CE": 2, "Toshiba CE": 2, "TCL CE": 1, "Accesories C-Brand": 4} },
+  'E663': { n: "ERAFONE RUKO GARUDA KEMAYORAN", c: {"Apple": 5, "Samsung": 13, "Oppo": 6, "Vivo": 6, "Xiaomi": 9, "Honor": 6, "Realme": 6, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E678': { n: "ERAFONE MULTIBRAND BENDUNGAN HILIR", c: {"Apple": 5, "Samsung": 17, "Oppo": 8, "Vivo": 8, "Xiaomi": 13, "Honor": 6, "Realme": 4, "Tecno": 7, "IQOO": 2, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E679': { n: "ERAFONE MULTIBRAND JOGLO RAYA", c: {"Apple": 11, "Samsung": 16, "Oppo": 7, "Vivo": 8, "Xiaomi": 10, "Infinix": 4, "Honor": 4, "IQOO": 2, "Huawei": 8, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E684': { n: "ERAFONE RUKO SANGIANG TANGERANG", c: {"Apple": 6, "Samsung": 20, "Oppo": 11, "Vivo": 8, "Xiaomi": 19, "Infinix": 7, "Honor": 8, "Realme": 3, "Tecno": 3, "Huawei": 2, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E685': { n: "ERAFONE MB PONDOK BETUNG", c: {"Apple": 5, "Samsung": 16, "Oppo": 11, "Vivo": 8, "Xiaomi": 18, "Honor": 6, "Tecno": 5, "Xiaomi CE": 3, "Toshiba CE": 1, "Accesories C-Brand": 3} },
+  'E696': { n: "ERAFONE MB RASUNA SAID", c: {"Apple": 5, "Samsung": 14, "Oppo": 10, "Vivo": 7, "Xiaomi": 16, "Honor": 2, "Realme": 2, "Tecno": 3, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E704': { n: "ERAFONE RUKO DEWANTARA CIPUTAT", c: {"Apple": 5, "Samsung": 15, "Oppo": 11, "Vivo": 8, "Xiaomi": 6, "Infinix": 7, "Honor": 4, "Realme": 3, "IQOO": 2, "Xiaomi CE": 2, "Accesories C-Brand": 1} },
+  'E732': { n: "ERAFONE RUKO SABANG", c: {"Apple": 5, "Samsung": 20, "Oppo": 10, "Vivo": 6, "Xiaomi": 14, "Honor": 7, "Realme": 3, "Tecno": 3, "Huawei": 8, "Xiaomi CE": 2, "Polytron CE": 1, "TCL CE": 1, "Accesories C-Brand": 6} },
+  'E744': { n: "ERAFONE RUKO RAJEG TANGERANG", c: {"Apple": 5, "Samsung": 11, "Oppo": 10, "Vivo": 6, "Xiaomi": 8, "Tecno": 4, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E777': { n: "ERAFONE MB CIHUNI PAGEDANGAN (ERAFONE CIHUNI GADING SERPONG)", c: {"Apple": 5, "Samsung": 22, "Oppo": 6, "Vivo": 5, "Xiaomi": 7, "Accesories C-Brand": 1} },
+  'E787': { n: "ERAFONE MB TIGARAKSA", c: {"Apple": 5, "Samsung": 13, "Oppo": 11, "Vivo": 7, "Xiaomi": 12, "Honor": 5, "Realme": 3, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E812': { n: "ERAFONE RUKO KUTABUMI", c: {"Apple": 4, "Samsung": 15, "Oppo": 10, "Vivo": 5, "Xiaomi": 9, "Realme": 3, "Xiaomi CE": 1, "Accesories C-Brand": 1} },
+  'E813': { n: "ERAFONE MULTIBRAND SERPONG GARDEN CISAUK", c: {"Apple": 4, "Samsung": 13, "Oppo": 10, "Vivo": 4, "Xiaomi": 12, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E821': { n: "ERAFONE MB ANYER", c: {"Apple": 5, "Samsung": 19, "Oppo": 12, "Vivo": 7, "Xiaomi": 21, "Honor": 6, "Realme": 4, "Tecno": 5, "Xiaomi CE": 2, "Accesories C-Brand": 4} },
+  'E822': { n: "ERAFONE MB KRAGILAN", c: {"Apple": 11, "Samsung": 14, "Oppo": 10, "Vivo": 9, "Xiaomi": 15, "Honor": 5, "Realme": 4, "Tecno": 2, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E833': { n: "ERAFONE RANGKASBITUNG 2", c: {"Apple": 5, "Samsung": 22, "Oppo": 9, "Vivo": 9, "Xiaomi": 11, "Realme": 4, "IQOO": 2, "Xiaomi CE": 1} },
+  'E834': { n: "ERAFONE KEDAUNG TANGSEL", c: {"Apple": 5, "Samsung": 17, "Oppo": 11, "Vivo": 8, "Xiaomi": 9, "Honor": 8, "Realme": 3, "IQOO": 2, "Xiaomi CE": 2, "Accesories C-Brand": 3} },
+  'E848': { n: "ERAFONE PASAR KEMIS", c: {"Apple": 5, "Samsung": 12, "Oppo": 6, "Vivo": 5, "Xiaomi": 9, "Realme": 1, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E873': { n: "ERAFONE MB LEGOK", c: {"Apple": 4, "Samsung": 14, "Oppo": 10, "Vivo": 6, "Xiaomi": 14, "Infinix": 4, "Honor": 1, "Realme": 1, "Tecno": 1, "IQOO": 2, "Xiaomi CE": 1, "Accesories C-Brand": 3} },
+  'E874': { n: "ERAFONE MULTIBRAND DASANA INDAH", c: {"Apple": 5, "Samsung": 12, "Oppo": 6, "Vivo": 4, "Xiaomi": 12, "Realme": 1, "Accesories C-Brand": 3} },
+  'E875': { n: "ERAFONE MB POS PENGUMBEN", c: {"Apple": 11, "Samsung": 21, "Oppo": 11, "Vivo": 8, "Xiaomi": 20, "Honor": 7, "Realme": 3, "IQOO": 2, "Huawei": 2, "Xiaomi CE": 1, "Accesories C-Brand": 4} },
+  'E879': { n: "ERAFONE MB CIPARE", c: {"Apple": 11, "Samsung": 22, "Oppo": 10, "Vivo": 7, "Xiaomi": 21, "Honor": 6, "Realme": 4, "Samsung CE": 1, "Xiaomi CE": 3, "Accesories C-Brand": 5} },
+  'E898': { n: "ERAFONE MB SAMANHUDI", c: {"Apple": 5, "Samsung": 14, "Oppo": 12, "Vivo": 7, "Xiaomi": 10, "Infinix": 5, "Honor": 4, "Realme": 8, "IQOO": 2, "Xiaomi CE": 2, "Toshiba CE": 1, "LG CE": 1, "Changhong CE": 1, "Accesories C-Brand": 5} },
+  'E923': { n: "ERAFONE MB JALAN PANJANG", c: {"Apple": 5, "Samsung": 14, "Oppo": 6, "Vivo": 6, "Xiaomi": 12, "Realme": 2, "Xiaomi CE": 2, "Accesories C-Brand": 5} },
+  'E941': { n: "ERAFONE MB RAYA SERPONG", c: {"Apple": 5, "Samsung": 12, "Oppo": 8, "Vivo": 6, "Xiaomi": 7, "Honor": 4, "Realme": 3, "Xiaomi CE": 3, "Accesories C-Brand": 4} },
+  'E942': { n: "ERAFONE KEMBANGAN UTARA", c: {"Apple": 5, "Samsung": 12, "Oppo": 10, "Vivo": 7, "Xiaomi": 12, "Honor": 5, "Realme": 3, "Tecno": 2, "IQOO": 2, "Xiaomi CE": 3, "Toshiba CE": 1, "TCL CE": 2, "Changhong CE": 1, "Accesories C-Brand": 4} },
+  'E943': { n: "ERAFONE MB TAMAN RATU", c: {"Apple": 6, "Samsung": 20, "Oppo": 9, "Vivo": 5, "Xiaomi": 10, "Honor": 6, "Realme": 3, "Huawei": 2, "Toshiba CE": 2, "TCL CE": 1, "Accesories C-Brand": 4} },
+  'E960': { n: "ERAFONE MB MENCENG RAYA", c: {"Apple": 4, "Samsung": 11, "Oppo": 6, "Vivo": 8, "Xiaomi": 10, "Honor": 5, "Realme": 4, "Tecno": 5, "Samsung CE": 1, "Xiaomi CE": 5, "LG CE": 1, "Accesories C-Brand": 3} },
+  'E986': { n: "ERAFONE MB JEMBATAN BESI", c: {"Apple": 6, "Samsung": 11, "Oppo": 6, "Vivo": 7, "Xiaomi": 12, "Realme": 3, "Tecno": 4, "Sharp": 1, "Xiaomi CE": 3, "Toshiba CE": 1, "TCL CE": 1, "Accesories C-Brand": 5} },
+  'E991': { n: "ERAFONE 2.5 KEMANGGISAN UTAMA RAYA", c: {"Apple": 5, "Samsung": 13, "Oppo": 10, "Vivo": 5, "Xiaomi": 5, "Honor": 6, "Realme": 2, "Tecno": 2, "Xiaomi CE": 2, "Polytron CE": 3, "TCL CE": 1, "Accesories C-Brand": 4} },
+  'E992': { n: "ERAFONE 2.5 KAPUK CENGKARENG", c: {"Apple": 5, "Samsung": 22, "Oppo": 10, "Vivo": 12, "Xiaomi": 14, "Honor": 7, "Realme": 3, "IQOO": 3, "Xiaomi CE": 3, "Accesories C-Brand": 4} },
+  'F003': { n: "ERAFONE CILEDUG 2.5 RAYA", c: {"Apple": 8, "Samsung": 17, "Oppo": 7, "Vivo": 4, "Xiaomi": 9, "Infinix": 3, "Honor": 6, "Realme": 4, "Tecno": 1, "IQOO": 2, "Xiaomi CE": 2, "Toshiba CE": 1, "TCL CE": 1, "Accesories C-Brand": 1} },
+  'F022': { n: "ERAFONE 2.5 PAMULANG", c: {"Apple": 11, "Samsung": 21, "Oppo": 10, "Vivo": 11, "Xiaomi": 14, "Honor": 6, "Realme": 5, "Tecno": 4, "IQOO": 2, "Toshiba CE": 1, "LG CE": 1, "Polytron CE": 3, "Sharp CE": 1, "TCL CE": 3, "Accesories C-Brand": 4} },
+  'F058': { n: "ERAFONE 2.5 TELAGA BESTARI", c: {"Apple": 5, "Samsung": 17, "Oppo": 6, "Vivo": 6, "Xiaomi": 10, "Realme": 3, "Tecno": 2, "Sharp": 1, "Xiaomi CE": 1, "Toshiba CE": 1, "Sharp CE": 2, "TCL CE": 1, "Accesories C-Brand": 3} },
+  'F066': { n: "ERAFONE 2.5 SEPATAN", c: {"Apple": 5, "Samsung": 12, "Oppo": 9, "Vivo": 6, "Xiaomi": 6, "Infinix": 3, "Honor": 5, "Realme": 5, "Tecno": 3, "Xiaomi CE": 2, "Infinix CE": 1, "Toshiba CE": 1, "TCL CE": 1, "Accesories C-Brand": 4} },
+  'F073': { n: "ERAFONE 2.5 AGORA MALL", c: {"Apple": 11, "Samsung": 20, "Oppo": 11, "Vivo": 8, "Xiaomi": 14, "Infinix": 3, "Honor": 6, "Realme": 3, "Tecno": 3, "Huawei": 4, "Xiaomi CE": 2, "Toshiba CE": 3, "Polytron CE": 2, "Accesories C-Brand": 8} },
+  'F077': { n: "ERAFONE BINTARO EXCHANGE II", c: {"Apple": 13, "Samsung": 34, "Oppo": 20, "Vivo": 9, "Xiaomi": 19, "Infinix": 7, "Honor": 12, "Realme": 7, "Tecno": 7, "IQOO": 4, "Huawei": 41, "Motorola": 4, "Advan": 2, "Samsung CE": 1, "Toshiba CE": 2, "Polytron CE": 3, "Sharp CE": 1, "TCL CE": 2, "Accesories C-Brand": 16} },
+  'F079': { n: "ERAFONE 2.5 GRAND BATAVIA", c: {"Apple": 5, "Samsung": 10, "Oppo": 8, "Vivo": 7, "Xiaomi": 16, "Infinix": 4, "Realme": 3, "Tecno": 4, "IQOO": 1, "Xiaomi CE": 2, "Infinix CE": 1, "Polytron CE": 2, "Accesories C-Brand": 4} },
+  'F080': { n: "ERAFONE K-MALL MENARA JAKARTA", c: {"Apple": 3, "Samsung": 21, "Oppo": 8, "Vivo": 6, "Xiaomi": 6, "Infinix": 4, "Realme": 8, "Tecno": 4, "Huawei": 8, "Toshiba CE": 1, "LG CE": 1, "Polytron CE": 1, "TCL CE": 1, "Accesories C-Brand": 5} },
+  'F134': { n: "ERAFONE 2.5 MAL CIPUTRA JAKARTA", c: {"Apple": 5, "Samsung": 21, "Oppo": 14, "Vivo": 8, "Xiaomi": 13, "Infinix": 6, "Honor": 6, "Realme": 5, "Tecno": 5, "Huawei": 12, "Motorola": 4, "Xiaomi CE": 1, "Toshiba CE": 1, "LG CE": 1, "TCL CE": 1, "Accesories C-Brand": 9} },
+  'G258': { n: "LOTTEMART GREEN PRAMUKA CITY", c: {"Samsung": 3, "Oppo": 6, "Vivo": 6} },
+  'M013': { n: "MEGASTORE SUPERMAL KARAWACI", c: {"Apple": 33, "Samsung": 45, "Oppo": 32, "Vivo": 8, "Xiaomi": 35, "Infinix": 6, "Honor": 13, "Realme": 4, "Tecno": 6, "Sharp": 3, "IQOO": 3, "Huawei": 35, "Motorola": 4, "Advan": 5, "Apple Macbook": 2, "Toshiba CE": 1, "Polytron CE": 1, "Sharp CE": 1, "TCL CE": 1, "Sony CE": 1, "Accesories C-Brand": 38} },
+  'M014': { n: "MEGASTORE BINTARO X-CHANGE", c: {"Apple": 27, "Samsung": 37, "Oppo": 27, "Vivo": 9, "Xiaomi": 29, "Infinix": 6, "Honor": 10, "Realme": 8, "Tecno": 7, "IQOO": 4, "Huawei": 39, "Motorola": 4, "Advan": 2, "Apple Macbook": 6, "Samsung CE": 4, "Xiaomi CE": 5, "Toshiba CE": 1, "LG CE": 1, "Polytron CE": 1, "TCL CE": 3, "Accesories C-Brand": 45} },
+  'M019': { n: "MEGASTORE SUMMARECON MAL SERPONG", c: {"Apple": 25, "Samsung": 45, "Oppo": 30, "Vivo": 16, "Xiaomi": 31, "Infinix": 6, "Honor": 15, "Realme": 9, "Tecno": 7, "Sharp": 4, "IQOO": 5, "Huawei": 38, "Motorola": 7, "Advan": 2, "Apple Macbook": 5, "Samsung CE": 1, "Xiaomi CE": 1, "Accesories C-Brand": 60} },
+  'M021': { n: "MEGASTORE RUKO CILEDUG", c: {"Apple": 22, "Samsung": 47, "Oppo": 26, "Vivo": 11, "Xiaomi": 35, "Infinix": 6, "Honor": 9, "Realme": 8, "Tecno": 5, "IQOO": 3, "Huawei": 31, "Motorola": 1, "Advan": 4, "Apple Macbook": 2, "Samsung CE": 3, "Xiaomi CE": 5, "Toshiba CE": 3, "LG CE": 2, "Polytron CE": 2, "Sharp CE": 1, "TCL CE": 5, "Changhong CE": 1, "Accesories C-Brand": 23} },
+  'M027': { n: "ERAFONE AND MORE CIPUTAT", c: {"Apple": 8, "Samsung": 23, "Oppo": 14, "Vivo": 8, "Xiaomi": 31, "Infinix": 4, "Honor": 7, "Realme": 5, "Tecno": 4, "Huawei": 10, "Samsung CE": 1, "Xiaomi CE": 7, "Toshiba CE": 2, "LG CE": 5, "Polytron CE": 1, "Sharp CE": 1, "TCL CE": 3, "Changhong CE": 1, "Accesories C-Brand": 20} },
+  'M048': { n: "MEGASTORE RUKO CIKUPA", c: {"Apple": 10, "Samsung": 25, "Oppo": 14, "Vivo": 8, "Xiaomi": 16, "Infinix": 4, "Honor": 3, "Realme": 5, "Tecno": 2, "Huawei": 3, "Samsung CE": 1, "Xiaomi CE": 5, "Polytron CE": 2, "TCL CE": 1, "Accesories C-Brand": 4} },
+  'M061': { n: "MEGASTORE RUKO JATIUWUNG", c: {"Apple": 8, "Samsung": 22, "Oppo": 18, "Vivo": 7, "Xiaomi": 31, "Infinix": 4, "Honor": 8, "Realme": 4, "IQOO": 2, "Huawei": 2, "Samsung CE": 1, "Xiaomi CE": 7, "Toshiba CE": 2, "Sharp CE": 1, "TCL CE": 3, "Changhong CE": 1, "Accesories C-Brand": 7} },
+  'M068': { n: "ERAFONE AND MORE KAMAL RAYA", c: {"Apple": 15, "Samsung": 23, "Oppo": 14, "Vivo": 11, "Xiaomi": 33, "Infinix": 10, "Honor": 12, "Realme": 7, "Tecno": 9, "IQOO": 2, "Huawei": 11, "Samsung CE": 1, "Xiaomi CE": 7, "Infinix CE": 1, "Toshiba CE": 3, "Polytron CE": 1, "TCL CE": 5, "Changhong CE": 1, "Accesories C-Brand": 12} },
+  'M091': { n: "MEGASTORE CENTRAL PARK 3.0", c: {"Apple": 27, "Samsung": 38, "Oppo": 35, "Vivo": 16, "Xiaomi": 32, "Infinix": 8, "Honor": 8, "Realme": 11, "Tecno": 5, "Sharp": 3, "IQOO": 3, "Huawei": 42, "Motorola": 5, "Advan": 2, "Apple Macbook": 7, "Xiaomi CE": 1, "Sony CE": 1, "Accesories C-Brand": 94} },
+  'M093': { n: "MEGASTORE RUKO CIPONDOH TANGERANG", c: {"Apple": 7, "Samsung": 20, "Oppo": 11, "Vivo": 6, "Xiaomi": 16, "Infinix": 6, "Honor": 12, "Realme": 7, "IQOO": 1, "Huawei": 3, "Xiaomi CE": 1, "Accesories C-Brand": 5} },
+  'M104': { n: "MEGASTORE RUKO REMPOA CIPUTAT", c: {"Apple": 4, "Samsung": 19, "Oppo": 8, "Vivo": 5, "Xiaomi": 17, "Infinix": 5, "Honor": 8, "Realme": 4, "Tecno": 3, "IQOO": 1, "Huawei": 4, "Motorola": 1, "Xiaomi CE": 5, "Toshiba CE": 1, "Accesories C-Brand": 3} },
+  'M163': { n: "ERAFONE AND MORE SERPONG", c: {"Apple": 8, "Samsung": 27, "Oppo": 9, "Vivo": 5, "Xiaomi": 37, "Apple Macbook": 2, "Samsung CE": 1, "Xiaomi CE": 6, "Toshiba CE": 3, "LG CE": 10, "Polytron CE": 4, "Sharp CE": 2, "TCL CE": 6, "Sony CE": 3, "Changhong CE": 1, "Accesories C-Brand": 25} },
+  'M167': { n: "ERAFONE AND MORE TELUK NAGA", c: {"Apple": 22, "Samsung": 17, "Oppo": 18, "Vivo": 9, "Xiaomi": 38, "Infinix": 7, "Honor": 10, "Realme": 6, "Tecno": 4, "IQOO": 2, "Huawei": 6, "Apple Macbook": 1, "Samsung CE": 1, "Xiaomi CE": 6, "Toshiba CE": 4, "LG CE": 2, "Polytron CE": 2, "Sharp CE": 1, "TCL CE": 5, "Changhong CE": 1, "Accesories C-Brand": 12} },
+  'M176': { n: "ENM KISAMAUN", c: {"Apple": 8, "Samsung": 23, "Oppo": 22, "Vivo": 9, "Xiaomi": 30, "Infinix": 4, "Honor": 9, "Realme": 4, "Tecno": 4, "IQOO": 2, "Huawei": 4, "Samsung CE": 1, "Xiaomi CE": 8, "Toshiba CE": 2, "Polytron CE": 1, "TCL CE": 2, "Changhong CE": 1, "Accesories C-Brand": 10} },
+  'M212': { n: "ERAFONE AND MORE RAWASARI", c: {"Apple": 18, "Samsung": 19, "Oppo": 35, "Vivo": 9, "Xiaomi": 31, "Infinix": 5, "Honor": 10, "Realme": 8, "Tecno": 4, "Huawei": 15, "Xiaomi CE": 8, "Toshiba CE": 3, "Polytron CE": 1, "TCL CE": 4, "Changhong CE": 1, "Accesories C-Brand": 9} },
+  'M219': { n: "ERAFONE AND MORE PURI INDAH MALL", c: {"Apple": 6, "Samsung": 41, "Oppo": 21, "Vivo": 8, "Xiaomi": 37, "Infinix": 6, "Honor": 10, "Realme": 4, "Tecno": 4, "IQOO": 3, "Huawei": 12, "Advan": 2, "Samsung CE": 1, "Xiaomi CE": 5, "Toshiba CE": 3, "TCL CE": 4, "Sony CE": 1, "Changhong CE": 1, "Accesories C-Brand": 43} },
+  'M222': { n: "ERAFONE AND MORE EASTVARA MALL", c: {"Apple": 14, "Samsung": 30, "Oppo": 12, "Vivo": 12, "Xiaomi": 22, "Infinix": 4, "Honor": 7, "Tecno": 5, "Huawei": 5, "Advan": 2, "Xiaomi CE": 9, "Toshiba CE": 4, "Polytron CE": 2, "TCL CE": 4, "Sony CE": 1, "Accesories C-Brand": 24} },
+  'Q022': { n: "XLC MAL PURI INDAH", c: {"Apple": 4, "Samsung": 18, "Oppo": 9, "Vivo": 8} }
+};
+
+// ── SEED PERIODE AGUSTUS 2026 (jalankan SATU KALI dari editor) ───────────────
+// Bikin baris Submit_Month = "2026-08" untuk 122 toko, diisi angka LDU hasil export SAP
+// "LDU All Region 5 Week 32 Senin 03 Aug 26.xlsx" (18.161 unit / 247 toko; yang dipakai
+// hanya 122 toko yang sudah ada di sheet).
+//
+// Yang TIDAK diisi: Status & Last Submit — sengaja dikosongkan supaya toko tetap tampil
+// "Belum Submit" di dashboard dan compliance Agustus tetap terukur. Saat toko submit
+// checklist, updateMasterSheet() akan menemukan baris Agustus ini dan mengisinya.
+//
+// Aman dijalankan berulang (idempotent):
+//   - toko yang barisnya belum ada       → baris baru di-append
+//   - toko yang barisnya ada & Status kosong → angka LDU-nya di-refresh
+//   - toko yang SUDAH submit Agustus     → dilewati, datanya tidak ditimpa
+function seedAgustus2026() {
+  var MONTH = '2026-08';
+
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) throw new Error('Sheet tidak ditemukan: ' + SHEET_NAME);
+
+  var lastCol = sheet.getLastColumn();
+  var lastRow = sheet.getLastRow();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var hIdx = {};   // nama kolom -> index 0-based
+  headers.forEach(function(h, i) { if (h) hIdx[h.toString().trim()] = i; });
+
+  ['Plant Code', 'Store Name', 'Submit_Month'].forEach(function(c) {
+    if (hIdx[c] === undefined) throw new Error('Kolom wajib tidak ada di sheet: ' + c);
+  });
+
+  function readMonth(v) {
+    if (!v) return '';
+    if (v instanceof Date) return Utilities.formatDate(v, 'Asia/Jakarta', 'yyyy-MM');
+    return v.toString().trim();
+  }
+
+  var all = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, lastCol).getValues() : [];
+
+  // Petakan baris existing: baris bulan target, dan baris manapun (buat ambil Store Name/Region)
+  var rowOfMonth = {};   // plantCode -> nomor baris sheet
+  var anyRow     = {};   // plantCode -> array isi baris
+  all.forEach(function(row, i) {
+    var pc = (row[hIdx['Plant Code']] || '').toString().trim().toUpperCase();
+    if (!pc) return;
+    if (!anyRow[pc]) anyRow[pc] = row;
+    if (readMonth(row[hIdx['Submit_Month']]) === MONTH) rowOfMonth[pc] = i + 2;
+  });
+
+  var appended = 0, refreshed = 0, skipped = 0;
+  var newRows = [];
+
+  Object.keys(AGU2026_SEED).forEach(function(pc) {
+    var seed   = AGU2026_SEED[pc];
+    var counts = seed.c || {};
+
+    // ── Baris Agustus sudah ada ──
+    if (rowOfMonth[pc]) {
+      var rowNum = rowOfMonth[pc];
+      var cur    = all[rowNum - 2];
+      var status = (hIdx['Status'] !== undefined ? cur[hIdx['Status']] : '').toString().trim();
+      if (status) { skipped++; return; }          // toko sudah submit — jangan ditimpa
+      BRAND_LDU_COLUMNS_GS.forEach(function(c) {
+        if (hIdx[c] !== undefined) cur[hIdx[c]] = counts[c] || 0;
+      });
+      cur[hIdx['Submit_Month']] = MONTH;
+      sheet.getRange(rowNum, 1, 1, lastCol).setValues([cur]);
+      refreshed++;
+      return;
+    }
+
+    // ── Baris baru ──
+    var arr = [];
+    for (var i = 0; i < lastCol; i++) arr.push('');
+    var src = anyRow[pc];
+    arr[hIdx['Plant Code']] = pc;
+    arr[hIdx['Store Name']] = src ? src[hIdx['Store Name']] : (seed.n || pc);
+    if (hIdx['Region'] !== undefined && src) arr[hIdx['Region']] = src[hIdx['Region']];
+    BRAND_LDU_COLUMNS_GS.forEach(function(c) {
+      if (hIdx[c] !== undefined) arr[hIdx[c]] = counts[c] || 0;
+    });
+    arr[hIdx['Submit_Month']] = MONTH;
+    newRows.push(arr);
+    appended++;
+  });
+
+  if (newRows.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, lastCol).setValues(newRows);
+  }
+
+  var msg = 'Seed ' + MONTH + ' selesai — ' + appended + ' baris baru, ' +
+            refreshed + ' baris di-refresh, ' + skipped + ' dilewati (sudah submit).';
+  Logger.log(msg);
+  return msg;
 }

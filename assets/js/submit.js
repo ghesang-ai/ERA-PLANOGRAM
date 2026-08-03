@@ -17,6 +17,9 @@ var _pendingStoreName       = '';
 function showPrevSubmitBanner(data, month) {
   var el = document.getElementById('prev-submit-banner');
   if (!el) return;
+  // Baris bulan berjalan bisa berupa BASELINE hasil seed export SAP (angka LDU sudah terisi
+  // tapi Status masih kosong) — itu bukan submit toko, jadi banner tidak boleh muncul.
+  if ((data['Status'] || '') !== 'Submitted') { el.style.display = 'none'; return; }
   // Cari brand mana saja yang sudah ada datanya (nilai > 0)
   var submittedBrands = [];
   CONFIG.BRAND_LDU_COLUMNS.forEach(function(brand) {
@@ -120,7 +123,11 @@ function verifyPlantCode() {
     fetch(sheetUrl.toString())
       .then(function(r) { return r.json(); })
       .then(function(json) {
-        if (json.status === 'success' && json.data && json.data.length > 0) {
+        // doGet() jatuh balik ke submission terakhir toko kalau bulan yang diminta belum ada
+        // barisnya, dan mengoreksi activeMonth di response. Tanpa cek ini, data bulan lalu
+        // ikut terbaca sebagai "sudah submit bulan ini".
+        if (json.status === 'success' && json.data && json.data.length > 0 &&
+            json.activeMonth === nowYM) {
           _prevMonthData = json.data[0];
           showPrevSubmitBanner(_prevMonthData, nowYM);
         }

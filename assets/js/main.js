@@ -483,8 +483,13 @@ var _activeQuickFilter = '';
 // quick-filter dan badge tidak lagi saling bertentangan (dulu quick-filter pakai
 // SUBMIT_WINDOW_START yang berbeda dari Submit_Month, jadi toko yang submit akhir Juni
 // bisa lolos hitung "sudah submit Juli" padahal Submit_Month-nya masih Juni).
+// Baris periode berjalan bisa sudah ada di sheet sebagai BASELINE (angka LDU dari export
+// SAP di-seed di awal bulan) dengan Status masih kosong — itu belum berarti tokonya submit.
+// Karena itu Submit_Month saja tidak cukup: Status harus 'Submitted' juga, sama seperti
+// syarat badge di renderTable(), supaya badge "❌ Belum Submit" tidak bertabrakan dengan
+// hitungan pill "Sudah Submit Bulan Ini".
 function submittedThisMonth(d) {
-  if (_activeMonth) return rowSubmitMonth(d) === _activeMonth;
+  if (_activeMonth) return d['Status'] === 'Submitted' && rowSubmitMonth(d) === _activeMonth;
   // Fallback kalau activeMonth belum ke-set (mis. sebelum fetch pertama selesai)
   var lastSubmit = d['Last Submit'];
   if (!lastSubmit || lastSubmit === '-') return false;
