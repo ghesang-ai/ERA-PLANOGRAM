@@ -116,7 +116,10 @@ function showFotoError(infoEl, input, msg) {
 }
 
 // Foto lama (dari galeri) tetap ditolak kalau EXIF-nya masih ada & sudah basi.
-var FOTO_MAX_AGE_MIN = 30;
+// 2 jam — batas lama (30 menit) terlalu ketat: Store Leader yang memotret dulu lalu
+// menyelesaikan checklist bisa gagal upload hanya karena telat beberapa menit.
+// Harus sama dengan FOTO_MAX_AGE_MIN di apps-script/Code.gs.
+var FOTO_MAX_AGE_MIN = 120;
 
 function formatFotoAge(ageMin) {
   if (ageMin >= 60) return Math.round(ageMin / 60) + ' jam';
@@ -201,7 +204,7 @@ async function onFotoSelect(brand, type, input) {
     if (ageMin > FOTO_MAX_AGE_MIN || ageMin < -5) {
       showFotoError(infoEl, input,
         '❌ Foto ini diambil ' + formatFotoAge(Math.abs(ageMin)) + ' ' + (ageMin < 0 ? 'ke depan (jam HP salah?)' : 'lalu') +
-        '. Foto harus baru (maks ' + FOTO_MAX_AGE_MIN + ' menit) — ambil foto langsung dari kamera sekarang.');
+        '. Foto harus baru (maks ' + formatFotoAge(FOTO_MAX_AGE_MIN) + ') — ambil foto langsung dari kamera sekarang.');
       return;
     }
   }

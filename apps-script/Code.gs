@@ -13,7 +13,10 @@ const SUBMIT_WINDOW_START = '2026-08-01';
 
 // Foto LDU/Wallbay harus diambil maks sekian menit sebelum di-upload —
 // dicek di sini juga (bukan cuma client) supaya tidak bisa dilewati via DevTools/API langsung.
-const FOTO_MAX_AGE_MIN = 30;
+// 2 jam — batas lama (30 menit) terlalu ketat: Store Leader yang memotret dulu lalu
+// menyelesaikan checklist bisa gagal upload hanya karena telat beberapa menit.
+// Harus sama dengan FOTO_MAX_AGE_MIN di assets/js/foto-upload.js.
+const FOTO_MAX_AGE_MIN = 120;
 
 // Jalankan fungsi ini SATU KALI di editor untuk grant izin Drive penuh
 function testDriveAccess() {
@@ -452,7 +455,10 @@ function uploadFotoToDrive(payload) {
   }
   var ageMin = (Date.now() - takenAtMs) / 60000;
   if (ageMin > FOTO_MAX_AGE_MIN || ageMin < -5) {
-    return { status: 'error', message: 'Foto harus baru diambil (maks ' + FOTO_MAX_AGE_MIN + ' menit sebelum upload). Ambil ulang foto dari kamera.' };
+    var batas = FOTO_MAX_AGE_MIN >= 60
+      ? (FOTO_MAX_AGE_MIN / 60) + ' jam'
+      : FOTO_MAX_AGE_MIN + ' menit';
+    return { status: 'error', message: 'Foto harus baru diambil (maks ' + batas + ' sebelum upload). Ambil ulang foto dari kamera.' };
   }
 
   var base64 = fileData.replace(/^data:image\/\w+;base64,/, '');
