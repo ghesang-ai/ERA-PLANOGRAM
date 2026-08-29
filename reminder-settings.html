@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reminder Settings — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    .set-header { background:#fff; border-bottom:1px solid var(--gray-100); padding:12px 20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+    .set-title  { font-size:16px; font-weight:700; color:var(--gray-800); }
+    .set-sub    { font-size:12px; color:var(--gray-400); }
+    .set-body   { max-width:920px; margin:22px auto; padding:0 16px 60px; }
+
+    .card { background:#fff; border:1px solid var(--gray-100); border-radius:12px; padding:18px 20px; margin-bottom:18px; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+    .card-h { font-size:14px; font-weight:700; color:var(--gray-800); margin-bottom:4px; display:flex; align-items:center; gap:8px; }
+    .card-d { font-size:12px; color:var(--gray-400); margin-bottom:14px; }
+    .badge-pill { margin-left:auto; font-size:11px; font-weight:700; padding:2px 10px; border-radius:20px; background:#f5f3ff; color:#6d28d9; }
+
+    label.fld { display:block; font-size:11px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:.4px; margin:10px 0 4px; }
+    input.txt, textarea.txt { width:100%; padding:9px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:13px; font-family:var(--font); outline:none; box-sizing:border-box; }
+    textarea.txt { min-height:96px; resize:vertical; line-height:1.5; }
+    input.txt:focus, textarea.txt:focus { border-color:#7c3aed; }
+    .row2 { display:flex; gap:12px; flex-wrap:wrap; }
+    .row2 > div { flex:1; min-width:160px; }
+
+    .btn-save  { margin-top:14px; padding:8px 16px; border-radius:8px; border:1px solid #7c3aed; background:#7c3aed; color:#fff; font-size:13px; font-weight:700; cursor:pointer; }
+    .btn-save:hover { background:#6d28d9; }
+    .btn-ghost { margin-top:14px; margin-left:8px; padding:8px 16px; border-radius:8px; border:1px solid var(--gray-200); background:#fff; font-size:13px; font-weight:600; cursor:pointer; }
+    .btn-save:disabled, .btn-ghost:disabled { opacity:.5; cursor:not-allowed; }
+
+    .hint { font-size:11px; color:var(--gray-400); margin-top:6px; line-height:1.5; }
+    .hint code { background:var(--gray-50); padding:1px 4px; border-radius:4px; color:#6d28d9; }
+    .msg-ok  { color:#15803d; font-size:12px; font-weight:600; margin-top:8px; }
+    .msg-bad { color:#b91c1c; font-size:12px; font-weight:600; margin-top:8px; }
+
+    .drop { border:2px dashed #c4b5fd; background:#faf5ff; border-radius:10px; padding:20px; text-align:center; font-size:13px; color:#6d28d9; cursor:pointer; }
+    .drop input { display:none; }
+
+    .prev-table { width:100%; border-collapse:collapse; margin-top:12px; font-size:12px; }
+    .prev-table th { text-align:left; padding:6px 8px; background:var(--gray-50); color:var(--gray-400); font-size:10.5px; text-transform:uppercase; }
+    .prev-table td { padding:6px 8px; border-bottom:1px solid var(--gray-50); }
+    .prev-wrap { max-height:260px; overflow:auto; border:1px solid var(--gray-100); border-radius:8px; margin-top:12px; }
+  </style>
+</head>
+<body>
+
+  <div class="set-header">
+    <a href="reminder.html" style="color:var(--blue);font-size:13px;text-decoration:none">← Auto Reminder</a>
+    <div>
+      <div class="set-title">⚙️ Reminder Settings</div>
+      <div class="set-sub">Konfigurasi Fonnte, template pesan, database Store Leader &amp; toko tutup</div>
+    </div>
+    <button class="btn-ghost" style="margin:0 0 0 auto" onclick="loadSettings()">🔄 Refresh</button>
+  </div>
+
+  <div class="set-body">
+
+    <!-- FONNTE -->
+    <div class="card">
+      <div class="card-h">📶 Config Fonnte <span class="badge-pill" id="token-status">—</span></div>
+      <div class="card-d">Token device Fonnte. Disimpan aman di Script Properties, tidak pernah ditampilkan penuh.</div>
+      <label class="fld">Fonnte Token</label>
+      <input type="password" class="txt" id="fonnte-token" placeholder="Tempel token device Fonnte di sini">
+      <div>
+        <button class="btn-save" id="btn-token" onclick="saveToken()">Simpan Token</button>
+        <button class="btn-ghost" onclick="document.getElementById('fonnte-token').value=''">Bersihkan</button>
+      </div>
+      <div id="token-msg"></div>
+    </div>
+
+    <!-- TEMPLATE -->
+    <div class="card">
+      <div class="card-h">✉️ Template Pesan Reminder</div>
+      <div class="card-d">Placeholder: <code>{nama_toko}</code> <code>{kode_toko}</code> <code>{store_leader}</code> <code>{city}</code> <code>{region}</code> <code>{campaign}</code> <code>{level}</code> <code>{periode}</code></div>
+      <label class="fld">Nama Campaign</label>
+      <input type="text" class="txt" id="campaign-name" placeholder="mis. Compliance LDU Agustus">
+      <label class="fld">Level 1 — Gentle (reminder ke-1..2)</label>
+      <textarea class="txt" id="tpl-l1"></textarea>
+      <label class="fld">Level 2 — Urgent (reminder ke-3..4)</label>
+      <textarea class="txt" id="tpl-l2"></textarea>
+      <label class="fld">Level 3 — Escalate (reminder ke-5+)</label>
+      <textarea class="txt" id="tpl-l3"></textarea>
+      <button class="btn-save" id="btn-tpl" onclick="saveTemplates()">Simpan Template</button>
+      <div id="tpl-msg"></div>
+    </div>
+
+    <!-- MASTER TOKO -->
+    <div class="card">
+      <div class="card-h">🗂️ Master Toko (Referensi Semua Toko)</div>
+      <div class="card-d">Opsional. Kalau diisi, daftar toko diambil dari spreadsheet eksternal ini. Kosongkan untuk memakai sheet <code>ERA-PLANOGRAM</code> bawaan.</div>
+      <label class="fld">Spreadsheet ID</label>
+      <input type="text" class="txt" id="master-id" placeholder="ID panjang di URL Google Sheet">
+      <div class="row2">
+        <div>
+          <label class="fld">Sheet Name</label>
+          <input type="text" class="txt" id="master-sheet" placeholder="mis. MASTER GHS">
+        </div>
+        <div>
+          <label class="fld">Header Row</label>
+          <input type="number" class="txt" id="master-header" placeholder="1" min="1">
+        </div>
+      </div>
+      <button class="btn-save" id="btn-master" onclick="saveMaster()">Simpan Master Toko</button>
+      <button class="btn-ghost" id="btn-master-test" onclick="testMaster()">Test Fetch</button>
+      <div id="master-msg"></div>
+    </div>
+
+    <!-- STORE LEADER -->
+    <div class="card">
+      <div class="card-h">👤 Database Store Leader <span class="badge-pill" id="sl-count">—</span></div>
+      <div class="card-d">Upload Excel berisi kolom <b>Plant Code</b>, <b>Nama Toko</b>, <b>Store Leader</b>, <b>No HP</b> (opsional City, Region). Upload ulang = ganti semua (rotasi bulanan).</div>
+      <label class="drop" id="sl-drop">
+        <input type="file" id="sl-file" accept=".xlsx,.xls" onchange="parseFile(this,'sl')">
+        📄 Klik untuk pilih file Excel Store Leader
+      </label>
+      <div id="sl-prev"></div>
+      <button class="btn-save" id="btn-sl" onclick="saveStoreLeaders()" disabled>Simpan ke Database</button>
+      <div id="sl-msg"></div>
+    </div>
+
+    <!-- CLOSED STORES -->
+    <div class="card">
+      <div class="card-h">🚫 Closed Stores <span class="badge-pill" id="cs-count">—</span></div>
+      <div class="card-d">Upload Excel daftar toko tutup (kolom <b>Plant Code</b>, opsional <b>Nama Toko</b>). Toko ini disembunyikan dari daftar Auto Reminder.</div>
+      <label class="drop" id="cs-drop">
+        <input type="file" id="cs-file" accept=".xlsx,.xls" onchange="parseFile(this,'cs')">
+        📄 Klik untuk pilih file Excel Closed Stores
+      </label>
+      <div id="cs-prev"></div>
+      <button class="btn-save" id="btn-cs" onclick="saveClosedStores()" disabled>Simpan ke Database</button>
+      <div id="cs-msg"></div>
+    </div>
+
+  </div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/reminder-settings.js"></script>
+</body>
+</html>

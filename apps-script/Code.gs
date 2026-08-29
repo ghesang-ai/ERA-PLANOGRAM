@@ -614,6 +614,13 @@ function doPost(e) {
     if (action === 'returDevice')   return jsonOut(returDevice(body));
     if (action === 'deleteDevice')  return jsonOut(deleteDevice(body));
 
+    // ── Auto Reminder (WhatsApp / Fonnte) ──
+    if (action === 'saveFonnteToken')      return jsonOut(saveFonnteToken(body));
+    if (action === 'saveReminderSettings') return jsonOut(saveReminderSettings(body));
+    if (action === 'saveStoreLeaders')     return jsonOut(saveStoreLeaders(body));
+    if (action === 'saveClosedStores')     return jsonOut(saveClosedStores(body));
+    if (action === 'sendReminder')         return jsonOut(sendReminder(body));
+
     // Default: submit checklist
     const ss    = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
@@ -660,6 +667,11 @@ function doGet(e) {
     if (params.action === 'getInventory') return jsonOut(getInventory(params));
     if (params.action === 'getLog')       return jsonOut(getLog(params));
     if (params.action === 'getIssues')    return jsonOut(getIssues(ss, params));
+
+    // ── Auto Reminder (WhatsApp / Fonnte) ──
+    if (params.action === 'getReminderData')     return jsonOut(getReminderData(params));
+    if (params.action === 'getReminderSettings') return jsonOut(getReminderSettings());
+    if (params.action === 'getReminderLog')      return jsonOut(getReminderLog(params));
 
     // Default: baca ERA-PLANOGRAM sheet
     const sheet   = ss.getSheetByName(SHEET_NAME);
@@ -1271,4 +1283,518 @@ function seedAgustus2026() {
             refreshed + ' baris di-refresh, ' + skipped + ' dilewati (sudah submit).';
   Logger.log(msg);
   return msg;
+}
+
+// ============================================================
+// AUTO REMINDER — WhatsApp via Fonnte
+// ============================================================
+// Kirim reminder ke Store Leader toko yang BELUM submit checklist LDU periode
+// berjalan. Level eskalasi ditentukan dari jumlah reminder yang sudah TERKIRIM
+// ke toko itu pada periode ini (kirim ke-1..2 = Lv.1 Gentle, ke-3..4 = Lv.2
+// Urgent, ke-5+ = Lv.3 Escalate).
+//
+// Sheet baru (dibuat otomatis di spreadsheet yang sama):
+//   STORE_LEADER     plant_code | store_name | store_leader | phone | city | region | updated_at
+//   CLOSED_STORE     plant_code | store_name | uploaded_at
+//   REMINDER_LOG     timestamp | period | plant_code | store_name | brand_toko | city | level | phone | message | fonnte_status | fonnte_detail
+//   REMINDER_CONFIG  key | value   (template_l1/2/3, campaign_name, master_ss_id, master_sheet_name, master_header_row)
+//
+// Token Fonnte TIDAK disimpan di sheet — disimpan di Script Properties (key FONNTE_TOKEN).
+// ------------------------------------------------------------
+
+const RMD_LEADER_SHEET = 'STORE_LEADER';
+const RMD_CLOSED_SHEET = 'CLOSED_STORE';
+const RMD_LOG_SHEET    = 'REMINDER_LOG';
+const RMD_CONFIG_SHEET = 'REMINDER_CONFIG';
+
+const RMD_LEADER_HEADERS = ['plant_code','store_name','store_leader','phone','city','region','updated_at'];
+const RMD_CLOSED_HEADERS = ['plant_code','store_name','uploaded_at'];
+const RMD_LOG_HEADERS    = ['timestamp','period','plant_code','store_name','brand_toko','city','level','phone','message','fonnte_status','fonnte_detail'];
+
+const FONNTE_ENDPOINT = 'https://api.fonnte.com/send';
+
+function rmdDefaultConfig() {
+  return {
+    template_l1:
+      'Halo {store_leader} — {nama_toko} ({kode_toko})\n\n' +
+      'Reminder dari Tim VMD: checklist LDU/Planogram periode {periode} belum di-submit. ' +
+      'Mohon dilengkapi lewat aplikasi ERA-PLANOGRAM ya. Terima kasih 🙏',
+    template_l2:
+      '*URGENT — {nama_toko} ({kode_toko})*\n\n' +
+      'Store Anda *BELUM* submit checklist LDU/Planogram periode {periode}. ' +
+      'Mohon segera submit hari ini via ERA-PLANOGRAM. Abaikan pesan ini jika sudah submit.',
+    template_l3:
+      '*ESCALATION NOTICE*\n' +
+      'Store *{nama_toko}* ({kode_toko}) — {city}\n\n' +
+      'Checklist LDU/Planogram periode {periode} masih BELUM submit setelah beberapa kali reminder. ' +
+      'Isu ini dieskalasi ke Area Manager. Mohon submit segera.',
+    campaign_name: 'Compliance LDU',
+    master_ss_id: '',
+    master_sheet_name: '',
+    master_header_row: ''
+  };
+}
+
+// ── Helpers umum ──
+function rmdToken()      { return (PropertiesService.getScriptProperties().getProperty('FONNTE_TOKEN') || '').trim(); }
+function rmdHasToken()   { return rmdToken().length > 0; }
+function rmdTokenTail()  { var t = rmdToken(); return t ? t.slice(-4) : ''; }
+function rmdPeriod()     { return Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM'); }
+function rmdNow()        { return Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm'); }
+
+function rmdLevelFromCount(n) {
+  n = parseInt(n, 10) || 0;
+  return n < 2 ? 1 : (n < 4 ? 2 : 3);
+}
+
+function rmdLevelLabel(level) {
+  return level === 1 ? 'Level 1 (Gentle)' : level === 2 ? 'Level 2 (Urgent)' : 'Level 3 (Escalate)';
+}
+
+// Normalisasi nomor HP Indonesia → format 62xxxxxxxxxx (dipakai Fonnte)
+function rmdNormalizePhone(raw) {
+  var s = (raw || '').toString().replace(/[^\d+]/g, '').replace(/^\+/, '');
+  if (!s) return '';
+  if (s.indexOf('62') === 0) { /* sudah benar */ }
+  else if (s.indexOf('0') === 0) s = '62' + s.slice(1);
+  else if (s.indexOf('8') === 0) s = '62' + s;
+  else return '';
+  if (s.length < 10 || s.length > 15) return '';
+  return s;
+}
+
+function rmdRenderTemplate(tpl, ctx) {
+  return (tpl || '').toString().replace(/\{(\w+)\}/g, function(m, k) {
+    return (ctx[k] !== undefined && ctx[k] !== null && ctx[k] !== '') ? ctx[k].toString() : m;
+  });
+}
+
+// Port dari CONFIG.detectBrandToko() di assets/js/config.js
+function detectBrandTokoGS(storeName) {
+  var n = (storeName || '').toString().toUpperCase();
+  if (n.indexOf('ERAFONE') >= 0) return 'Erafone';
+  if (n.indexOf('IBOX') >= 0 || n.indexOf('I-BOX') >= 0) return 'iBox';
+  if (n.indexOf('SAMSUNG') >= 0 || n.indexOf('SES') === 0 || n.indexOf('SPS') === 0) return 'Samsung Store';
+  if (n.indexOf('XIAOMI') >= 0) return 'Xiaomi Store';
+  if (n.indexOf('HUAWEI') >= 0) return 'Huawei Store';
+  if (n.indexOf('HONOR') >= 0) return 'Honor Store';
+  if (n.indexOf('MEGASTORE') >= 0) return 'Megastore';
+  return 'Lainnya';
+}
+
+// Baca sheet key/value REMINDER_CONFIG → object (diisi default utk key yang kosong)
+function rmdGetConfig(ss) {
+  var sheet = getOrCreateSheetWithHeaders(ss, RMD_CONFIG_SHEET, ['key', 'value']);
+  var cfg = rmdDefaultConfig();
+  var last = sheet.getLastRow();
+  if (last > 1) {
+    var vals = sheet.getRange(2, 1, last - 1, 2).getValues();
+    vals.forEach(function(r) {
+      var k = (r[0] || '').toString().trim();
+      if (k) cfg[k] = (r[1] !== null && r[1] !== undefined) ? r[1].toString() : '';
+    });
+  }
+  return cfg;
+}
+
+function rmdUpsertConfig(ss, pairs) {
+  var sheet = getOrCreateSheetWithHeaders(ss, RMD_CONFIG_SHEET, ['key', 'value']);
+  var last = sheet.getLastRow();
+  var rowOf = {};
+  if (last > 1) {
+    var keys = sheet.getRange(2, 1, last - 1, 1).getValues();
+    keys.forEach(function(r, i) { var k = (r[0] || '').toString().trim(); if (k) rowOf[k] = i + 2; });
+  }
+  Object.keys(pairs).forEach(function(k) {
+    var v = pairs[k] !== undefined && pairs[k] !== null ? pairs[k].toString() : '';
+    if (rowOf[k]) {
+      sheet.getRange(rowOf[k], 2).setValue(v);
+    } else {
+      sheet.appendRow([k, v]);
+      rowOf[k] = sheet.getLastRow();
+    }
+  });
+}
+
+// Baca sheet biasa (header baris 1) → array of objects
+function rmdReadObjects(ss, name, headers) {
+  var sheet = getOrCreateSheetWithHeaders(ss, name, headers);
+  var last = sheet.getLastRow();
+  var width = sheet.getLastColumn();
+  if (last < 2) return [];
+  var head = sheet.getRange(1, 1, 1, width).getValues()[0].map(function(h) { return h.toString().trim(); });
+  var rows = sheet.getRange(2, 1, last - 1, width).getValues();
+  return rows.filter(function(r) { return r.join('') !== ''; }).map(function(r) {
+    var o = {};
+    head.forEach(function(h, i) { o[h] = r[i]; });
+    return o;
+  });
+}
+
+function rmdLeaderMap(ss) {
+  var m = {};
+  rmdReadObjects(ss, RMD_LEADER_SHEET, RMD_LEADER_HEADERS).forEach(function(o) {
+    var pc = (o.plant_code || '').toString().toUpperCase().trim();
+    if (!pc) return;
+    m[pc] = {
+      storeName:   (o.store_name || '').toString().trim(),
+      storeLeader: (o.store_leader || '').toString().trim(),
+      phone:       (o.phone || '').toString().trim(),
+      city:        (o.city || '').toString().trim(),
+      region:      (o.region || '').toString().trim()
+    };
+  });
+  return m;
+}
+
+function rmdClosedSet(ss) {
+  var s = {};
+  rmdReadObjects(ss, RMD_CLOSED_SHEET, RMD_CLOSED_HEADERS).forEach(function(o) {
+    var pc = (o.plant_code || '').toString().toUpperCase().trim();
+    if (pc) s[pc] = true;
+  });
+  return s;
+}
+
+// plant_code → jumlah reminder 'sent' pada periode tsb
+function rmdSentCounts(ss, period) {
+  var sheet = getOrCreateSheetWithHeaders(ss, RMD_LOG_SHEET, RMD_LOG_HEADERS);
+  var last = sheet.getLastRow();
+  var m = {};
+  if (last < 2) return m;
+  var vals = sheet.getRange(2, 1, last - 1, RMD_LOG_HEADERS.length).getValues();
+  vals.forEach(function(r) {
+    if ((r[1] || '').toString().trim() !== period) return;         // period
+    if ((r[9] || '').toString().trim().toLowerCase() !== 'sent') return; // fonnte_status
+    var pc = (r[2] || '').toString().toUpperCase().trim();
+    if (pc) m[pc] = (m[pc] || 0) + 1;
+  });
+  return m;
+}
+
+// Ambil {activeMonth, submitted:{pc:true}, rows:[...]} dari doGet default (pakai ulang
+// semua penanganan edge-case periode aktif yang sudah teruji di doGet).
+function rmdSubmittedSet() {
+  var out = doGet({ parameter: {} });
+  var json = JSON.parse(out.getContent());
+  var am = json.activeMonth || rmdPeriod();
+  var submitted = {};
+  (json.data || []).forEach(function(r) {
+    var sm = r['Submit_Month'];
+    sm = (sm instanceof Date)
+      ? Utilities.formatDate(sm, 'Asia/Jakarta', 'yyyy-MM')
+      : (sm || '').toString().trim();
+    if ((r['Status'] || '').toString().trim() === 'Submitted' && sm === am) {
+      submitted[(r['Plant Code'] || '').toString().toUpperCase().trim()] = true;
+    }
+  });
+  return { activeMonth: am, submitted: submitted, rows: json.data || [] };
+}
+
+// Daftar SEMUA toko (universe). Pakai Master Toko eksternal bila dikonfigurasi,
+// selain itu pakai baris master lokal dari doGet.
+function rmdStoreUniverse(ss, cfg, localRows) {
+  var ssId = (cfg.master_ss_id || '').toString().trim();
+  if (ssId) {
+    var xss = SpreadsheetApp.openById(ssId);
+    var name = (cfg.master_sheet_name || '').toString().trim();
+    var sh = name ? xss.getSheetByName(name) : xss.getSheets()[0];
+    if (!sh) throw new Error('Sheet "' + name + '" tidak ada di Master Toko');
+    var hr = parseInt(cfg.master_header_row || '1', 10) || 1;
+    var last = sh.getLastRow(), width = sh.getLastColumn();
+    if (last <= hr) return [];
+    var head = sh.getRange(hr, 1, 1, width).getValues()[0].map(function(h) { return h.toString().trim().toLowerCase(); });
+    var rows = sh.getRange(hr + 1, 1, last - hr, width).getValues();
+    var idx = function(cands) { for (var i = 0; i < head.length; i++) if (cands.indexOf(head[i]) >= 0) return i; return -1; };
+    var iPc = idx(['plant code', 'plant_code', 'plantcode', 'kode toko', 'kode_toko', 'kode']);
+    var iNm = idx(['store name', 'nama toko', 'store_name', 'nama_toko', 'nama']);
+    var iCt = idx(['city', 'kota']);
+    var iRg = idx(['region', 'regional', 'regional area']);
+    if (iPc < 0) throw new Error('Kolom "Plant Code" tidak ditemukan di Master Toko (header row ' + hr + ')');
+    var seen = {}, arr = [];
+    rows.forEach(function(r) {
+      var pc = (r[iPc] || '').toString().toUpperCase().trim();
+      if (!pc || seen[pc]) return;
+      seen[pc] = true;
+      arr.push({
+        plantCode: pc,
+        storeName: iNm >= 0 ? (r[iNm] || pc).toString().trim() : pc,
+        city:      iCt >= 0 ? (r[iCt] || '').toString().trim() : '',
+        region:    iRg >= 0 ? (r[iRg] || '').toString().trim() : ''
+      });
+    });
+    return arr;
+  }
+  // fallback lokal
+  var out = [], seen2 = {};
+  (localRows || []).forEach(function(r) {
+    var pc = (r['Plant Code'] || '').toString().toUpperCase().trim();
+    if (!pc || seen2[pc]) return;
+    seen2[pc] = true;
+    out.push({
+      plantCode: pc,
+      storeName: (r['Store Name'] || pc).toString().trim(),
+      city:      (r['City'] || '').toString().trim(),
+      region:    (r['Region'] || '').toString().trim()
+    });
+  });
+  return out;
+}
+
+// ── GET: data untuk halaman Auto Reminder ──
+function getReminderData(params) {
+  var ss  = SpreadsheetApp.getActiveSpreadsheet();
+  var cfg = rmdGetConfig(ss);
+  var sub = rmdSubmittedSet();
+  var universe = rmdStoreUniverse(ss, cfg, sub.rows);
+  var closed   = rmdClosedSet(ss);
+  var leaders  = rmdLeaderMap(ss);
+  var counts   = rmdSentCounts(ss, sub.activeMonth);
+
+  var fCity  = (params.city  || '').toString().trim().toLowerCase();
+  var fBrand = (params.brand || '').toString().trim().toLowerCase();
+
+  var data = [];
+  universe.forEach(function(s) {
+    var pc = s.plantCode;
+    if (sub.submitted[pc]) return;   // sudah submit periode ini
+    if (closed[pc]) return;          // toko tutup
+
+    var ld = leaders[pc] || {};
+    var storeName = ld.storeName || s.storeName || pc;
+    var city = ld.city || s.city || '';
+    var brandToko = detectBrandTokoGS(storeName);
+    if (fCity  && city.toLowerCase() !== fCity)   return;
+    if (fBrand && brandToko.toLowerCase() !== fBrand) return;
+
+    var phone = rmdNormalizePhone(ld.phone || '');
+    var cnt = counts[pc] || 0;
+    data.push({
+      plantCode: pc,
+      storeName: storeName,
+      brandToko: brandToko,
+      city: city,
+      region: ld.region || s.region || '',
+      storeLeader: ld.storeLeader || '',
+      phone: phone,
+      phoneOk: !!phone,
+      reminderCount: cnt,
+      level: rmdLevelFromCount(cnt)
+    });
+  });
+
+  data.sort(function(a, b) {
+    return (b.level - a.level) || (a.plantCode < b.plantCode ? -1 : 1);
+  });
+
+  return {
+    status: 'success',
+    activeMonth: sub.activeMonth,
+    campaignName: cfg.campaign_name,
+    hasToken: rmdHasToken(),
+    templates: { l1: cfg.template_l1, l2: cfg.template_l2, l3: cfg.template_l3 },
+    count: data.length,
+    data: data
+  };
+}
+
+// ── GET: isi halaman Settings ──
+function getReminderSettings() {
+  var ss  = SpreadsheetApp.getActiveSpreadsheet();
+  var cfg = rmdGetConfig(ss);
+  var leaders = rmdReadObjects(ss, RMD_LEADER_SHEET, RMD_LEADER_HEADERS);
+  var closed  = rmdReadObjects(ss, RMD_CLOSED_SHEET, RMD_CLOSED_HEADERS);
+  return {
+    status: 'success',
+    templates: { l1: cfg.template_l1, l2: cfg.template_l2, l3: cfg.template_l3 },
+    campaignName: cfg.campaign_name,
+    master: { ssId: cfg.master_ss_id, sheetName: cfg.master_sheet_name, headerRow: cfg.master_header_row },
+    hasToken: rmdHasToken(),
+    tokenTail: rmdTokenTail(),
+    storeLeaderCount: leaders.length,
+    storeLeaderPreview: leaders.slice(0, 50),
+    closedCount: closed.length,
+    closedList: closed.slice(0, 300)
+  };
+}
+
+// ── GET: activity log ──
+function getReminderLog(params) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getOrCreateSheetWithHeaders(ss, RMD_LOG_SHEET, RMD_LOG_HEADERS);
+  var last = sheet.getLastRow();
+  var limit = parseInt(params.limit || '100', 10) || 100;
+  if (last < 2) return { status: 'success', count: 0, data: [] };
+  var vals = sheet.getRange(2, 1, last - 1, RMD_LOG_HEADERS.length).getValues();
+  var out = [];
+  for (var i = vals.length - 1; i >= 0 && out.length < limit; i--) {
+    var r = vals[i];
+    if (r.join('') === '') continue;
+    var o = {};
+    RMD_LOG_HEADERS.forEach(function(h, idx) { o[h] = r[idx]; });
+    out.push(o);
+  }
+  return { status: 'success', count: out.length, data: out };
+}
+
+// ── POST: simpan token Fonnte (Script Properties) ──
+function saveFonnteToken(body) {
+  var token = (body.token || '').toString().trim();
+  var props = PropertiesService.getScriptProperties();
+  if (token) props.setProperty('FONNTE_TOKEN', token);
+  else props.deleteProperty('FONNTE_TOKEN');
+  return { status: 'success', hasToken: rmdHasToken(), tokenTail: rmdTokenTail() };
+}
+
+// ── POST: simpan template + campaign + master toko ──
+function saveReminderSettings(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var t = body.templates || {};
+  var m = body.master || {};
+  var pairs = {};
+  if (t.l1 !== undefined) pairs.template_l1 = t.l1;
+  if (t.l2 !== undefined) pairs.template_l2 = t.l2;
+  if (t.l3 !== undefined) pairs.template_l3 = t.l3;
+  if (body.campaignName !== undefined) pairs.campaign_name = body.campaignName;
+  if (m.ssId       !== undefined) pairs.master_ss_id      = (m.ssId || '').toString().trim();
+  if (m.sheetName  !== undefined) pairs.master_sheet_name = (m.sheetName || '').toString().trim();
+  if (m.headerRow  !== undefined) pairs.master_header_row = (m.headerRow || '').toString().trim();
+  rmdUpsertConfig(ss, pairs);
+  return { status: 'success', saved: Object.keys(pairs).length };
+}
+
+// ── POST: upload database Store Leader (replace semua) ──
+function saveStoreLeaders(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getOrCreateSheetWithHeaders(ss, RMD_LEADER_SHEET, RMD_LEADER_HEADERS);
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, RMD_LEADER_HEADERS.length).clearContent();
+  }
+  var now = rmdNow();
+  var seen = {}, out = [];
+  (body.rows || []).forEach(function(r) {
+    var pc = (r.plantCode || '').toString().toUpperCase().trim();
+    if (!pc || seen[pc]) return;
+    seen[pc] = true;
+    out.push([
+      pc,
+      (r.storeName || '').toString().trim(),
+      (r.storeLeader || '').toString().trim(),
+      (r.phone || '').toString().trim(),
+      (r.city || '').toString().trim(),
+      (r.region || '').toString().trim(),
+      now
+    ]);
+  });
+  if (out.length) sheet.getRange(2, 1, out.length, RMD_LEADER_HEADERS.length).setValues(out);
+  return { status: 'success', count: out.length };
+}
+
+// ── POST: upload Closed Stores (replace semua) ──
+function saveClosedStores(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = getOrCreateSheetWithHeaders(ss, RMD_CLOSED_SHEET, RMD_CLOSED_HEADERS);
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, RMD_CLOSED_HEADERS.length).clearContent();
+  }
+  var now = rmdNow();
+  var seen = {}, out = [];
+  (body.rows || []).forEach(function(r) {
+    var pc = (r.plantCode || '').toString().toUpperCase().trim();
+    if (!pc || seen[pc]) return;
+    seen[pc] = true;
+    out.push([pc, (r.storeName || '').toString().trim(), now]);
+  });
+  if (out.length) sheet.getRange(2, 1, out.length, RMD_CLOSED_HEADERS.length).setValues(out);
+  return { status: 'success', count: out.length };
+}
+
+// ── POST: kirim reminder WhatsApp lewat Fonnte ──
+function sendReminder(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var token = rmdToken();
+  if (!token) return { status: 'error', message: 'Token Fonnte belum diset. Buka Settings dulu.' };
+
+  var cfg = rmdGetConfig(ss);
+  var sub = rmdSubmittedSet();
+  var universe = rmdStoreUniverse(ss, cfg, sub.rows);
+  var uMap = {};
+  universe.forEach(function(s) { uMap[s.plantCode] = s; });
+  var leaders = rmdLeaderMap(ss);
+  var closed  = rmdClosedSet(ss);
+  var counts  = rmdSentCounts(ss, sub.activeMonth);
+  var logSheet = getOrCreateSheetWithHeaders(ss, RMD_LOG_SHEET, RMD_LOG_HEADERS);
+
+  var pcs = (body.plantCodes || [])
+    .map(function(x) { return (x || '').toString().toUpperCase().trim(); })
+    .filter(function(x, i, a) { return x && a.indexOf(x) === i; });
+
+  var results = [];
+  pcs.forEach(function(pc) {
+    var s = uMap[pc];
+    if (!s)                { results.push({ plantCode: pc, ok: false, detail: 'Toko tidak ada di daftar' }); return; }
+    if (sub.submitted[pc]) { results.push({ plantCode: pc, ok: false, detail: 'Sudah submit periode ini' }); return; }
+    if (closed[pc])        { results.push({ plantCode: pc, ok: false, detail: 'Toko tutup' }); return; }
+
+    var ld = leaders[pc] || {};
+    var storeName = ld.storeName || s.storeName || pc;
+    var phone = rmdNormalizePhone(ld.phone || '');
+    if (!phone) { results.push({ plantCode: pc, storeName: storeName, ok: false, detail: 'Nomor HP tidak ada / invalid' }); return; }
+
+    var cnt = counts[pc] || 0;
+    var level = rmdLevelFromCount(cnt);
+    var tpl = level === 1 ? cfg.template_l1 : level === 2 ? cfg.template_l2 : cfg.template_l3;
+    var city = ld.city || s.city || '';
+    var brandToko = detectBrandTokoGS(storeName);
+    var msg = rmdRenderTemplate(tpl, {
+      nama_toko: storeName,
+      kode_toko: pc,
+      store_leader: ld.storeLeader || '',
+      city: city,
+      region: ld.region || s.region || '',
+      campaign: cfg.campaign_name || '',
+      level: rmdLevelLabel(level),
+      periode: sub.activeMonth
+    });
+
+    var ok = false, detail = '';
+    try {
+      var resp = UrlFetchApp.fetch(FONNTE_ENDPOINT, {
+        method: 'post',
+        muteHttpExceptions: true,
+        headers: { 'Authorization': token },
+        payload: { target: phone, message: msg, countryCode: '62' }
+      });
+      var code = resp.getResponseCode();
+      var txt  = resp.getContentText();
+      var pj = {};
+      try { pj = JSON.parse(txt); } catch (e) {}
+      ok = (code === 200) && (pj.status === true || pj.status === 'true' || (pj.status === undefined));
+      detail = (pj.reason || pj.detail || (pj.id ? 'id ' + pj.id : '') || txt || ('HTTP ' + code)).toString().slice(0, 300);
+    } catch (err) {
+      detail = 'Fetch error: ' + err.message;
+    }
+
+    if (ok) counts[pc] = cnt + 1;
+    logSheet.appendRow([
+      rmdNow(), sub.activeMonth, pc, storeName, brandToko, city,
+      rmdLevelLabel(level), phone, msg, ok ? 'sent' : 'failed', detail
+    ]);
+    results.push({ plantCode: pc, storeName: storeName, level: level, phone: phone, ok: ok, detail: detail });
+  });
+
+  var okN = results.filter(function(r) { return r.ok; }).length;
+  return { status: 'success', sent: okN, failed: results.length - okN, results: results };
+}
+
+// ── Test helpers (jalankan dari editor) ──
+function testGetReminderData() {
+  Logger.log(JSON.stringify(getReminderData({}), null, 2).substring(0, 4000));
+}
+function testGetReminderSettings() {
+  Logger.log(JSON.stringify(getReminderSettings(), null, 2).substring(0, 4000));
+}
+function testSendReminder() {
+  // Ganti 'E005' dengan plant code toko yang BELUM submit & punya nomor HP di STORE_LEADER
+  Logger.log(JSON.stringify(sendReminder({ plantCodes: ['E005'] }), null, 2));
 }
