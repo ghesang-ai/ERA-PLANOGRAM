@@ -6,6 +6,8 @@ var _templates = { l1: '', l2: '', l3: '' };
 var _campaign  = '';
 var _period    = '';
 var _hasToken  = false;
+var _pendingCount = 0;
+var _submittedCount = 0;
 var _selected  = {};          // plantCode -> true
 var _previewLvl = 1;
 var _sending   = false;
@@ -53,6 +55,8 @@ async function loadReminderData() {
     _campaign  = json.campaignName || '';
     _period    = json.activeMonth || '';
     _hasToken  = !!json.hasToken;
+    _pendingCount   = json.pendingCount != null ? json.pendingCount : _rows.filter(function (r) { return !r.submitted; }).length;
+    _submittedCount = json.submittedCount != null ? json.submittedCount : _rows.filter(function (r) { return r.submitted; }).length;
 
     document.getElementById('rmd-period').textContent   = _period || '—';
     document.getElementById('rmd-campaign').textContent = _campaign || '—';
@@ -84,10 +88,13 @@ function populateFilters() {
 
 function currentFiltered() {
   var q = (document.getElementById('rmd-search').value || '').toLowerCase();
+  var fs = document.getElementById('rmd-filter-submit').value;
   var fc = document.getElementById('rmd-filter-city').value;
   var fb = document.getElementById('rmd-filter-brand').value;
   var fl = document.getElementById('rmd-filter-level').value;
   return _rows.filter(function (r) {
+    if (fs === 'belum' && r.submitted) return false;
+    if (fs === 'sudah' && !r.submitted) return false;
     if (fc && r.city !== fc) return false;
     if (fb && r.brandToko !== fb) return false;
     if (fl && String(r.level) !== fl) return false;
@@ -101,32 +108,40 @@ function currentFiltered() {
 
 function renderRows() {
   var list = currentFiltered();
+  var nBelum = list.filter(function (r) { return !r.submitted; }).length;
+  var nSudah = list.length - nBelum;
   document.getElementById('rmd-count').textContent =
-    list.length + ' toko belum submit' + (_rows.length !== list.length ? ' (dari ' + _rows.length + ')' : '');
+    '❌ ' + nBelum + ' belum submit · ✅ ' + nSudah + ' sudah submit' +
+    (list.length !== _rows.length ? '  (total ' + _rows.length + ')' : '');
 
   var tbody = document.getElementById('rmd-tbody');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-icon">✅</div>Tidak ada toko yang cocok filter.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-icon">✅</div>Tidak ada toko yang cocok filter.</td></tr>';
     return;
   }
 
   tbody.innerHTML = list.map(function (r) {
     var lvlCls = 'lvl-' + r.level;
     var lvlTxt = r.level === 1 ? 'Lv.1 Gentle' : r.level === 2 ? 'Lv.2 Urgent' : 'Lv.3 Escalate';
+    var stBadge = r.submitted
+      ? '<span class="st-badge st-sudah">Sudah Submit</span>'
+      : '<span class="st-badge st-belum">Belum Submit</span>';
     var phoneCell = r.phoneOk
       ? '<span class="phone-ok">' + escHtml(fmtPhone(r.phone)) + '</span>'
       : '<span class="phone-missing">Tidak di DB</span>';
+    var canSend = r.phoneOk && !r.submitted;
     var checked = _selected[r.plantCode] ? ' checked' : '';
-    var cb = r.phoneOk
+    var cb = canSend
       ? '<input type="checkbox" data-pc="' + escHtml(r.plantCode) + '" onchange="toggleOne(this)"' + checked + '>'
-      : '<input type="checkbox" disabled title="Nomor HP tidak ada">';
+      : '<input type="checkbox" disabled title="' + (r.submitted ? 'Sudah submit' : 'Nomor HP tidak ada') + '">';
     var sendBtn = '<button class="rmd-sendone" onclick="sendOne(\'' + escHtml(r.plantCode) + '\')"' +
-      (r.phoneOk ? '' : ' disabled') + '>Kirim</button>';
-    return '<tr>' +
+      (canSend ? '' : ' disabled') + '>Kirim</button>';
+    return '<tr class="' + (r.submitted ? 'is-submitted' : '') + '">' +
       '<td>' + cb + '</td>' +
       '<td><span class="pc">' + escHtml(r.plantCode) + '</span></td>' +
       '<td>' + escHtml(r.storeName) + '<div class="pc">' + escHtml(r.brandToko || '') + '</div></td>' +
       '<td>' + escHtml(r.city || '—') + '</td>' +
+      '<td>' + stBadge + '</td>' +
       '<td>' + escHtml(r.storeLeader || '—') + '</td>' +
       '<td>' + phoneCell + '</td>' +
       '<td><span class="lvl-badge ' + lvlCls + '">' + lvlTxt + '</span></td>' +
@@ -143,7 +158,7 @@ function toggleOne(cb) {
 
 function toggleAll(checked) {
   currentFiltered().forEach(function (r) {
-    if (!r.phoneOk) return;
+    if (!r.phoneOk || r.submitted) return;
     if (checked) _selected[r.plantCode] = true; else delete _selected[r.plantCode];
   });
   renderRows();
@@ -166,7 +181,8 @@ function renderTpl(tpl, ctx) {
 
 function renderPreview() {
   var tpl = _previewLvl === 1 ? _templates.l1 : _previewLvl === 2 ? _templates.l2 : _templates.l3;
-  var sample = currentFiltered()[0] || _rows[0] || {
+  var pending = _rows.filter(function (r) { return !r.submitted; });
+  var sample = currentFiltered()[0] || pending[0] || _rows[0] || {
     storeName: 'ERAFONE CONTOH', plantCode: 'E000', storeLeader: 'Budi', city: 'JAKARTA', region: 'Region 5'
   };
   var msg = renderTpl(tpl, {
@@ -190,8 +206,10 @@ function sendSelected() {
 }
 
 function sendAllFiltered() {
-  var pcs = currentFiltered().filter(function (r) { return r.phoneOk; }).map(function (r) { return r.plantCode; });
-  if (!pcs.length) { alert('Tidak ada toko dengan nomor HP pada filter ini.'); return; }
+  var pcs = currentFiltered()
+    .filter(function (r) { return r.phoneOk && !r.submitted; })
+    .map(function (r) { return r.plantCode; });
+  if (!pcs.length) { alert('Tidak ada toko "Belum Submit" dengan nomor HP pada filter ini.'); return; }
   confirmAndSend(pcs, 'Scan & Kirim Semua');
 }
 

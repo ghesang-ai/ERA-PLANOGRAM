@@ -48,6 +48,12 @@
     .phone-missing { color:#dc2626; font-size:12px; font-weight:600; }
     .phone-ok { color:var(--gray-600); font-size:12.5px; }
 
+    .st-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+    .st-belum { background:#fee2e2; color:#dc2626; }
+    .st-sudah { background:#dcfce7; color:#15803d; }
+    .rmd-table tr.is-submitted td { background:#fafafa; color:var(--gray-400); }
+    .rmd-table tr.is-submitted:hover td { background:#f4f4f5; }
+
     .rmd-sendone { padding:4px 10px; border-radius:7px; border:1px solid #7c3aed; background:#f5f3ff; color:#6d28d9; font-size:12px; font-weight:700; cursor:pointer; }
     .rmd-sendone:disabled { opacity:.4; cursor:not-allowed; border-color:var(--gray-200); background:var(--gray-50); color:var(--gray-400); }
 
@@ -74,7 +80,7 @@
     <a href="index.html" style="color:var(--blue);font-size:13px;text-decoration:none">← Dashboard</a>
     <div>
       <div class="rmd-title">🤖 Auto Reminder — WhatsApp (Fonnte)</div>
-      <div class="rmd-sub">Toko belum submit checklist LDU · <span id="rmd-period">—</span> · kampanye <span id="rmd-campaign">—</span></div>
+      <div class="rmd-sub">Status submit checklist LDU · periode <span id="rmd-period">—</span> · kampanye <span id="rmd-campaign">—</span></div>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       <button class="rmd-btn rmd-btn--primary" id="btn-scan" onclick="sendAllFiltered()">📣 Scan &amp; Kirim Semua</button>
@@ -101,6 +107,11 @@
 
     <div class="rmd-toolbar">
       <input type="text" class="rmd-search" id="rmd-search" placeholder="🔍 Cari toko / plant code / store leader..." oninput="renderRows()">
+      <select id="rmd-filter-submit" onchange="renderRows()">
+        <option value="belum">❌ Belum Submit</option>
+        <option value="sudah">✅ Sudah Submit</option>
+        <option value="">Semua Toko</option>
+      </select>
       <select id="rmd-filter-city" onchange="renderRows()"><option value="">Semua City</option></select>
       <select id="rmd-filter-brand" onchange="renderRows()"><option value="">Semua Brand Toko</option></select>
       <select id="rmd-filter-level" onchange="renderRows()">
@@ -119,6 +130,7 @@
           <th>Plant Code</th>
           <th>Nama Toko</th>
           <th>City</th>
+          <th>Status</th>
           <th>Store Leader</th>
           <th>No. HP</th>
           <th>Level</th>
@@ -127,7 +139,7 @@
         </tr>
       </thead>
       <tbody id="rmd-tbody">
-        <tr><td colspan="9" class="empty-state"><div class="empty-icon">⏳</div>Memuat data...</td></tr>
+        <tr><td colspan="10" class="empty-state"><div class="empty-icon">⏳</div>Memuat data...</td></tr>
       </tbody>
     </table>
 

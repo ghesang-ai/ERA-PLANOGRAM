@@ -1342,6 +1342,19 @@ function rmdTokenTail()  { var t = rmdToken(); return t ? t.slice(-4) : ''; }
 function rmdPeriod()     { return Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM'); }
 function rmdNow()        { return Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm'); }
 
+// Baca nilai Submit_Month → "yyyy-MM". Sel Date di Sheet diserialisasi jadi ISO UTC
+// string saat lewat JSON (mis. "2026-07-31T17:00:00.000Z" = Agustus di Asia/Jakarta),
+// jadi string ISO pun harus diparse sebagai tanggal — bukan dibandingkan apa adanya.
+function rmdReadMonth(v) {
+  if (!v && v !== 0) return '';
+  if (v instanceof Date) return Utilities.formatDate(v, 'Asia/Jakarta', 'yyyy-MM');
+  var s = v.toString().trim();
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  var d = new Date(s);
+  if (!isNaN(d.getTime())) return Utilities.formatDate(d, 'Asia/Jakarta', 'yyyy-MM');
+  return s;
+}
+
 function rmdLevelFromCount(n) {
   n = parseInt(n, 10) || 0;
   return n < 2 ? 1 : (n < 4 ? 2 : 3);
@@ -1480,11 +1493,7 @@ function rmdSubmittedSet() {
   var am = json.activeMonth || rmdPeriod();
   var submitted = {};
   (json.data || []).forEach(function(r) {
-    var sm = r['Submit_Month'];
-    sm = (sm instanceof Date)
-      ? Utilities.formatDate(sm, 'Asia/Jakarta', 'yyyy-MM')
-      : (sm || '').toString().trim();
-    if ((r['Status'] || '').toString().trim() === 'Submitted' && sm === am) {
+    if ((r['Status'] || '').toString().trim() === 'Submitted' && rmdReadMonth(r['Submit_Month']) === am) {
       submitted[(r['Plant Code'] || '').toString().toUpperCase().trim()] = true;
     }
   });
@@ -1555,10 +1564,10 @@ function getReminderData(params) {
   var fBrand = (params.brand || '').toString().trim().toLowerCase();
 
   var data = [];
+  var pendingCount = 0, submittedCount = 0;
   universe.forEach(function(s) {
     var pc = s.plantCode;
-    if (sub.submitted[pc]) return;   // sudah submit periode ini
-    if (closed[pc]) return;          // toko tutup
+    if (closed[pc]) return;          // toko tutup — sembunyikan total
 
     var ld = leaders[pc] || {};
     var storeName = ld.storeName || s.storeName || pc;
@@ -1566,6 +1575,9 @@ function getReminderData(params) {
     var brandToko = detectBrandTokoGS(storeName);
     if (fCity  && city.toLowerCase() !== fCity)   return;
     if (fBrand && brandToko.toLowerCase() !== fBrand) return;
+
+    var isSubmitted = !!sub.submitted[pc];
+    if (isSubmitted) submittedCount++; else pendingCount++;
 
     var phone = rmdNormalizePhone(ld.phone || '');
     var cnt = counts[pc] || 0;
@@ -1578,12 +1590,15 @@ function getReminderData(params) {
       storeLeader: ld.storeLeader || '',
       phone: phone,
       phoneOk: !!phone,
+      submitted: isSubmitted,
       reminderCount: cnt,
       level: rmdLevelFromCount(cnt)
     });
   });
 
+  // Belum submit dulu (level tertinggi di atas), lalu yang sudah submit.
   data.sort(function(a, b) {
+    if (a.submitted !== b.submitted) return a.submitted ? 1 : -1;
     return (b.level - a.level) || (a.plantCode < b.plantCode ? -1 : 1);
   });
 
@@ -1594,6 +1609,8 @@ function getReminderData(params) {
     hasToken: rmdHasToken(),
     templates: { l1: cfg.template_l1, l2: cfg.template_l2, l3: cfg.template_l3 },
     count: data.length,
+    pendingCount: pendingCount,
+    submittedCount: submittedCount,
     data: data
   };
 }
