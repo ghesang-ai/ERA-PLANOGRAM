@@ -1360,6 +1360,12 @@ function rmdLevelFromCount(n) {
   return n < 2 ? 1 : (n < 4 ? 2 : 3);
 }
 
+// Plant code Erajaya: 1-2 huruf + 2-5 digit (E027, M013, Q248, S137). Menyaring baris
+// header yang keder ("PLANT CODE") & serial tanggal Excel ("46249") dari file upload.
+function rmdLooksLikePlantCode(s) {
+  return /^[A-Za-z]{1,2}\d{2,5}$/.test((s || '').toString().trim());
+}
+
 function rmdLevelLabel(level) {
   return level === 1 ? 'Level 1 (Gentle)' : level === 2 ? 'Level 2 (Urgent)' : 'Level 3 (Escalate)';
 }
@@ -1691,7 +1697,7 @@ function saveStoreLeaders(body) {
   var seen = {}, out = [];
   (body.rows || []).forEach(function(r) {
     var pc = (r.plantCode || '').toString().toUpperCase().trim();
-    if (!pc || seen[pc]) return;
+    if (!pc || seen[pc] || !rmdLooksLikePlantCode(pc)) return;
     seen[pc] = true;
     out.push([
       pc,
@@ -1718,9 +1724,11 @@ function saveClosedStores(body) {
   var seen = {}, out = [];
   (body.rows || []).forEach(function(r) {
     var pc = (r.plantCode || '').toString().toUpperCase().trim();
-    if (!pc || seen[pc]) return;
+    if (!pc || seen[pc] || !rmdLooksLikePlantCode(pc)) return;
     seen[pc] = true;
-    out.push([pc, (r.storeName || '').toString().trim(), now]);
+    var nm = (r.storeName || '').toString().trim();
+    if (/^\d+$/.test(nm)) nm = '';   // serial tanggal Excel salah kolom
+    out.push([pc, nm, now]);
   });
   if (out.length) sheet.getRange(2, 1, out.length, RMD_CLOSED_HEADERS.length).setValues(out);
   return { status: 'success', count: out.length };

@@ -124,23 +124,32 @@ async function testMaster() {
 
 // ── Excel parsing ──
 var COLS = {
-  plantCode:   ['plant code', 'plantcode', 'kode toko', 'kode', 'plant'],
-  storeName:   ['nama toko', 'store name', 'nama store', 'nama', 'store', 'toko'],
-  storeLeader: ['store leader', 'storeleader', 'nama sl', 'leader', 'pic toko', 'pic', 'sl'],
-  phone:       ['no hp', 'nohp', 'nomor hp', 'no telp', 'no telepon', 'phone', 'whatsapp', 'telp', 'handphone', 'hp', 'wa'],
+  plantCode:   ['plant code', 'plantcode', 'kode toko', 'kode_toko', 'kode plant', 'kode'],
+  storeName:   ['nama toko', 'store name', 'nama store', 'nama_toko', 'storename', 'nama outlet'],
+  storeLeader: ['store leader', 'storeleader', 'nama sl', 'nama store leader', 'pic toko', 'store leader/sl'],
+  phone:       ['no hp', 'nohp', 'no. hp', 'nomor hp', 'no telp', 'no telepon', 'no whatsapp', 'whatsapp', 'handphone', 'phone'],
   city:        ['city', 'kota'],
-  region:      ['region', 'regional', 'area']
+  region:      ['region', 'regional']
 };
+// Header yang tak boleh dianggap "nama toko" walau mengandung kata "store"
+var BAD_NAME_HINT = /(date|tanggal|closed|tutup|status|leader|sl$|pic$|hp|phone|kode|code)/;
 
 function normHeader(h) {
   return String(h == null ? '' : h).toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
 }
-function findCol(headers, cands) {
+// Plant code Erajaya: 1-2 huruf + 2-5 digit (E027, M013, Q248, S137). Menyaring baris
+// header yang keder ("PLANT CODE", "PLANT") dan serial tanggal Excel ("46249").
+function looksLikePlantCode(s) {
+  return /^[a-z]{1,2}\d{2,5}$/i.test(String(s || '').trim());
+}
+function findCol(headers, cands, forbid) {
   for (var i = 0; i < headers.length; i++) {
     if (cands.indexOf(headers[i]) >= 0) return i;
   }
   for (var k = 0; k < headers.length; k++) {
-    for (var j = 0; j < cands.length; j++) if (headers[k] && headers[k].indexOf(cands[j]) >= 0) return k;
+    if (!headers[k]) continue;
+    if (forbid && forbid.test(headers[k])) continue;
+    for (var j = 0; j < cands.length; j++) if (headers[k].indexOf(cands[j]) >= 0) return k;
   }
   return -1;
 }
@@ -165,9 +174,10 @@ function parseFile(input, kind) {
       var hr = findHeaderRow(aoa);
       var headers = (aoa[hr] || []).map(normHeader);
       var iPc = findCol(headers, COLS.plantCode);
-      var iNm = findCol(headers, COLS.storeName);
+      var iNm = findCol(headers, COLS.storeName, BAD_NAME_HINT);
       if (iPc < 0) throw new Error('Kolom "Plant Code" tidak ditemukan di file.');
 
+      var skipped = 0;
       var rows = [];
       if (kind === 'sl') {
         var iSl = findCol(headers, COLS.storeLeader);
@@ -178,6 +188,7 @@ function parseFile(input, kind) {
           var row = aoa[r] || [];
           var pc = String(row[iPc] || '').toUpperCase().trim();
           if (!pc) continue;
+          if (!looksLikePlantCode(pc)) { skipped++; continue; }
           rows.push({
             plantCode: pc,
             storeName: iNm >= 0 ? String(row[iNm] || '').trim() : '',
@@ -192,19 +203,24 @@ function parseFile(input, kind) {
           return [o.plantCode, o.storeName, o.storeLeader, o.phone, o.city];
         }), ['Plant Code', 'Nama Toko', 'Store Leader', 'No HP', 'City'], rows.length + ' baris siap disimpan:');
         el('btn-sl').disabled = rows.length === 0;
-        setMsg(msgId, rows.length + ' baris terbaca dari ' + file.name, true);
+        setMsg(msgId, rows.length + ' baris valid dari ' + file.name +
+          (skipped ? ' (' + skipped + ' baris non-toko dilewati)' : ''), true);
       } else {
         for (var r2 = hr + 1; r2 < aoa.length; r2++) {
           var row2 = aoa[r2] || [];
           var pc2 = String(row2[iPc] || '').toUpperCase().trim();
           if (!pc2) continue;
-          rows.push({ plantCode: pc2, storeName: iNm >= 0 ? String(row2[iNm] || '').trim() : '' });
+          if (!looksLikePlantCode(pc2)) { skipped++; continue; }
+          var nm2 = iNm >= 0 ? String(row2[iNm] || '').trim() : '';
+          if (/^\d+$/.test(nm2)) nm2 = '';   // serial tanggal Excel yang salah kolom
+          rows.push({ plantCode: pc2, storeName: nm2 });
         }
         _csRows = rows;
         renderPreview('cs-prev', rows.slice(0, 50).map(function (o) { return [o.plantCode, o.storeName]; }),
           ['Plant Code', 'Nama Toko'], rows.length + ' baris siap disimpan:');
         el('btn-cs').disabled = rows.length === 0;
-        setMsg(msgId, rows.length + ' baris terbaca dari ' + file.name, true);
+        setMsg(msgId, rows.length + ' toko tutup valid dari ' + file.name +
+          (skipped ? ' (' + skipped + ' baris non-toko dilewati)' : ''), true);
       }
     } catch (err) {
       setMsg(msgId, err.message, false);
