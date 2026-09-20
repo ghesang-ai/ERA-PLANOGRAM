@@ -1,7 +1,10 @@
 // assets/js/export.js
 // Requires: SheetJS (xlsx) loaded via CDN, CONFIG dari config.js
 
-function exportToExcel(data, filename) {
+// opts.statusFn (opsional): function(row) -> teks kolom "Status". Dipakai export dashboard supaya
+// status di Excel sama dengan badge di tabel (per periode), bukan kolom Status mentah dari sheet.
+function exportToExcel(data, filename, opts) {
+  opts = opts || {};
   if (!data || data.length === 0) {
     alert('Tidak ada data untuk diexport.');
     return;
@@ -14,8 +17,8 @@ function exportToExcel(data, filename) {
       'Store Name':  row['Store Name']  || '',
       'Area':        row['Area']        || '',
       'Region':      row['Region']      || '',
-      'Status':      row['Status']      || 'Pending',
-      'Last Submit': row['Last Submit'] || ''
+      'Status':      opts.statusFn ? opts.statusFn(row) : (row['Status'] || 'Pending'),
+      'Last Submit': row['Last Submit'] ? CONFIG.formatDate(row['Last Submit']) : ''
     };
     CONFIG.BRAND_LDU_COLUMNS.forEach(function(col) {
       obj[col] = parseInt(row[col]) || 0;
@@ -58,15 +61,25 @@ function exportAllExcel() {
   exportToExcel(window._eraAllData || [], 'ERA-PLANOGRAM-ALL');
 }
 
+// Export apa yang sedang tampil di tabel dashboard (tab Sudah/Belum Submit + Brand/Area/Cari/dst).
+// Dipakai oleh tombol "Export" di toolbar tabel maupun "Export Excel" di banner atas.
 function exportFilteredExcel() {
   var label = 'FILTERED';
   if (typeof _activeQuickFilter !== 'undefined') {
-    if (_activeQuickFilter === 'pending_this_month')   label = 'BELUM-SUBMIT-BULAN-INI';
-    if (_activeQuickFilter === 'submitted_this_month') label = 'SUDAH-SUBMIT-BULAN-INI';
+    if (_activeQuickFilter === 'pending_this_month')   label = 'BELUM-SUBMIT';
+    if (_activeQuickFilter === 'submitted_this_month') label = 'SUDAH-SUBMIT';
   }
-  var now = new Date();
-  var dateStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  exportToExcel(window._eraFilteredData || [], 'ERA-PLANOGRAM-' + label + '_' + dateStr);
+
+  // Kolom Status memakai definisi yang sama dengan badge tabel & tab quick-filter
+  // (submittedThisMonth di main.js), dibandingkan ke periode yang sedang dilihat.
+  var periodLabel = (typeof _activeMonth !== 'undefined' && _activeMonth) ? formatMonthLabel(_activeMonth) : '';
+  var statusFn = function(row) {
+    return (submittedThisMonth(row) ? 'Sudah Submit' : 'Belum Submit') + (periodLabel ? ' ' + periodLabel : '');
+  };
+  if (periodLabel) label += '-' + periodLabel.toUpperCase().replace(/\s+/g, '-');
+
+  // Tanggal file ditambahkan otomatis oleh exportToExcel
+  exportToExcel(window._eraFilteredData || [], 'ERA-PLANOGRAM-' + label, { statusFn: statusFn });
 }
 
 function exportStoreExcel(plantCode, storeName) {
