@@ -1,0 +1,340 @@
+{
+ "_note": "Data Rak Aksesoris Samsung. stores = daftar toko Samsung Store (sumber: Nama_dan_No_Telp_Store_Leader_Samsung Store.xlsx, kolom SAP CODE & STORE NAME). strapStores = Plant Code toko yang dapat alokasi Strap Watch (item selected / thematic table only).",
+ "items": [
+  {
+   "key": "fold8-ultra-case",
+   "name": "Fold8 Ultra Case",
+   "target": 2,
+   "types": [
+    "Type 1",
+    "Type 2"
+   ],
+   "selected": false
+  },
+  {
+   "key": "fold8-case",
+   "name": "Fold8 Case",
+   "target": 2,
+   "types": [
+    "Type 1",
+    "Type 2"
+   ],
+   "selected": false
+  },
+  {
+   "key": "flip8-case",
+   "name": "Flip8 Case",
+   "target": 2,
+   "types": [
+    "Type 1",
+    "Type 2"
+   ],
+   "selected": false
+  },
+  {
+   "key": "s26-ultra-case",
+   "name": "S26 Ultra Case",
+   "target": 2,
+   "types": [
+    "Type 1",
+    "Type 2"
+   ],
+   "selected": false
+  },
+  {
+   "key": "s26plus-case",
+   "name": "S26+ Case",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "s26-case",
+   "name": "S26 Case",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "s26-fe-case",
+   "name": "S26 FE Case",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "a37-case",
+   "name": "A37 Case",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "a57-case",
+   "name": "A57 Case",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "travel-adaptor",
+   "name": "Travel Adaptor",
+   "target": 4,
+   "types": [
+    "25 Watt",
+    "45 Watt",
+    "60 Watt",
+    "65 Watt"
+   ],
+   "selected": false
+  },
+  {
+   "key": "watch8-classic",
+   "name": "Watch8 Classic",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "watch9-40mm",
+   "name": "Watch9 40mm",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "watch9-44mm",
+   "name": "Watch9 44mm",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "powerbank",
+   "name": "Powerbank",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "buds-3-fe",
+   "name": "Buds 3 FE",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "buds-4",
+   "name": "Buds 4",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "buds-4-pro",
+   "name": "Buds 4 Pro",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "buds-core",
+   "name": "Buds Core",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "fit3",
+   "name": "Fit3",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "strap-watch9",
+   "name": "Strap Watch9",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": true
+  },
+  {
+   "key": "strap-watch-ultra2",
+   "name": "Strap Watch Ultra2",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": true
+  },
+  {
+   "key": "acc-tab-s-series-book-cover",
+   "name": "Acc Tab S Series / Book Cover",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "a17-case",
+   "name": "A17 Case",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "a27-case",
+   "name": "A27 Case",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  },
+  {
+   "key": "car-charger",
+   "name": "Car Charger",
+   "target": 1,
+   "types": [
+    "1 model"
+   ],
+   "selected": false
+  }
+ ],
+ "strapStores": [],
+ "stores": {
+  "S015": {
+   "name": "SES ST MORITZ MALL",
+   "area": "JAKARTA BARAT"
+  },
+  "S018": {
+   "name": "SES SENAYAN CITY",
+   "area": "JAKARTA PUSAT"
+  },
+  "S040": {
+   "name": "SES TANGERANG CITY MALL",
+   "area": "TANGERANG"
+  },
+  "S041": {
+   "name": "SES BINTARO X CHANGE",
+   "area": "TANGERANG SELATAN"
+  },
+  "S042": {
+   "name": "SES AEON MALL BSD CITY",
+   "area": "TANGERANG"
+  },
+  "S044": {
+   "name": "SES 2 ITC ROXY MAS",
+   "area": "JAKARTA PUSAT"
+  },
+  "S049": {
+   "name": "SEP ITC CEMPAKA MAS",
+   "area": "JAKARTA PUSAT"
+  },
+  "S055": {
+   "name": "SES PLAZA SENAYAN",
+   "area": "JAKARTA PUSAT"
+  },
+  "S056": {
+   "name": "SES SUMMARECON MALL SERPONG",
+   "area": "TANGERANG SELATAN"
+  },
+  "S058": {
+   "name": "SES GREEN PRAMUKA SQUARE",
+   "area": "JAKARTA PUSAT"
+  },
+  "S066": {
+   "name": "SES CILEGON CENTER MALL",
+   "area": "CILEGON"
+  },
+  "S097": {
+   "name": "SES MALL CIPUTRA CITRA RAYA TANGERANG",
+   "area": "TANGERANG"
+  },
+  "S098": {
+   "name": "SES SENAYAN PARK",
+   "area": "JAKARTA PUSAT"
+  },
+  "S136": {
+   "name": "SAMSUNG PARTNER PLAZA PANDEGLANG",
+   "area": "SERANG"
+  },
+  "S142": {
+   "name": "SES CENTRAL PARK",
+   "area": "JAKARTA BARAT"
+  },
+  "S158": {
+   "name": "SAMSUNG (SEP) SERPONG PARADISE",
+   "area": "TANGERANG SELATAN"
+  },
+  "S183": {
+   "name": "SAMSUNG EDC",
+   "area": "TANGERANG"
+  },
+  "S190": {
+   "name": "SAMSUNG BINTARO X CHANGE II",
+   "area": "TANGERANG SELATAN"
+  },
+  "S194": {
+   "name": "SAMSUNG AGORA MALL",
+   "area": "JAKARTA BARAT"
+  },
+  "S195": {
+   "name": "SES K MALL AT MENARA JAKARTA",
+   "area": "JAKARTA BARAT"
+  },
+  "S201": {
+   "name": "SAMSUNG HAMPTON SQUARE SERPONG",
+   "area": "TANGERANG"
+  },
+  "S228": {
+   "name": "SES CIPUTRA MALL JKT",
+   "area": "JAKARTA BARAT"
+  },
+  "S229": {
+   "name": "SES GRAND INDONESIA EAST MALL",
+   "area": "JAKARTA PUSAT"
+  },
+  "S230": {
+   "name": "SES MALL TAMAN ANGGREK",
+   "area": "JAKARTA BARAT"
+  },
+  "S231": {
+   "name": "SES PLAZA INDONESIA",
+   "area": "JAKARTA PUSAT"
+  }
+ }
+}

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input Rak Aksesoris Samsung — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/submit.css">
+  <link rel="stylesheet" href="assets/css/rak-samsung.css?v=1">
+</head>
+<body class="submit-page rak-page">
+
+  <!-- HEADER -->
+  <header class="submit-header">
+    <div class="submit-header-inner">
+      <div class="brand">
+        <div class="brand-badge rak-badge">SAM</div>
+        <div>
+          <div class="site-title">ERA-PLANOGRAM</div>
+          <div class="site-sub">Rak Aksesoris Samsung · Region 5</div>
+        </div>
+      </div>
+      <a href="index.html" class="btn btn-outline btn-sm">← Dashboard</a>
+    </div>
+  </header>
+
+  <!-- PROGRESS BAR -->
+  <div class="form-progress">
+    <div class="form-progress-bar" id="progress-bar"></div>
+  </div>
+
+  <main class="submit-main">
+
+    <!-- ── STEP 1: Identitas Toko ── -->
+    <div class="form-card" id="step-identity">
+      <div class="form-card-header">
+        <div class="step-badge">1</div>
+        <div>
+          <div class="form-card-title">Identitas Toko</div>
+          <div class="form-card-sub">Masukkan Plant Code toko Samsung Anda</div>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label" for="input-plant-code">Plant Code <span class="required">*</span></label>
+        <div class="input-verify-row">
+          <input type="text" id="input-plant-code" class="field-input" placeholder="Contoh: S041"
+                 maxlength="20" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase">
+          <button class="btn btn-primary" id="btn-verify" onclick="verifyPlantCode()">Verifikasi</button>
+        </div>
+        <div id="verify-result" class="verify-result" style="display:none"></div>
+      </div>
+
+      <div class="store-info-card" id="store-info" style="display:none">
+        <div class="store-info-icon">🏪</div>
+        <div class="store-info-body">
+          <div class="store-info-name" id="info-store-name">-</div>
+          <div class="store-info-meta">
+            <span id="info-plant-code">-</span><span class="dot">·</span>
+            <span id="info-area">-</span><span class="dot">·</span>
+            <span class="store-brand-pill" style="background:#1428A022;color:#1428A0;border-color:#1428A0">Samsung</span>
+          </div>
+          <div class="store-info-status" id="info-item-count"></div>
+        </div>
+        <div class="store-info-check">✓</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Update Qty Display Acc + Foto ── -->
+    <div class="form-card form-card--disabled" id="step-items">
+      <div class="form-card-header">
+        <div class="step-badge">2</div>
+        <div>
+          <div class="form-card-title">Update Qty Display Acc</div>
+          <div class="form-card-sub">Upload 1 foto per aksesoris · Pilih type model yang ter-display</div>
+        </div>
+        <div class="ldu-total-badge" id="items-badge">0 / 0 item</div>
+      </div>
+
+      <!-- Panduan foto (sama dengan template collage) -->
+      <div class="rak-guide">
+        <div class="rak-guide-title">📸 Panduan foto</div>
+        <ul>
+          <li>Foto dengan mode <b>potrait / vertikal</b> (rasio 3:4) agar pas di frame</li>
+          <li><b>Jangan</b> upload screenshot</li>
+          <li>Jika ada item yang kosong, <b>tidak perlu upload</b> foto item tersebut</li>
+          <li>Foto harus <b>baru diambil dari kamera</b> (maks 2 jam) dan izin lokasi harus aktif</li>
+        </ul>
+      </div>
+
+      <div id="prev-submit-banner" class="rak-banner" style="display:none"></div>
+
+      <div class="checklist-filter-bar">
+        <div class="checklist-search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="rk-search" placeholder="Cari aksesoris..." oninput="renderItems()">
+        </div>
+        <select id="rk-filter" onchange="renderItems()">
+          <option value="">Semua item</option>
+          <option value="empty">Belum ada foto</option>
+          <option value="filled">Sudah ada foto</option>
+        </select>
+        <span class="cl-count" id="rk-count">—</span>
+      </div>
+
+      <div class="rak-list" id="rak-list">
+        <div class="cl-empty">Verifikasi Plant Code terlebih dahulu</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: Konfirmasi ── -->
+    <div class="form-card form-card--disabled" id="step-submit">
+      <div class="form-card-header">
+        <div class="step-badge">3</div>
+        <div>
+          <div class="form-card-title">Konfirmasi &amp; Kirim</div>
+          <div class="form-card-sub">Periksa ringkasan sebelum mengirim</div>
+        </div>
+      </div>
+
+      <div class="submit-summary" id="submit-summary"></div>
+
+      <div class="submit-actions">
+        <div class="btn-submit-wrap">
+          <button class="btn-submit-inner" id="btn-submit" onclick="submitRak()" disabled>
+            <span class="btn-submit-icon">📤</span>
+            <div class="btn-submit-label">
+              <span id="btn-submit-text">Kirim Rak Aksesoris</span>
+              <span>Foto tersimpan ke Google Drive, data ke Google Sheet</span>
+            </div>
+          </button>
+        </div>
+        <p class="submit-note">Bisa dikirim ulang kapan saja di bulan yang sama untuk melengkapi item yang kosong.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- SUCCESS OVERLAY -->
+  <div class="success-overlay" id="success-overlay" style="display:none">
+    <div class="success-card">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Rak Aksesoris Berhasil Dikirim!</div>
+      <div class="success-sub" id="success-sub">-</div>
+      <div class="success-actions">
+        <button class="btn btn-blue" onclick="closeSuccess()">↩ Kembali ke Form</button>
+        <button class="btn btn-ghost" onclick="resetForm()">📝 Input Toko Lain</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast toast-error" id="error-toast" style="display:none">
+    <span id="error-toast-msg">Terjadi kesalahan</span>
+  </div>
+
+  <script src="assets/js/config.js?v=3"></script>
+  <script src="assets/js/vendor/exifr.min.js"></script>
+  <script src="assets/js/foto-upload.js?v=4"></script>
+  <script src="assets/js/rak-samsung.js?v=1"></script>
+</body>
+</html>

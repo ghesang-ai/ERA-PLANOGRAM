@@ -1,0 +1,71 @@
+/* assets/css/rak-samsung.css — halaman Input Rak Aksesoris Samsung (pelengkap submit.css) */
+
+.rak-badge { background: #1428A0; }
+
+.rak-guide {
+  background: #0a4fb0; color: #fff; border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 14px; font-size: 12.5px;
+}
+.rak-guide-title { font-weight: 800; margin-bottom: 4px; font-size: 13px; }
+.rak-guide ul { padding-left: 18px; }
+.rak-guide li { margin: 2px 0; line-height: 1.45; }
+
+.rak-banner {
+  align-items: flex-start; gap: 10px; background: #f0fdf4; border: 1.5px solid #86efac;
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 13px; color: #15803d;
+}
+
+.rak-list { display: flex; flex-direction: column; gap: 10px; }
+
+.rak-item {
+  display: flex; gap: 12px; padding: 12px; border: 1.5px solid var(--gray-200);
+  border-radius: 12px; background: #fff; transition: border-color .2s, background .2s;
+}
+.rak-item.filled { border-color: #86efac; background: #f9fffb; }
+.rak-item.err    { border-color: #fca5a5; background: #fff8f8; }
+
+/* Thumbnail 3:4 seperti frame di collage */
+.rak-thumb {
+  width: 84px; flex-shrink: 0; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden;
+  background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 8px, #e8eef6 8px, #e8eef6 16px);
+  border: 2px dashed var(--gray-200); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 26px; position: relative;
+}
+.rak-item.filled .rak-thumb { border: 2px solid #0a4fb0; }
+.rak-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.rak-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.rak-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.rak-name { font-size: 14px; font-weight: 700; color: var(--gray-800); line-height: 1.3; }
+.rak-name .rak-no { color: var(--gray-400); font-weight: 600; margin-right: 4px; }
+.rak-hint { font-size: 11.5px; color: var(--gray-400); }
+
+.rak-pill { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; }
+.rak-pill.p-empty { background: var(--gray-100); color: var(--gray-400); }
+.rak-pill.p-full  { background: #dcfce7; color: #15803d; }
+.rak-pill.p-part  { background: #fef9c3; color: #a16207; }
+
+.rak-types { display: flex; flex-wrap: wrap; gap: 6px; }
+.rak-type {
+  font: 700 12px var(--font); padding: 5px 11px; border-radius: 999px; cursor: pointer;
+  border: 1.5px solid var(--gray-200); background: #fff; color: var(--gray-600);
+}
+.rak-type.on { background: #dcfce7; border-color: #86efac; color: #15803d; }
+
+.rak-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: auto; }
+.rak-btn {
+  font: 700 12px var(--font); padding: 7px 12px; border-radius: 8px; cursor: pointer;
+  border: 1.5px solid #bfdbfe; background: var(--blue-light); color: var(--blue-dark);
+}
+.rak-btn.del { border-color: #fecaca; background: #fff; color: #b91c1c; }
+.rak-info { font-size: 11px; color: var(--gray-400); }
+.rak-info.ok  { color: #15803d; }
+.rak-info.bad { color: #b91c1c; font-weight: 600; }
+
+.rak-miss { display: flex; flex-wrap: wrap; gap: 5px; }
+.rak-miss span { background: var(--gray-100); color: var(--gray-600); border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 600; }
+
+@media (max-width: 480px) {
+  .rak-thumb { width: 72px; }
+  .rak-name { font-size: 13px; }
+}

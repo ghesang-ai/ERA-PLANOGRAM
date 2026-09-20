@@ -601,6 +601,150 @@ function getIssues(ss, params) {
   return { status: 'success', count: issues.length, data: issues };
 }
 
+// ============================================================
+// RAK AKSESORIS SAMSUNG — halaman rak-samsung.html
+// 1 baris per (submit_month, plant_code) di sheet RAK_SAMSUNG; detail per aksesoris ada di items_json.
+// Foto disimpan di Drive: <FOTO_ROOT>/Rak Aksesoris Samsung/<yyyy-MM MMMM>/<plant> <toko>/<itemKey>.jpg
+// ============================================================
+const RAK_SHEET   = 'RAK_SAMSUNG';
+const RAK_FOLDER  = 'Rak Aksesoris Samsung';
+const RAK_HEADERS = ['submit_month','plant_code','store_name','first_submit','last_updated',
+                     'qty_actual','qty_target','items_kurang','foto_count','items_json'];
+
+function rakNowStr() { return Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss'); }
+function rakMonthNow() { return Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM'); }
+
+function getRakSheet(ss) {
+  var existed = !!ss.getSheetByName(RAK_SHEET);
+  var sheet = getOrCreateSheetWithHeaders(ss, RAK_SHEET, RAK_HEADERS);
+  // Kolom submit_month/plant_code/tanggal harus teks murni — kalau tidak, "2026-09" dibaca Sheets sebagai tanggal.
+  if (!existed) sheet.getRange(1, 1, sheet.getMaxRows(), 5).setNumberFormat('@');
+  return sheet;
+}
+
+// ── Upload 1 foto aksesoris ke Drive (validasi GPS + umur foto sama seperti uploadFotoToDrive) ──
+function uploadRakFoto(payload) {
+  var plantCode = (payload.plantCode || '').toUpperCase().trim();
+  var storeName = (payload.storeName || plantCode).trim();
+  var itemKey   = (payload.itemKey || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
+  var fileData  = payload.fileData || '';
+  var meta      = payload.meta || null;
+
+  if (!plantCode || !itemKey || !fileData) return { status: 'error', message: 'Data upload tidak lengkap.' };
+  if (!meta || typeof meta.lat !== 'number' || typeof meta.lng !== 'number' || !meta.takenAt) {
+    return { status: 'error', message: 'Metadata foto (GPS/tanggal) tidak lengkap. Ambil foto langsung dari kamera.' };
+  }
+  var takenAtMs = new Date(meta.takenAt).getTime();
+  if (isNaN(takenAtMs)) return { status: 'error', message: 'Format tanggal foto tidak valid.' };
+  var ageMin = (Date.now() - takenAtMs) / 60000;
+  if (ageMin > FOTO_MAX_AGE_MIN || ageMin < -5) {
+    var batas = FOTO_MAX_AGE_MIN >= 60 ? (FOTO_MAX_AGE_MIN / 60) + ' jam' : FOTO_MAX_AGE_MIN + ' menit';
+    return { status: 'error', message: 'Foto harus baru diambil (maks ' + batas + ' sebelum upload). Ambil ulang foto dari kamera.' };
+  }
+
+  var base64 = fileData.replace(/^data:image\/\w+;base64,/, '');
+  var blob   = Utilities.newBlob(Utilities.base64Decode(base64), 'image/jpeg', itemKey + '.jpg');
+
+  var root        = DriveApp.getFolderById(FOTO_ROOT_FOLDER_ID);
+  var rakFolder   = getOrCreateFolder(root, RAK_FOLDER);
+  var monthFolder = getOrCreateFolder(rakFolder, Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyy-MM MMMM'));
+  var tokoFolder  = getOrCreateFolder(monthFolder, plantCode + ' ' + storeName);
+
+  var existing = tokoFolder.getFilesByName(itemKey + '.jpg');
+  while (existing.hasNext()) existing.next().setTrashed(true);
+
+  var file = tokoFolder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  return {
+    status: 'success',
+    url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+    fileId: file.getId(),
+    meta: { takenAt: meta.takenAt, device: meta.device || '', lat: meta.lat, lng: meta.lng,
+            address: reverseGeocodeSafe(meta.lat, meta.lng) }
+  };
+}
+
+// ── Simpan / update data Rak Aksesoris Samsung toko untuk bulan berjalan ──
+function saveRakSamsung(payload) {
+  var plantCode = (payload.plantCode || '').toUpperCase().trim();
+  var storeName = (payload.storeName || plantCode).toString().trim();
+  var items     = payload.items;
+  if (!plantCode) return { status: 'error', message: 'Plant Code kosong' };
+  if (!Array.isArray(items) || items.length === 0 || items.length > 60) return { status: 'error', message: 'Daftar item tidak valid' };
+
+  // Bersihkan & hitung ulang qty di server (jangan percaya angka dari browser)
+  var qtyActual = 0, qtyTarget = 0, kurang = 0, fotoCount = 0;
+  var clean = items.map(function(it) {
+    var target   = Math.max(1, parseInt(it.target, 10) || 1);
+    var hasPhoto = !!(it.photoUrl && String(it.photoUrl).indexOf('https://drive.google.com/') === 0);
+    var ok       = (Array.isArray(it.ok) ? it.ok : []).slice(0, target).map(function(v) { return !!v; });
+    var qty      = hasPhoto ? Math.min(target, ok.filter(Boolean).length) : 0;
+    qtyTarget += target; qtyActual += qty;
+    if (qty < target) kurang++;
+    if (hasPhoto) fotoCount++;
+    var m = it.meta || null;
+    return {
+      key: String(it.key || '').slice(0, 60), name: String(it.name || '').slice(0, 80),
+      target: target, types: Array.isArray(it.types) ? it.types.map(String).slice(0, 8) : [],
+      ok: ok, qty: qty,
+      photoUrl: hasPhoto ? String(it.photoUrl) : '', fileId: hasPhoto ? String(it.fileId || '') : '',
+      meta: (hasPhoto && m) ? { takenAt: m.takenAt || '', device: m.device || '', lat: m.lat, lng: m.lng, address: m.address || '' } : null
+    };
+  });
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss    = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = getRakSheet(ss);
+    var month = rakMonthNow();
+    var now   = rakNowStr();
+
+    var lastRow = sheet.getLastRow(), rowIdx = -1, firstSubmit = now;
+    if (lastRow > 1) {
+      var keys = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+      for (var i = 0; i < keys.length; i++) {
+        if (rmdReadMonth(keys[i][0]) === month && String(keys[i][1]).trim().toUpperCase() === plantCode) {
+          rowIdx = i + 2;
+          firstSubmit = keys[i][3] ? keys[i][3].toString() : now;
+          break;
+        }
+      }
+    }
+    var values = [month, plantCode, storeName, firstSubmit, now, qtyActual, qtyTarget, kurang, fotoCount, JSON.stringify(clean)];
+    if (rowIdx === -1) rowIdx = lastRow + 1;
+    sheet.getRange(rowIdx, 1, 1, RAK_HEADERS.length).setValues([values]);
+    return { status: 'success', month: month, qtyActual: qtyActual, qtyTarget: qtyTarget, itemsKurang: kurang, fotoCount: fotoCount };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── Baca data Rak Samsung. ?store=S041&month=2026-09 → 1 toko; tanpa store → semua toko di bulan itu ──
+function getRakSamsung(params) {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(RAK_SHEET);
+  var month = (params.month || '').toString().trim() || rakMonthNow();
+  var store = (params.store || '').toString().trim().toUpperCase();
+  if (!sheet || sheet.getLastRow() < 2) return { status: 'success', month: month, data: store ? null : [] };
+
+  var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, RAK_HEADERS.length).getValues();
+  var out = [];
+  rows.forEach(function(r) {
+    if (rmdReadMonth(r[0]) !== month) return;
+    if (store && String(r[1]).trim().toUpperCase() !== store) return;
+    var items = [];
+    try { items = JSON.parse(r[9] || '[]'); } catch (e) {}
+    out.push({
+      month: month, plantCode: String(r[1]).trim(), storeName: r[2],
+      firstSubmit: r[3] ? r[3].toString() : '', lastUpdated: r[4] ? r[4].toString() : '',
+      qtyActual: r[5], qtyTarget: r[6], itemsKurang: r[7], fotoCount: r[8], items: items
+    });
+  });
+  return { status: 'success', month: month, data: store ? (out[0] || null) : out };
+}
+
 // ── doPost ──
 function doPost(e) {
   try {
@@ -609,6 +753,8 @@ function doPost(e) {
 
     if (action === 'uploadFoto')    return jsonOut(uploadFotoToDrive(body));
     if (action === 'saveFotoUrls')  return jsonOut(saveFotoUrls(body));
+    if (action === 'uploadRakFoto') return jsonOut(uploadRakFoto(body));
+    if (action === 'saveRakSamsung') return jsonOut(saveRakSamsung(body));
     if (action === 'addDevice')     return jsonOut(addDevice(body));
     if (action === 'editDevice')    return jsonOut(editDevice(body));
     if (action === 'returDevice')   return jsonOut(returDevice(body));
@@ -667,6 +813,7 @@ function doGet(e) {
     if (params.action === 'getInventory') return jsonOut(getInventory(params));
     if (params.action === 'getLog')       return jsonOut(getLog(params));
     if (params.action === 'getIssues')    return jsonOut(getIssues(ss, params));
+    if (params.action === 'getRakSamsung') return jsonOut(getRakSamsung(params));
 
     // ── Auto Reminder (WhatsApp / Fonnte) ──
     if (params.action === 'getReminderData')     return jsonOut(getReminderData(params));
