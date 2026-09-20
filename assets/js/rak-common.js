@@ -44,9 +44,12 @@ function rakApi(params) {
   Object.keys(params || {}).forEach(function(k) { if (params[k]) u.searchParams.set(k, params[k]); });
   return fetch(u.toString()).then(function(r) { return r.json(); }).then(function(j) {
     if (j.status !== 'success') throw new Error(j.message || 'API error');
+    // Apps Script versi lama tidak mengenal action ini dan menjawab dengan data LDU (tanpa field "month").
+    if (typeof j.month !== 'string') throw new Error(RAK_OLD_BACKEND_MSG);
     return j;
   });
 }
+var RAK_OLD_BACKEND_MSG = 'Apps Script belum diperbarui. Tempel Code.gs terbaru di Extensions → Apps Script, lalu Deploy → Manage deployments → New version.';
 
 function rakHasStrap(code) { return (RAK.cfg.strapStores || []).indexOf(code) !== -1; }
 // Aksesoris yang berlaku untuk toko (Strap Watch hanya toko alokasi)

@@ -331,7 +331,7 @@ async function submitRak() {
       });
       var raw = await res.text(), json;
       try { json = JSON.parse(raw); } catch (pe) { throw new Error('Respon server tidak valid'); }
-      if (json.status !== 'success') throw new Error(json.message || 'Upload gagal');
+      if (json.status !== 'success') throw new Error(rkServerMsg(json.message, 'Upload gagal'));
       s.url = json.url; s.fileId = json.fileId || rkFileId(json.url); s.meta = json.meta || s.file.meta; s.file = null; s.err = '';
     } catch (err) {
       s.err = '❌ Upload gagal: ' + err.message;
@@ -358,7 +358,7 @@ async function submitRak() {
     };
     var r2 = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
     var j2 = JSON.parse(await r2.text());
-    if (j2.status !== 'success') throw new Error(j2.message || 'Gagal menyimpan');
+    if (j2.status !== 'success') throw new Error(rkServerMsg(j2.message, 'Gagal menyimpan'));
 
     _rkSubmitted = true;
     document.getElementById('success-sub').textContent =
@@ -370,6 +370,12 @@ async function submitRak() {
     showToast('❌ ' + err.message + '. Foto sudah terupload — tekan Kirim lagi.');
   }
   btn.disabled = false; txt.textContent = 'Kirim Rak Aksesoris';
+}
+
+// Apps Script versi lama tidak mengenal action Rak Samsung dan menjawab "Plant Code kosong" (jalur submit LDU).
+function rkServerMsg(msg, fallback) {
+  if (/Plant Code kosong|Sheet tidak ditemukan/i.test(msg || '')) return 'Server belum diperbarui (Code.gs terbaru belum di-deploy di Apps Script). Hubungi admin.';
+  return msg || fallback;
 }
 
 function closeSuccess() {

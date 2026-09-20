@@ -31,7 +31,7 @@ function load() {
     ((_d.row && _d.row.items) || []).forEach(function(it) { _d.byKey[it.key] = it; });
     history.replaceState(null, '', 'rak-detail.html?code=' + encodeURIComponent(_d.code) + '&month=' + encodeURIComponent(_d.month) + (_d.tab === 'qty' ? '&tab=qty' : ''));
     render();
-  }).catch(function(err) { showFail('Gagal memuat data. ' + rakEsc(err.message)); });
+  }).catch(function(err) { showFail(err.message === RAK_OLD_BACKEND_MSG ? rakEsc(err.message) : 'Gagal memuat data. ' + rakEsc(err.message)); });
 }
 
 function setTab(t) { _d.tab = t; history.replaceState(null, '', location.search.replace(/&tab=\w+/, '') + (t === 'qty' ? '&tab=qty' : '')); render(); }

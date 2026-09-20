@@ -21,7 +21,8 @@ function loadMonth(month) {
     rakTopbarTime();
     renderAll();
   }).catch(function(err) {
-    showError('Gagal memuat data. ' + err.message);
+    showError(err.message === RAK_OLD_BACKEND_MSG ? err.message : 'Gagal memuat data. ' + err.message);
+    ['kpis', 'area-cards', 'acc-chart', 'donut-card', 'period-row'].forEach(function(id) { document.getElementById(id).innerHTML = ''; });
     console.error('rak-dashboard load error:', err);
   });
 }
@@ -120,8 +121,8 @@ function renderDonut(nSub, nPend, total, pct) {
 }
 
 function renderPeriods() {
+  // Hanya bulan yang punya data Rak Aksesoris (+ bulan berjalan) — tampil walau baru satu bulan.
   var row = document.getElementById('period-row');
-  if (_rk.months.length <= 1) { row.style.display = 'none'; return; }
   row.style.display = 'flex';
   row.innerHTML = '<span>Periode:</span>' + _rk.months.map(function(m) {
     return '<button class="period-btn' + (m === _rk.month ? ' active' : '') + '" onclick="loadMonth(\'' + m + '\')">' + rakMonthLabel(m) + '</button>';
