@@ -1,5 +1,5 @@
 {
- "_note": "Data Rak Aksesoris Samsung. stores = daftar toko Samsung Store (sumber: Nama_dan_No_Telp_Store_Leader_Samsung Store.xlsx, kolom SAP CODE & STORE NAME). strapStores = Plant Code toko yang dapat alokasi Strap Watch (item selected / thematic table only).",
+ "_note": "Data Rak Aksesoris Samsung. stores = daftar toko Samsung Store (sumber: Nama_dan_No_Telp_Store_Leader_Samsung Store.xlsx, kolom SAP CODE & STORE NAME). Item dengan \"selected\": true hanya berlaku untuk Plant Code di strapStores (toko alokasi); saat ini tidak ada item selected, semua aksesoris berlaku untuk semua toko.",
  "items": [
   {
    "key": "fold8-ultra-case",
@@ -186,7 +186,7 @@
    "types": [
     "1 model"
    ],
-   "selected": true
+   "selected": false
   },
   {
    "key": "strap-watch-ultra2",
@@ -195,7 +195,7 @@
    "types": [
     "1 model"
    ],
-   "selected": true
+   "selected": false
   },
   {
    "key": "acc-tab-s-series-book-cover",

@@ -34,12 +34,22 @@ function buildStores(j) {
   var lastBy = j.lastByStore || {};
   _rk.stores = Object.keys(RAK.cfg.stores).sort().map(function(code) {
     var st = RAK.cfg.stores[code], row = byCode[code] || null, apps = rakItemsFor(code);
-    var target = row ? Number(row.qtyTarget) : rakSum(apps.map(function(i) { return i.target; }));
-    var actual = row ? Number(row.qtyActual) : 0;
+    var target = rakSum(apps.map(function(i) { return i.target; }));
+    // Dihitung dari daftar aksesoris TERKINI (bukan total yang tersimpan saat submit), supaya toko yang
+    // submit sebelum daftar berubah (mis. aksesoris baru ditambah) tetap konsisten dengan halaman detail.
+    var actual = 0, gaps = 0, foto = 0;
+    if (row) {
+      var byKey = {};
+      (row.items || []).forEach(function(x) { byKey[x.key] = x; });
+      apps.forEach(function(it) {
+        var s = byKey[it.key], q = s ? Number(s.qty) || 0 : 0;
+        actual += q; if (q < it.target) gaps++; if (s && s.photoUrl) foto++;
+      });
+    }
     return {
       code: code, name: st.name, area: st.area || '-', row: row, sub: !!row, alloc: rakHasStrap(code),
       target: target, actual: actual, pct: row ? rakPct(actual, target) : 0,
-      gaps: row ? Number(row.itemsKurang) : 0, foto: row ? Number(row.fotoCount) : 0, frames: apps.length,
+      gaps: gaps, foto: foto, frames: apps.length,
       last: row ? row.lastUpdated : (lastBy[code] || '')
     };
   });
