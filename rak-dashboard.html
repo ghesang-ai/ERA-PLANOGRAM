@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rak Aksesoris Samsung — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/rak.css?v=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left"><div class="topbar-brand-pill"><span class="topbar-brand-full">ERAJAYA DIGITAL · REGION 5</span><span class="topbar-brand-short">ERAJAYA · R5</span></div></div>
+    <div class="topbar-right">
+      <span class="topbar-updated" id="topbar-updated">Last updated: —</span>
+      <button class="topbar-icon-btn" onclick="loadMonth(_rk.month)" title="Refresh Data">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <a href="reminder.html" class="topbar-upload-btn" style="background:#7c3aed;margin-right:6px">🤖 Reminder</a>
+      <a href="issues.html" class="topbar-upload-btn" style="background:#dc2626;margin-right:6px">⚠️ Issues</a>
+      <a href="rak-samsung.html" class="topbar-upload-btn">↑ Input Rak</a>
+    </div>
+  </div>
+
+  <!-- NAVIGASI MODUL -->
+  <div class="modbar"><div class="modbar-in">
+    <a class="mod-tab" href="index.html">📱 LDU &amp; Wallbay</a>
+    <a class="mod-tab active" href="rak-dashboard.html">🗄️ Rak Aksesoris <span class="new">BARU</span></a>
+  </div></div>
+  <div class="subbar"><div class="subbar-in">
+    <span class="subbar-label">Rak Aksesoris</span>
+    <a class="sub-pill active" href="rak-dashboard.html"><img src="assets/img/brands/samsung.svg" alt=""> Samsung</a>
+  </div></div>
+
+  <!-- BANNER -->
+  <div class="hero-banner-wrap"><div class="hero-banner">
+    <img src="assets/img/banner-default.jpg" alt="ERA-PLANOGRAM" class="hero-banner-img">
+  </div></div>
+
+  <div class="page-body">
+    <div class="rak-head">
+      <div class="rak-head-logo"><img src="assets/img/brands/samsung.svg" alt=""></div>
+      <div><h1>Rak Aksesoris Samsung</h1><p>Update Qty Display Acc &amp; foto rak aksesoris Samsung · Region 5</p></div>
+    </div>
+
+    <div class="summary-grid" id="kpis"><div class="summary-card sc--accent"><div class="state-cell" style="color:#fff"><span class="spinner"></span></div></div></div>
+
+    <div class="section-label">Compliance per Area</div>
+    <div class="brand-scroll" id="area-cards"></div>
+
+    <div class="charts-row charts-row--rak">
+      <div class="chart-card">
+        <div class="chart-card-header"><div>
+          <div class="chart-title">📦 Pemenuhan Qty Display per Aksesoris</div>
+          <div class="chart-sub">% model terpajang dari target, semua toko yang sudah submit</div>
+        </div></div>
+        <div class="acc-grid" id="acc-chart"></div>
+      </div>
+      <div id="donut-card"></div>
+    </div>
+
+    <div class="period-row" id="period-row"></div>
+
+    <div class="quick-filter-bar">
+      <button class="qf-pill qf-pill--all active" id="qf-all" onclick="setQf('')">🏪 Semua Toko <span class="qf-count" id="qc-all">—</span></button>
+      <button class="qf-pill qf-pill--submitted" id="qf-sub" onclick="setQf('sub')">✅ Sudah Submit Bulan Ini <span class="qf-count" id="qc-sub">—</span></button>
+      <button class="qf-pill qf-pill--pending" id="qf-pend" onclick="setQf('pend')">⏳ Belum Submit Bulan Ini <span class="qf-count" id="qc-pend">—</span></button>
+    </div>
+
+    <div class="table-toolbar">
+      <span class="table-toolbar-title">Data Rak Aksesoris Samsung</span>
+      <div class="table-search-wrap"><span class="table-search-icon">🔍</span><input type="text" id="q" placeholder="Cari toko atau Plant Code..." oninput="applyFilters()"></div>
+      <select class="toolbar-select" id="f-area" onchange="applyFilters()"><option value="">Semua Area</option></select>
+      <select class="toolbar-select" id="f-status" onchange="applyFilters()">
+        <option value="">Semua Kondisi Display</option>
+        <option value="full">Lengkap (semua item)</option>
+        <option value="gap">Ada item kurang</option>
+      </select>
+      <span class="filter-count" id="fc">—</span>
+      <button class="btn btn-ghost" onclick="exportRakExcel()" style="height:36px;font-size:12px">📥 Export</button>
+    </div>
+
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Plant Code</th><th>Nama Toko</th><th>Status</th><th>Qty Display Acc</th><th style="text-align:center">Item Kurang</th><th style="text-align:center">Foto</th><th>Last Submit</th><th>Aksi</th></tr></thead>
+      <tbody id="tb"><tr><td colspan="8" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="assets/js/config.js?v=3"></script>
+  <script src="assets/js/rak-common.js?v=1"></script>
+  <script src="assets/js/rak-dashboard.js?v=1"></script>
+</body>
+</html>

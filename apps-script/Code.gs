@@ -722,14 +722,32 @@ function saveRakSamsung(payload) {
 }
 
 // ── Baca data Rak Samsung. ?store=S041&month=2026-09 → 1 toko; tanpa store → semua toko di bulan itu ──
+// Respons juga memuat availableMonths (bulan yang ada datanya + bulan berjalan, terbaru dulu) dan
+// lastByStore (submit terakhir tiap toko di bulan mana pun, untuk toko yang belum submit bulan ini).
+function rakStr(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, 'Asia/Jakarta', 'yyyy-MM-dd HH:mm:ss');
+  return v ? v.toString() : '';
+}
 function getRakSamsung(params) {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(RAK_SHEET);
   var month = (params.month || '').toString().trim() || rakMonthNow();
   var store = (params.store || '').toString().trim().toUpperCase();
-  if (!sheet || sheet.getLastRow() < 2) return { status: 'success', month: month, data: store ? null : [] };
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { status: 'success', month: month, availableMonths: [rakMonthNow()], lastByStore: {}, data: store ? null : [] };
+  }
 
   var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, RAK_HEADERS.length).getValues();
+  var months = {}, lastByStore = {};
+  months[rakMonthNow()] = true;
+  rows.forEach(function(r) {
+    var m = rmdReadMonth(r[0]); if (!m) return;
+    months[m] = true;
+    var pc = String(r[1]).trim().toUpperCase(), lu = rakStr(r[4]);
+    if (pc && lu > (lastByStore[pc] || '')) lastByStore[pc] = lu;
+  });
+  var availableMonths = Object.keys(months).sort().reverse();
+
   var out = [];
   rows.forEach(function(r) {
     if (rmdReadMonth(r[0]) !== month) return;
@@ -738,11 +756,11 @@ function getRakSamsung(params) {
     try { items = JSON.parse(r[9] || '[]'); } catch (e) {}
     out.push({
       month: month, plantCode: String(r[1]).trim(), storeName: r[2],
-      firstSubmit: r[3] ? r[3].toString() : '', lastUpdated: r[4] ? r[4].toString() : '',
+      firstSubmit: rakStr(r[3]), lastUpdated: rakStr(r[4]),
       qtyActual: r[5], qtyTarget: r[6], itemsKurang: r[7], fotoCount: r[8], items: items
     });
   });
-  return { status: 'success', month: month, data: store ? (out[0] || null) : out };
+  return { status: 'success', month: month, availableMonths: availableMonths, lastByStore: lastByStore, data: store ? (out[0] || null) : out };
 }
 
 // ── doPost ──

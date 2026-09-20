@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Rak Aksesoris Samsung — ERA-PLANOGRAM</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/rak.css?v=1">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <a class="topbar-back-btn" href="rak-dashboard.html">← Rak Aksesoris Samsung</a>
+    <div class="topbar-brand-pill">ERAJAYA DIGITAL · REGION 5</div>
+    <div class="topbar-right">
+      <a class="topbar-upload-btn" href="rak-samsung.html" style="background:#6366f1;margin-right:6px">Input Rak</a>
+      <a class="topbar-upload-btn" style="background:#16a34a;cursor:pointer" onclick="exportStoreRak()">📥 Export</a>
+    </div>
+  </div>
+
+  <div class="page-body" id="view">
+    <div class="state-cell"><span class="spinner"></span>Memuat data...</div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="assets/js/config.js?v=3"></script>
+  <script src="assets/js/rak-common.js?v=1"></script>
+  <script src="assets/js/rak-detail.js?v=1"></script>
+</body>
+</html>
