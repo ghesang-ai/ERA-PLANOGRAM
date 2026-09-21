@@ -102,6 +102,18 @@ tr.na-row td { color: var(--gray-400); background: #fafbfc; }
 }
 @media (max-width: 760px) { .cg-frame { width: calc((100% - 3 * 12px) / 4); } .cg-label { font-size: 9.5px; } }
 
+
+/* ── Tombol Screenshot & Export PDF (gaya ERA-VIS) ── */
+.btn-shot, .btn-pdf {
+  height: 34px; padding: 0 16px; border: 0; border-radius: 9px; cursor: pointer;
+  font: 700 12.5px var(--font); color: #fff; display: inline-flex; align-items: center; gap: 6px;
+  transition: opacity .15s, transform .15s; box-shadow: 0 2px 8px rgba(0,0,0,.14);
+}
+.btn-shot { background: #059669; }
+.btn-pdf  { background: #2563eb; }
+.btn-shot:hover, .btn-pdf:hover { opacity: .9; transform: translateY(-1px); }
+.btn-shot:disabled, .btn-pdf:disabled { opacity: .55; cursor: wait; transform: none; }
+
 /* ── Cetak / simpan PDF: hanya collage ── */
 @media print {
   .topbar, .modbar, .subbar, .no-print, .sd-bar, .sd-warn, #toast { display: none !important; }
