@@ -166,6 +166,10 @@
       <button class="qf-pill qf-pill--pending" id="qf-pending" onclick="setQuickFilter('pending_this_month')">
         ⏳ Belum Submit Bulan Ini <span class="qf-count" id="qf-count-pending">—</span>
       </button>
+      <button class="qf-pill qf-pill--nofoto" id="qf-nofoto" onclick="setQuickFilter('nofoto_this_month')">
+        📷 Submit tapi Belum Ada Foto <span class="qf-count" id="qf-count-nofoto">—</span>
+      </button>
+      <a class="qf-remind" href="reminder.html?modul=foto-ldu" title="Kirim reminder WhatsApp ke toko yang belum upload foto">🤖 Kirim Reminder Foto</a>
     </div>
 
     <!-- TABLE TOOLBAR -->
@@ -216,11 +220,11 @@
           <tr>
             <th>Plant Code</th><th>Nama Toko</th><th>Brand</th><th>Status</th>
             <th>Apple</th><th>Samsung</th><th>Oppo</th><th>Xiaomi</th><th>Huawei</th>
-            <th>Total LDU</th><th>Last Submit</th><th>Aksi</th>
+            <th>Total LDU</th><th>Foto</th><th>Last Submit</th><th>Aksi</th>
           </tr>
         </thead>
         <tbody id="table-body">
-          <tr><td colspan="12" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr>
+          <tr><td colspan="13" class="state-cell"><span class="spinner"></span>Memuat data...</td></tr>
         </tbody>
       </table>
     </div>
@@ -302,7 +306,7 @@
   </footer>
 
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/export.js"></script>
-  <script src="assets/js/main.js"></script>
+  <script src="assets/js/export.js?v=3"></script>
+  <script src="assets/js/main.js?v=4"></script>
 </body>
 </html>

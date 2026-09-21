@@ -105,6 +105,21 @@
       <button class="btn-save" id="btn-rak-tpl" onclick="saveRakTemplates()">Simpan Template Rak</button>
       <div id="rak-tpl-msg"></div>
     </div>
+    <!-- TEMPLATE FOTO LDU & WALLBAY -->
+    <div class="card" id="foto-card">
+      <div class="card-h">📷 Template Pesan — Foto LDU &amp; Wallbay <span class="badge-pill" style="background:#ede9fe;color:#6d28d9">BARU</span></div>
+      <div class="card-d">Dipakai Auto Reminder tab <b>Foto LDU &amp; Wallbay</b> (toko yang sudah submit LDU tetapi belum upload foto). Placeholder sama: <code>{nama_toko}</code> <code>{kode_toko}</code> <code>{store_leader}</code> <code>{city}</code> <code>{region}</code> <code>{campaign}</code> <code>{level}</code> <code>{periode}</code> (periode tampil mis. <i>September 2026</i>).</div>
+      <label class="fld">Nama Campaign</label>
+      <input type="text" class="txt" id="foto-campaign-name" placeholder="Foto LDU &amp; Wallbay">
+      <label class="fld">Level 1 — Gentle (reminder ke-1..2)</label>
+      <textarea class="txt" id="foto-tpl-l1"></textarea>
+      <label class="fld">Level 2 — Urgent (reminder ke-3..4)</label>
+      <textarea class="txt" id="foto-tpl-l2"></textarea>
+      <label class="fld">Level 3 — Escalate (reminder ke-5+)</label>
+      <textarea class="txt" id="foto-tpl-l3"></textarea>
+      <button class="btn-save" id="btn-foto-tpl" onclick="saveFotoTemplates()">Simpan Template Foto</button>
+      <div id="foto-tpl-msg"></div>
+    </div>
     <!-- MASTER TOKO -->
     <div class="card">
       <div class="card-h">🗂️ Master Toko (Referensi Semua Toko)</div>
@@ -159,6 +174,6 @@
   </div>
 
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/reminder-settings.js?v=4"></script>
+  <script src="assets/js/reminder-settings.js?v=5"></script>
 </body>
 </html>

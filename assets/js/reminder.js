@@ -15,12 +15,16 @@ var _sending   = false;
 var SEND_BATCH = 15;          // plant code per request (hindari timeout Apps Script)
 
 // ── Modul: 'ldu' (LDU & Wallbay) atau 'rak-samsung' (Rak Aksesoris Samsung) ──
-var _mod    = 'ldu';
+var _mod    = 'ldu';        // 'ldu' | 'foto-ldu' | 'rak-samsung'
 var _rakCfg = null;          // assets/data/rak-samsung.json (25 toko Samsung)
 var RAK_OLD_MSG = 'Apps Script belum diperbarui. Tempel Code.gs terbaru di Extensions → Apps Script, lalu Deploy → Manage deployments → New version.';
 var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
-function isRak() { return _mod === 'rak-samsung'; }
+function isRak()  { return _mod === 'rak-samsung'; }
+function isFoto() { return _mod === 'foto-ldu'; }
+// Pesan Rak & Foto menampilkan periode sebagai nama bulan ("September 2026"); LDU tetap "2026-09"
+function usesMonthName() { return isRak() || isFoto(); }
+var FOTO_OLD_MSG = RAK_OLD_MSG;
 function monthNameId(m) {
   var p = String(m || '').split('-');
   return p.length === 2 ? MONTHS_ID[parseInt(p[1], 10) - 1] + ' ' + p[0] : String(m || '');
@@ -28,18 +32,23 @@ function monthNameId(m) {
 
 function setModule(m, silent) {
   if (_sending) return;
-  _mod = m === 'rak-samsung' ? 'rak-samsung' : 'ldu';
-  document.getElementById('mod-ldu').classList.toggle('active', !isRak());
+  _mod = m === 'rak-samsung' ? 'rak-samsung' : m === 'foto-ldu' ? 'foto-ldu' : 'ldu';
+  document.getElementById('mod-ldu').classList.toggle('active', _mod === 'ldu');
+  document.getElementById('mod-foto').classList.toggle('active', isFoto());
   document.getElementById('mod-rak').classList.toggle('active', isRak());
-  document.getElementById('rmd-what').textContent = isRak() ? 'Status submit Rak Aksesoris Samsung' : 'Status submit checklist LDU';
+  document.getElementById('rmd-what').textContent = isRak() ? 'Status submit Rak Aksesoris Samsung'
+    : isFoto() ? 'Status upload Foto LDU & Wallbay (toko yang sudah submit LDU)' : 'Status submit checklist LDU';
   document.getElementById('rmd-back').href = isRak() ? 'rak-dashboard.html' : 'index.html';
   var brand = document.getElementById('rmd-filter-brand');
   brand.style.display = isRak() ? 'none' : '';
   if (isRak()) brand.value = '';
-  document.getElementById('rmd-filter-submit').value = 'belum';
+  var fs = document.getElementById('rmd-filter-submit');
+  fs.options[0].textContent = isFoto() ? '❌ Belum Upload Foto' : '❌ Belum Submit';
+  fs.options[1].textContent = isFoto() ? '✅ Sudah Upload Foto' : '✅ Sudah Submit';
+  fs.value = 'belum';
   document.getElementById('rmd-result-box').innerHTML = '';
   var u = new URL(location.href);
-  if (isRak()) u.searchParams.set('modul', 'rak-samsung'); else u.searchParams.delete('modul');
+  if (_mod !== 'ldu') u.searchParams.set('modul', _mod); else u.searchParams.delete('modul');
   history.replaceState(null, '', u.toString());
   if (!silent) loadReminderData();
 }
@@ -57,7 +66,7 @@ function fmtPhone(p) {
 }
 
 // ── Load ──
-async function fetchLduData() {
+async function fetchLduData(campaign) {
   if (!Object.keys(_areas).length) {
     try {
       var ares = await fetch('assets/data/store-areas.json');
@@ -66,8 +75,10 @@ async function fetchLduData() {
   }
   var url = new URL(CONFIG.API_URL);
   url.searchParams.set('action', 'getReminderData');
+  if (campaign) url.searchParams.set('campaign', campaign);
   var json = await (await fetch(url.toString())).json();
   if (json.status !== 'success') throw new Error(json.message || 'Gagal memuat data');
+  if (campaign && json.campaign !== campaign) throw new Error(RAK_OLD_MSG);   // Apps Script lama mengabaikan campaign
   json.data = (json.data || []).map(function (r) {
     if (!r.city && _areas[r.plantCode]) r.city = _areas[r.plantCode];
     return r;
@@ -112,7 +123,7 @@ async function loadReminderData() {
   document.getElementById('rmd-check-all').checked = false;
 
   try {
-    var json = isRak() ? await fetchRakData() : await fetchLduData();
+    var json = isRak() ? await fetchRakData() : await fetchLduData(isFoto() ? 'foto_ldu' : '');
 
     _rows      = json.data || [];
     _templates = json.templates || _templates;
@@ -176,22 +187,23 @@ function renderRows() {
   var list = currentFiltered();
   var nBelum = list.filter(function (r) { return !r.submitted; }).length;
   var nSudah = list.length - nBelum;
-  document.getElementById('rmd-count').textContent =
-    '❌ ' + nBelum + ' belum submit · ✅ ' + nSudah + ' sudah submit' +
-    (list.length !== _rows.length ? '  (total ' + _rows.length + ')' : '');
+  document.getElementById('rmd-count').textContent = isFoto()
+    ? '❌ ' + nBelum + ' belum upload foto · ✅ ' + nSudah + ' sudah upload foto' + (list.length !== _rows.length ? '  (total ' + _rows.length + ')' : '')
+    : '❌ ' + nBelum + ' belum submit · ✅ ' + nSudah + ' sudah submit' + (list.length !== _rows.length ? '  (total ' + _rows.length + ')' : '');
 
   var tbody = document.getElementById('rmd-tbody');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-icon">✅</div>Tidak ada toko yang cocok filter.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-icon">✅</div>' +
+      (isFoto() && !_rows.length ? 'Belum ada toko yang sudah submit LDU periode ini.' : 'Tidak ada toko yang cocok filter.') + '</td></tr>';
     return;
   }
 
   tbody.innerHTML = list.map(function (r) {
     var lvlCls = 'lvl-' + r.level;
     var lvlTxt = r.level === 1 ? 'Lv.1 Gentle' : r.level === 2 ? 'Lv.2 Urgent' : 'Lv.3 Escalate';
-    var stBadge = r.submitted
-      ? '<span class="st-badge st-sudah">Sudah Submit</span>'
-      : '<span class="st-badge st-belum">Belum Submit</span>';
+    var stBadge = isFoto()
+      ? (r.submitted ? '<span class="st-badge st-sudah">📷 ' + (r.fotoCount || 0) + ' foto</span>' : '<span class="st-badge st-belum">Belum Ada Foto</span>')
+      : (r.submitted ? '<span class="st-badge st-sudah">Sudah Submit</span>' : '<span class="st-badge st-belum">Belum Submit</span>');
     var phoneCell = r.phoneOk
       ? '<span class="phone-ok">' + escHtml(fmtPhone(r.phone)) + '</span>'
       : '<span class="phone-missing">Tidak di DB</span>';
@@ -257,9 +269,9 @@ function renderPreview() {
     store_leader: sample.storeLeader || 'Store Leader',
     city: sample.city || '-',
     region: sample.region || 'Region 5',
-    campaign: _campaign || (isRak() ? 'Rak Aksesoris Samsung' : 'Compliance LDU'),
+    campaign: _campaign || (isRak() ? 'Rak Aksesoris Samsung' : isFoto() ? 'Foto LDU & Wallbay' : 'Compliance LDU'),
     level: 'Level ' + _previewLvl,
-    periode: isRak() ? monthNameId(_period) : (_period || '')
+    periode: usesMonthName() ? monthNameId(_period) : (_period || '')
   });
   document.getElementById('rmd-msg').textContent = msg || '(template kosong — atur di Settings)';
 }
@@ -275,7 +287,7 @@ function sendAllFiltered() {
   var pcs = currentFiltered()
     .filter(function (r) { return r.phoneOk && !r.submitted; })
     .map(function (r) { return r.plantCode; });
-  if (!pcs.length) { alert('Tidak ada toko "Belum Submit" dengan nomor HP pada filter ini.'); return; }
+  if (!pcs.length) { alert(isFoto() ? 'Tidak ada toko "Belum Ada Foto" dengan nomor HP pada filter ini.' : 'Tidak ada toko "Belum Submit" dengan nomor HP pada filter ini.'); return; }
   confirmAndSend(pcs, 'Scan & Kirim Semua');
 }
 
@@ -303,7 +315,9 @@ async function doSend(pcs) {
       var res = await fetch(CONFIG.API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(isRak() ? { action: 'sendReminder', campaign: 'rak_samsung', plantCodes: chunk } : { action: 'sendReminder', plantCodes: chunk })
+        body: JSON.stringify(isRak() ? { action: 'sendReminder', campaign: 'rak_samsung', plantCodes: chunk }
+                           : isFoto() ? { action: 'sendReminder', campaign: 'foto_ldu', plantCodes: chunk }
+                           : { action: 'sendReminder', plantCodes: chunk })
       });
       var json = await res.json();
       if (json.status !== 'success') throw new Error(json.message || 'Gagal mengirim');
@@ -342,6 +356,6 @@ function renderResult(results) {
 
 document.addEventListener('DOMContentLoaded', function () {
   var m = new URLSearchParams(location.search).get('modul');
-  setModule(m === 'rak-samsung' ? 'rak-samsung' : 'ldu', true);
+  setModule(m === 'rak-samsung' || m === 'foto-ldu' ? m : 'ldu', true);
   loadReminderData();
 });

@@ -1470,6 +1470,9 @@ function seedAgustus2026() {
 // Link form Store Leader untuk Rak Aksesoris Samsung (dipakai di template pesan default)
 const RAK_SUBMIT_URL = 'https://era-planogram.netlify.app/rak-samsung';
 
+// Link form submit LDU & Wallbay (Step 3 = Foto) untuk template reminder "belum upload foto"
+const LDU_SUBMIT_URL = 'https://era-planogram.netlify.app/submit';
+
 const RMD_LEADER_SHEET = 'STORE_LEADER';
 const RMD_CLOSED_SHEET = 'CLOSED_STORE';
 const RMD_LOG_SHEET    = 'REMINDER_LOG';
@@ -1497,6 +1500,21 @@ function rmdDefaultConfig() {
       'Checklist LDU/Planogram periode {periode} masih BELUM submit setelah beberapa kali reminder. ' +
       'Isu ini dieskalasi ke Area Manager. Mohon submit segera.',
     campaign_name: 'Compliance LDU',
+    foto_campaign_name: 'Foto LDU & Wallbay',
+    foto_template_l1:
+      'Halo {store_leader} — {nama_toko} ({kode_toko})\n\n' +
+      'Reminder dari Tim VMD: checklist LDU periode {periode} sudah masuk 👍 tetapi *Foto LDU & Wallbay belum diupload*.\n\n' +
+      'Mohon lengkapi lewat link berikut: buka, masukkan Plant Code, centang minimal 1 device, lalu upload foto di *Step 3 – Foto LDU & Wallbay* dan kirim.\n' + LDU_SUBMIT_URL + '\n\n' +
+      'Foto diambil langsung dari kamera dan GPS aktif. Terima kasih 🙏',
+    foto_template_l2:
+      '*URGENT — {nama_toko} ({kode_toko})*\n\n' +
+      'Store Anda *BELUM* upload Foto LDU & Wallbay periode {periode}. Mohon segera lengkapi hari ini:\n' + LDU_SUBMIT_URL + '\n\n' +
+      'Abaikan pesan ini jika sudah upload.',
+    foto_template_l3:
+      '*ESCALATION NOTICE*\n' +
+      'Store *{nama_toko}* ({kode_toko}) — {city}\n\n' +
+      'Foto LDU & Wallbay periode {periode} masih BELUM diupload setelah beberapa kali reminder. ' +
+      'Isu ini dieskalasi ke Area Manager. Mohon upload segera:\n' + LDU_SUBMIT_URL,
     rak_campaign_name: 'Rak Aksesoris Samsung',
     rak_template_l1:
       'Halo {store_leader} — {nama_toko} ({kode_toko})\n\n' +
@@ -1742,6 +1760,7 @@ function rmdStoreUniverse(ss, cfg, localRows) {
 // ── GET: data untuk halaman Auto Reminder ──
 function getReminderData(params) {
   if ((params.campaign || '') === 'rak_samsung') return getRakReminderData(params);
+  if ((params.campaign || '') === 'foto_ldu')    return getFotoReminderData(params);
   var ss  = SpreadsheetApp.getActiveSpreadsheet();
   var cfg = rmdGetConfig(ss);
   var sub = rmdSubmittedSet();
@@ -1816,6 +1835,7 @@ function getReminderSettings() {
     templates: { l1: cfg.template_l1, l2: cfg.template_l2, l3: cfg.template_l3 },
     campaignName: cfg.campaign_name,
     rak: { campaignName: cfg.rak_campaign_name, templates: { l1: cfg.rak_template_l1, l2: cfg.rak_template_l2, l3: cfg.rak_template_l3 } },
+    foto: { campaignName: cfg.foto_campaign_name, templates: { l1: cfg.foto_template_l1, l2: cfg.foto_template_l2, l3: cfg.foto_template_l3 } },
     master: { ssId: cfg.master_ss_id, sheetName: cfg.master_sheet_name, headerRow: cfg.master_header_row },
     hasToken: rmdHasToken(),
     tokenTail: rmdTokenTail(),
@@ -1870,6 +1890,12 @@ function saveReminderSettings(body) {
   if (rt.l2 !== undefined) pairs.rak_template_l2 = rt.l2;
   if (rt.l3 !== undefined) pairs.rak_template_l3 = rt.l3;
   if (rk.campaignName !== undefined) pairs.rak_campaign_name = rk.campaignName;
+  var ft = body.foto || {};
+  var ftt = ft.templates || {};
+  if (ftt.l1 !== undefined) pairs.foto_template_l1 = ftt.l1;
+  if (ftt.l2 !== undefined) pairs.foto_template_l2 = ftt.l2;
+  if (ftt.l3 !== undefined) pairs.foto_template_l3 = ftt.l3;
+  if (ft.campaignName !== undefined) pairs.foto_campaign_name = ft.campaignName;
   if (m.ssId       !== undefined) pairs.master_ss_id      = (m.ssId || '').toString().trim();
   if (m.sheetName  !== undefined) pairs.master_sheet_name = (m.sheetName || '').toString().trim();
   if (m.headerRow  !== undefined) pairs.master_header_row = (m.headerRow || '').toString().trim();
@@ -1961,6 +1987,7 @@ function saveClosedStores(body) {
 // ── POST: kirim reminder WhatsApp lewat Fonnte ──
 function sendReminder(body) {
   if ((body.campaign || '') === 'rak_samsung') return sendRakReminder(body);
+  if ((body.campaign || '') === 'foto_ldu')    return sendFotoReminder(body);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var token = rmdToken();
   if (!token) return { status: 'error', message: 'Token Fonnte belum diset. Buka Settings dulu.' };
@@ -2157,6 +2184,135 @@ function sendRakReminder(body) {
     if (ok) counts[pc] = cnt + 1;
     logSheet.appendRow([rmdNow(), key, pc, storeName, 'Samsung Store', ld.city || '', rmdLevelLabel(level), phone, msg, ok ? 'sent' : 'failed', detail]);
     results.push({ plantCode: pc, storeName: storeName, level: level, phone: phone, ok: ok, detail: detail });
+  });
+
+  var okN = results.filter(function(r) { return r.ok; }).length;
+  return { status: 'success', sent: okN, failed: results.length - okN, results: results };
+}
+
+// ============================================================
+// AUTO REMINDER — FOTO LDU & WALLBAY (toko sudah submit LDU bulan ini tetapi belum ada satu pun foto)
+// Universe & status submit memakai jalur yang sama dengan reminder LDU (rmdSubmittedSet). Foto dihitung dari
+// kolom <Brand>_LDU_Foto / _LDU2_Foto / _Wallbay_Foto / _Wallbay2_Foto pada baris periode aktif.
+// Hitungan reminder & level dipisah lewat REMINDER_LOG.period = 'foto-ldu:yyyy-MM'.
+// ============================================================
+function fotoPeriodKey(month) { return 'foto-ldu:' + month; }
+var FOTO_COL_RE_GS = /_(LDU2?|Wallbay2?)_Foto$/;
+
+// { activeMonth, submitted:{pc:true}, fotoBy:{pc:jumlah foto}, rows } — foto hanya dihitung utk toko yang submit periode aktif
+function rmdFotoState() {
+  var sub = rmdSubmittedSet();
+  var fotoBy = {};
+  sub.rows.forEach(function(r) {
+    var pc = (r['Plant Code'] || '').toString().toUpperCase().trim();
+    if (!pc || !sub.submitted[pc]) return;
+    var n = 0;
+    Object.keys(r).forEach(function(k) { if (FOTO_COL_RE_GS.test(k) && r[k]) n++; });
+    fotoBy[pc] = n;
+  });
+  sub.fotoBy = fotoBy;
+  return sub;
+}
+
+// Kirim 1 pesan lewat Fonnte → { ok, detail }
+function rmdFonnteSend(token, phone, msg) {
+  var ok = false, detail = '';
+  try {
+    var resp = UrlFetchApp.fetch(FONNTE_ENDPOINT, {
+      method: 'post', muteHttpExceptions: true, headers: { 'Authorization': token },
+      payload: { target: phone, message: msg, countryCode: '62' }
+    });
+    var code = resp.getResponseCode(), txt = resp.getContentText(), pj = {};
+    try { pj = JSON.parse(txt); } catch (e) {}
+    ok = (code === 200) && (pj.status === true || pj.status === 'true' || (pj.status === undefined));
+    detail = (pj.reason || pj.detail || (pj.id ? 'id ' + pj.id : '') || txt || ('HTTP ' + code)).toString().slice(0, 300);
+  } catch (err) { detail = 'Fetch error: ' + err.message; }
+  return { ok: ok, detail: detail };
+}
+
+// ── GET: ?action=getReminderData&campaign=foto_ldu ──
+// data[] = toko yang SUDAH submit LDU periode ini; submitted:true berarti sudah ada foto, false = belum upload foto.
+function getFotoReminderData(params) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var cfg = rmdGetConfig(ss);
+  var st = rmdFotoState();
+  var universe = rmdStoreUniverse(ss, cfg, st.rows);
+  var closed = rmdClosedSet(ss), leaders = rmdLeaderMap(ss);
+  var counts = rmdSentCounts(ss, fotoPeriodKey(st.activeMonth));
+  var fCity = (params.city || '').toString().trim().toLowerCase();
+  var fBrand = (params.brand || '').toString().trim().toLowerCase();
+
+  var data = [], pending = 0, done = 0;
+  universe.forEach(function(s) {
+    var pc = s.plantCode;
+    if (closed[pc] || !st.submitted[pc]) return;          // toko tutup / belum submit LDU: bukan bagian kampanye foto
+    var ld = leaders[pc] || {};
+    var storeName = ld.storeName || s.storeName || pc;
+    var city = ld.city || s.city || '';
+    var brandToko = detectBrandTokoGS(storeName);
+    if (fCity && city.toLowerCase() !== fCity) return;
+    if (fBrand && brandToko.toLowerCase() !== fBrand) return;
+    var nFoto = st.fotoBy[pc] || 0, hasFoto = nFoto > 0;
+    if (hasFoto) done++; else pending++;
+    var phone = rmdNormalizePhone(ld.phone || '');
+    var cnt = counts[pc] || 0;
+    data.push({
+      plantCode: pc, storeName: storeName, brandToko: brandToko, city: city, region: ld.region || s.region || '',
+      storeLeader: ld.storeLeader || '', phone: phone, phoneOk: !!phone,
+      submitted: hasFoto, fotoCount: nFoto, reminderCount: cnt, level: rmdLevelFromCount(cnt)
+    });
+  });
+  data.sort(function(a, b) {
+    if (a.submitted !== b.submitted) return a.submitted ? 1 : -1;
+    return (b.level - a.level) || (a.plantCode < b.plantCode ? -1 : 1);
+  });
+  return {
+    status: 'success', campaign: 'foto_ldu', activeMonth: st.activeMonth, campaignName: cfg.foto_campaign_name,
+    hasToken: rmdHasToken(), templates: { l1: cfg.foto_template_l1, l2: cfg.foto_template_l2, l3: cfg.foto_template_l3 },
+    count: data.length, pendingCount: pending, submittedCount: done, data: data
+  };
+}
+
+// ── POST: { action:'sendReminder', campaign:'foto_ldu', plantCodes:[...] } ──
+function sendFotoReminder(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var token = rmdToken();
+  if (!token) return { status: 'error', message: 'Token Fonnte belum diset. Buka Settings dulu.' };
+
+  var cfg = rmdGetConfig(ss);
+  var st = rmdFotoState();
+  var universe = rmdStoreUniverse(ss, cfg, st.rows);
+  var uMap = {};
+  universe.forEach(function(s) { uMap[s.plantCode] = s; });
+  var leaders = rmdLeaderMap(ss), closed = rmdClosedSet(ss);
+  var key = fotoPeriodKey(st.activeMonth);
+  var counts = rmdSentCounts(ss, key);
+  var logSheet = getOrCreateSheetWithHeaders(ss, RMD_LOG_SHEET, RMD_LOG_HEADERS);
+
+  var results = [];
+  rakCodesFromParam(body.plantCodes).forEach(function(pc) {
+    var s = uMap[pc];
+    if (!s)                { results.push({ plantCode: pc, ok: false, detail: 'Toko tidak ada di daftar' }); return; }
+    if (!st.submitted[pc]) { results.push({ plantCode: pc, ok: false, detail: 'Belum submit LDU periode ini — gunakan reminder LDU' }); return; }
+    if ((st.fotoBy[pc] || 0) > 0) { results.push({ plantCode: pc, ok: false, detail: 'Sudah ada foto periode ini' }); return; }
+    if (closed[pc])        { results.push({ plantCode: pc, ok: false, detail: 'Toko tutup' }); return; }
+
+    var ld = leaders[pc] || {};
+    var storeName = ld.storeName || s.storeName || pc;
+    var phone = rmdNormalizePhone(ld.phone || '');
+    if (!phone) { results.push({ plantCode: pc, storeName: storeName, ok: false, detail: 'Nomor HP tidak ada / invalid' }); return; }
+
+    var cnt = counts[pc] || 0, level = rmdLevelFromCount(cnt);
+    var tpl = level === 1 ? cfg.foto_template_l1 : level === 2 ? cfg.foto_template_l2 : cfg.foto_template_l3;
+    var city = ld.city || s.city || '';
+    var msg = rmdRenderTemplate(tpl, {
+      nama_toko: storeName, kode_toko: pc, store_leader: ld.storeLeader || '', city: city, region: ld.region || s.region || '',
+      campaign: cfg.foto_campaign_name || '', level: rmdLevelLabel(level), periode: rakMonthName(st.activeMonth)
+    });
+    var r = rmdFonnteSend(token, phone, msg);
+    if (r.ok) counts[pc] = cnt + 1;
+    logSheet.appendRow([rmdNow(), key, pc, storeName, detectBrandTokoGS(storeName), city, rmdLevelLabel(level), phone, msg, r.ok ? 'sent' : 'failed', r.detail]);
+    results.push({ plantCode: pc, storeName: storeName, level: level, phone: phone, ok: r.ok, detail: r.detail });
   });
 
   var okN = results.filter(function(r) { return r.ok; }).length;

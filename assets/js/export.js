@@ -1,6 +1,7 @@
 // assets/js/export.js
 // Requires: SheetJS (xlsx) loaded via CDN, CONFIG dari config.js
 
+// opts.extraFn (opsional): function(row) -> object kolom tambahan (mis. Jumlah Foto / Status Foto).
 // opts.statusFn (opsional): function(row) -> teks kolom "Status". Dipakai export dashboard supaya
 // status di Excel sama dengan badge di tabel (per periode), bukan kolom Status mentah dari sheet.
 function exportToExcel(data, filename, opts) {
@@ -24,6 +25,7 @@ function exportToExcel(data, filename, opts) {
       obj[col] = parseInt(row[col]) || 0;
     });
     obj['TOTAL LDU'] = CONFIG.calcTotalLDU(row);
+    if (opts.extraFn) Object.assign(obj, opts.extraFn(row));
     return obj;
   });
 
@@ -68,6 +70,7 @@ function exportFilteredExcel() {
   if (typeof _activeQuickFilter !== 'undefined') {
     if (_activeQuickFilter === 'pending_this_month')   label = 'BELUM-SUBMIT';
     if (_activeQuickFilter === 'submitted_this_month') label = 'SUDAH-SUBMIT';
+    if (_activeQuickFilter === 'nofoto_this_month')    label = 'SUBMIT-BELUM-ADA-FOTO';
   }
 
   // Kolom Status memakai definisi yang sama dengan badge tabel & tab quick-filter
@@ -79,7 +82,12 @@ function exportFilteredExcel() {
   if (periodLabel) label += '-' + periodLabel.toUpperCase().replace(/\s+/g, '-');
 
   // Tanggal file ditambahkan otomatis oleh exportToExcel
-  exportToExcel(window._eraFilteredData || [], 'ERA-PLANOGRAM-' + label, { statusFn: statusFn });
+  // Kolom foto: jumlah foto periode ini + status (toko yang belum submit periode ini tidak punya foto periode ini)
+  var extraFn = function(row) {
+    var sub = submittedThisMonth(row), n = rowFotoCount(row);
+    return { 'Jumlah Foto': sub ? n : '', 'Status Foto': !sub ? 'Belum submit periode ini' : (n > 0 ? 'Sudah ada foto' : 'Belum ada foto') };
+  };
+  exportToExcel(window._eraFilteredData || [], 'ERA-PLANOGRAM-' + label, { statusFn: statusFn, extraFn: extraFn });
 }
 
 function exportStoreExcel(plantCode, storeName) {

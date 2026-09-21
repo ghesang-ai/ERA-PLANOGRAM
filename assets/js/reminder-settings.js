@@ -3,6 +3,7 @@
 var _slRows = [];
 var _csRows = [];
 var _slExisting = 0;        // jumlah Store Leader tersimpan di database
+var _backendFoto = false;   // true bila Apps Script sudah mendukung template Foto LDU & Wallbay
 var _backendNew = false;    // true bila Apps Script sudah versi baru (mendukung mode 'tambahkan' & template Rak)
 
 function esc(s) {
@@ -52,6 +53,13 @@ async function loadSettings() {
     el('rak-tpl-l2').value = rt.l2 || '';
     el('rak-tpl-l3').value = rt.l3 || '';
     el('rak-campaign-name').value = rk.campaignName || '';
+    _backendFoto = !!json.foto;
+    var ft = json.foto || {}, ftt = ft.templates || {};
+    el('foto-tpl-l1').value = ftt.l1 || '';
+    el('foto-tpl-l2').value = ftt.l2 || '';
+    el('foto-tpl-l3').value = ftt.l3 || '';
+    el('foto-campaign-name').value = ft.campaignName || '';
+    if (!_backendFoto) setMsg('foto-tpl-msg', 'Apps Script belum diperbarui — template Foto belum bisa disimpan. Deploy Code.gs terbaru dulu.', false);
     if (!_backendNew) setMsg('rak-tpl-msg', 'Apps Script belum diperbarui — template Rak belum bisa disimpan. Deploy Code.gs terbaru dulu.', false);
     el('sl-count').textContent = (json.storeLeaderCount || 0) + ' toko';
     el('cs-count').textContent = (json.closedCount || 0) + ' toko';
@@ -112,6 +120,20 @@ async function saveRakTemplates() {
     setMsg('rak-tpl-msg', 'Template Rak tersimpan.', true);
   } catch (err) { setMsg('rak-tpl-msg', err.message, false); }
   el('btn-rak-tpl').disabled = false;
+}
+
+async function saveFotoTemplates() {
+  if (!_backendFoto) { setMsg('foto-tpl-msg', 'Apps Script belum diperbarui — deploy Code.gs terbaru dulu.', false); return; }
+  el('btn-foto-tpl').disabled = true;
+  try {
+    var json = await post({
+      action: 'saveReminderSettings',
+      foto: { campaignName: el('foto-campaign-name').value, templates: { l1: el('foto-tpl-l1').value, l2: el('foto-tpl-l2').value, l3: el('foto-tpl-l3').value } }
+    });
+    if (json.status !== 'success') throw new Error(json.message || 'Gagal menyimpan');
+    setMsg('foto-tpl-msg', 'Template Foto tersimpan.', true);
+  } catch (err) { setMsg('foto-tpl-msg', err.message, false); }
+  el('btn-foto-tpl').disabled = false;
 }
 
 // ── Master Toko ──

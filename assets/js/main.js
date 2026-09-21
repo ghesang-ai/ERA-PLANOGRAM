@@ -164,7 +164,7 @@ function switchMonth(month) {
 }
 
 function getColspan() {
-  return window._eraViewMode === 'full' ? (4 + CONFIG.BRAND_LDU_COLUMNS.length + 3) : 12;
+  return window._eraViewMode === 'full' ? (4 + CONFIG.BRAND_LDU_COLUMNS.length + 4) : 13;
 }
 function showLoading() {
   var tbody = document.getElementById('table-body');
@@ -418,7 +418,7 @@ function renderTableHead() {
   var brandCols = cols.map(function(c) {
     return '<th' + (window._eraViewMode==='full'?' class="col-brand-full"':'') + '>' + escHtml(c) + '</th>';
   }).join('');
-  thead.innerHTML = '<tr>' + fixed + brandCols + '<th>Total LDU</th><th>Last Submit</th><th>Aksi</th></tr>';
+  thead.innerHTML = '<tr>' + fixed + brandCols + '<th>Total LDU</th><th>Foto</th><th>Last Submit</th><th>Aksi</th></tr>';
 }
 
 function renderTable(data) {
@@ -469,14 +469,34 @@ function renderTable(data) {
       '<td>' + periodBadge + '</td>' +
       brandCols +
       '<td class="col-total">' + (totalLDU > 0 ? totalLDU : '—') + '</td>' +
+      '<td>' + fotoCellHtml(row) + '</td>' +
       '<td style="color:var(--gray-600);font-size:12px">' + lastSubmit + '</td>' +
       '<td><a href="store-detail.html?code=' + encodeURIComponent(row['Plant Code']) + (_activeMonth ? '&month=' + encodeURIComponent(_activeMonth) : '') + '" class="btn btn-xs">Detail</a></td>' +
     '</tr>';
   }).join('');
 }
 
-// 'submitted_this_month' | 'pending_this_month' | ''
+// 'submitted_this_month' | 'pending_this_month' | 'nofoto_this_month' | ''
 var _activeQuickFilter = '';
+
+// ── Foto LDU & Wallbay ──
+// Kolom foto di sheet: <Brand>_LDU_Foto, <Brand>_LDU2_Foto, <Brand>_Wallbay_Foto, <Brand>_Wallbay2_Foto.
+// Foto HANYA dihitung untuk toko yang sudah submit pada periode yang sedang dilihat: baris toko yang
+// belum submit periode ini berisi data fallback bulan lalu (termasuk foto lamanya), itu bukan foto periode ini.
+var FOTO_COL_RE = /_(LDU2?|Wallbay2?)_Foto$/;
+function rowFotoCount(row) {
+  if (!submittedThisMonth(row)) return 0;
+  var n = 0;
+  for (var k in row) { if (FOTO_COL_RE.test(k) && row[k]) n++; }
+  return n;
+}
+function fotoCellHtml(row) {
+  if (!submittedThisMonth(row)) return '<span style="color:var(--gray-200)">—</span>';
+  var n = rowFotoCount(row);
+  return n > 0 ? '<span class="foto-pill foto-pill--ok">📷 ' + n + ' foto</span>'
+               : '<span class="foto-pill foto-pill--none">Belum ada foto</span>';
+}
+function noFotoThisMonth(d) { return submittedThisMonth(d) && rowFotoCount(d) === 0; }
 
 // "Sudah submit" = baris ini punya Submit_Month yang sama dengan periode yang sedang
 // dilihat (_activeMonth) — definisi yang SAMA dipakai badge status di tabel, supaya tab
@@ -504,12 +524,13 @@ function submittedThisMonth(d) {
 
 function setQuickFilter(val) {
   _activeQuickFilter = val;
-  ['qf-all','qf-submitted','qf-pending'].forEach(function(id) {
+  ['qf-all','qf-submitted','qf-pending','qf-nofoto'].forEach(function(id) {
     var btn = document.getElementById(id);
     if (btn) btn.classList.remove('active');
   });
   var activeId = val === 'submitted_this_month' ? 'qf-submitted'
                : val === 'pending_this_month'   ? 'qf-pending'
+               : val === 'nofoto_this_month'    ? 'qf-nofoto'
                : 'qf-all';
   var activeBtn = document.getElementById(activeId);
   if (activeBtn) activeBtn.classList.add('active');
@@ -531,7 +552,7 @@ function setQuickFilter(val) {
 // Reset tab quick-filter ke "Semua Toko" tiap kali salah satu dropdown ini diganti manual.
 function resetQuickFilterOnDropdownChange() {
   _activeQuickFilter = 'all';
-  ['qf-all','qf-submitted','qf-pending'].forEach(function(id) {
+  ['qf-all','qf-submitted','qf-pending','qf-nofoto'].forEach(function(id) {
     var btn = document.getElementById(id);
     if (btn) btn.classList.remove('active');
   });
@@ -549,11 +570,14 @@ function updateQuickFilterCounts(data) {
   el = document.getElementById('qf-count-all');       if (el) el.textContent = total;
   el = document.getElementById('qf-count-submitted'); if (el) el.textContent = submitted;
   el = document.getElementById('qf-count-pending');   if (el) el.textContent = pending;
+  el = document.getElementById('qf-count-nofoto');    if (el) el.textContent = data.filter(noFotoThisMonth).length;
   // Update label pill to show current month
   var pillSub = document.getElementById('qf-submitted');
   if (pillSub) pillSub.title = 'Submit di bulan ' + bulan;
   var pillPend = document.getElementById('qf-pending');
   if (pillPend) pillPend.title = 'Belum submit di bulan ' + bulan;
+  var pillFoto = document.getElementById('qf-nofoto');
+  if (pillFoto) pillFoto.title = 'Sudah submit checklist LDU di bulan ' + bulan + ' tetapi belum upload satu pun Foto LDU & Wallbay';
 }
 
 function populateAreaFilter(data) {
@@ -612,6 +636,7 @@ function applyFilters() {
   window._eraFilteredData = baseData.filter(function(d) {
     if (_activeQuickFilter === 'submitted_this_month') return submittedThisMonth(d);
     if (_activeQuickFilter === 'pending_this_month')   return !submittedThisMonth(d);
+    if (_activeQuickFilter === 'nofoto_this_month')    return noFotoThisMonth(d);
     return true;
   });
 
