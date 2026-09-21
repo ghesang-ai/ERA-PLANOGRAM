@@ -150,7 +150,7 @@ async function testMaster() {
 var COLS = {
   plantCode:   ['plant code', 'plantcode', 'kode toko', 'kode_toko', 'kode plant', 'kode', 'sap code', 'sapcode', 'kode sap'],
   storeName:   ['nama toko', 'store name', 'nama store', 'nama_toko', 'storename', 'nama outlet'],
-  storeLeader: ['store leader', 'storeleader', 'nama sl', 'nama store leader', 'pic toko', 'store leader/sl', 'sl / jsl', 'sl/jsl', 'jsl'],
+  storeLeader: ['store leader', 'storeleader', 'nama sl', 'nama store leader', 'pic toko', 'store leader/sl', 'sl / jsl', 'sl/jsl', 'jsl', 'sl (nama'],
   phone:       ['no hp', 'nohp', 'no. hp', 'nomor hp', 'no telp', 'no telepon', 'no whatsapp', 'whatsapp', 'handphone', 'phone', 'contact', 'kontak'],
   city:        ['city', 'kota'],
   region:      ['region', 'regional']
@@ -185,6 +185,20 @@ function findHeaderRow(aoa) {
   return 0;
 }
 
+// Sel HP kadang berisi dua nomor ("0812… / 0821…"). Ambil yang pertama supaya tidak jadi nomor 22 digit.
+function firstPhone(raw) {
+  var s = String(raw == null ? '' : raw).trim();
+  if (!s) return '';
+  s = s.split(/\s*(?:[\/,;&\n]|\bdan\b)\s*/i)[0].trim();
+  var digits = s.replace(/\D/g, '');
+  if (digits.length > 15) {                       // dua nomor dipisah spasi saja: potong di awalan nomor kedua
+    var m = /(?:08|628)/g, hit, cut = -1;
+    while ((hit = m.exec(digits))) { if (hit.index >= 9) { cut = hit.index; break; } }
+    if (cut > 0) return digits.slice(0, cut);
+  }
+  return s;
+}
+
 // AOA (baris-baris Excel) → { rows, skipped } untuk database Store Leader
 function extractLeaderRows(aoa) {
   var hr = findHeaderRow(aoa);
@@ -208,7 +222,7 @@ function extractLeaderRows(aoa) {
       plantCode: pc,
       storeName: iNm >= 0 ? String(row[iNm] || '').trim() : '',
       storeLeader: iSl >= 0 ? String(row[iSl] || '').trim() : '',
-      phone: iPh >= 0 ? String(row[iPh] || '').trim() : '',
+      phone: iPh >= 0 ? firstPhone(row[iPh]) : '',
       city: iCt >= 0 ? String(row[iCt] || '').trim() : '',
       region: region
     });
@@ -230,20 +244,32 @@ function parseFile(input, kind) {
       var headers = (aoa[hr] || []).map(normHeader);
       var iPc = findCol(headers, COLS.plantCode);
       var iNm = findCol(headers, COLS.storeName, BAD_NAME_HINT);
-      if (iPc < 0) throw new Error('Kolom "Plant Code" tidak ditemukan di file.');
+      if (kind !== 'sl' && iPc < 0) throw new Error('Kolom "Plant Code" tidak ditemukan di file.');
 
       var skipped = 0;
       var rows = [];
       if (kind === 'sl') {
-        var ex = extractLeaderRows(aoa);
-        rows = ex.rows; skipped = ex.skipped;
+        // Store Leader: baca SEMUA sheet (mis. erafone / samsung / ibox / xiaomi), gabungkan, buang kode ganda
+        var seenPc = {}, perSheet = [], dup = 0;
+        wb.SheetNames.forEach(function (name) {
+          var a = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+          var ex;
+          try { ex = extractLeaderRows(a); } catch (err) { return; }      // sheet tanpa kolom Plant Code: lewati
+          var n = 0;
+          ex.rows.forEach(function (o) { if (seenPc[o.plantCode]) { dup++; return; } seenPc[o.plantCode] = true; rows.push(o); n++; });
+          skipped += ex.skipped;
+          perSheet.push(name + ' ' + n);
+        });
+        if (!rows.length) throw new Error('Kolom "Plant Code" / "SAP Code" tidak ditemukan di file.');
+        var noHp = rows.filter(function (o) { return !o.phone; }).length, noSl = rows.filter(function (o) { return !o.storeLeader; }).length;
         _slRows = rows;
         renderPreview('sl-prev', rows.slice(0, 50).map(function (o) {
           return [o.plantCode, o.storeName, o.storeLeader, o.phone, o.city];
         }), ['Plant Code', 'Nama Toko', 'Store Leader', 'No HP', 'City'], rows.length + ' baris siap disimpan:');
         el('btn-sl').disabled = rows.length === 0;
-        setMsg(msgId, rows.length + ' baris valid dari ' + file.name +
-          (skipped ? ' (' + skipped + ' baris non-toko dilewati)' : ''), true);
+        setMsg(msgId, rows.length + ' toko valid dari ' + file.name + ' (' + perSheet.join(' · ') + ')' +
+          (skipped ? ' · ' + skipped + ' baris non-toko dilewati' : '') + (dup ? ' · ' + dup + ' kode ganda dilewati' : '') +
+          (noHp || noSl ? ' · ⚠️ ' + noSl + ' tanpa nama Store Leader, ' + noHp + ' tanpa nomor HP' : ''), !(noHp || noSl));
       } else {
         for (var r2 = hr + 1; r2 < aoa.length; r2++) {
           var row2 = aoa[r2] || [];
