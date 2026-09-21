@@ -2,6 +2,8 @@
 
 var _slRows = [];
 var _csRows = [];
+var _slExisting = 0;        // jumlah Store Leader tersimpan di database
+var _backendNew = false;    // true bila Apps Script sudah versi baru (mendukung mode 'tambahkan' & template Rak)
 
 function esc(s) {
   return String(s == null ? '' : s)
@@ -43,6 +45,14 @@ async function loadSettings() {
     el('master-sheet').value = m.sheetName || '';
     el('master-header').value = m.headerRow || '';
 
+    _slExisting = json.storeLeaderCount || 0;
+    _backendNew = !!json.rak;
+    var rk = json.rak || {}, rt = rk.templates || {};
+    el('rak-tpl-l1').value = rt.l1 || '';
+    el('rak-tpl-l2').value = rt.l2 || '';
+    el('rak-tpl-l3').value = rt.l3 || '';
+    el('rak-campaign-name').value = rk.campaignName || '';
+    if (!_backendNew) setMsg('rak-tpl-msg', 'Apps Script belum diperbarui — template Rak belum bisa disimpan. Deploy Code.gs terbaru dulu.', false);
     el('sl-count').textContent = (json.storeLeaderCount || 0) + ' toko';
     el('cs-count').textContent = (json.closedCount || 0) + ' toko';
 
@@ -90,6 +100,20 @@ async function saveTemplates() {
   el('btn-tpl').disabled = false;
 }
 
+async function saveRakTemplates() {
+  if (!_backendNew) { setMsg('rak-tpl-msg', 'Apps Script belum diperbarui — deploy Code.gs terbaru dulu.', false); return; }
+  el('btn-rak-tpl').disabled = true;
+  try {
+    var json = await post({
+      action: 'saveReminderSettings',
+      rak: { campaignName: el('rak-campaign-name').value, templates: { l1: el('rak-tpl-l1').value, l2: el('rak-tpl-l2').value, l3: el('rak-tpl-l3').value } }
+    });
+    if (json.status !== 'success') throw new Error(json.message || 'Gagal menyimpan');
+    setMsg('rak-tpl-msg', 'Template Rak tersimpan.', true);
+  } catch (err) { setMsg('rak-tpl-msg', err.message, false); }
+  el('btn-rak-tpl').disabled = false;
+}
+
 // ── Master Toko ──
 async function saveMaster() {
   el('btn-master').disabled = true;
@@ -124,10 +148,10 @@ async function testMaster() {
 
 // ── Excel parsing ──
 var COLS = {
-  plantCode:   ['plant code', 'plantcode', 'kode toko', 'kode_toko', 'kode plant', 'kode'],
+  plantCode:   ['plant code', 'plantcode', 'kode toko', 'kode_toko', 'kode plant', 'kode', 'sap code', 'sapcode', 'kode sap'],
   storeName:   ['nama toko', 'store name', 'nama store', 'nama_toko', 'storename', 'nama outlet'],
-  storeLeader: ['store leader', 'storeleader', 'nama sl', 'nama store leader', 'pic toko', 'store leader/sl'],
-  phone:       ['no hp', 'nohp', 'no. hp', 'nomor hp', 'no telp', 'no telepon', 'no whatsapp', 'whatsapp', 'handphone', 'phone'],
+  storeLeader: ['store leader', 'storeleader', 'nama sl', 'nama store leader', 'pic toko', 'store leader/sl', 'sl / jsl', 'sl/jsl', 'jsl'],
+  phone:       ['no hp', 'nohp', 'no. hp', 'nomor hp', 'no telp', 'no telepon', 'no whatsapp', 'whatsapp', 'handphone', 'phone', 'contact', 'kontak'],
   city:        ['city', 'kota'],
   region:      ['region', 'regional']
 };
@@ -156,9 +180,40 @@ function findCol(headers, cands, forbid) {
 function findHeaderRow(aoa) {
   for (var i = 0; i < Math.min(aoa.length, 15); i++) {
     var joined = (aoa[i] || []).map(function (c) { return normHeader(c); }).join('|');
-    if (/plant code|kode toko|plantcode/.test(joined)) return i;
+    if (/plant code|kode toko|plantcode|sap code|sapcode/.test(joined)) return i;
   }
   return 0;
+}
+
+// AOA (baris-baris Excel) → { rows, skipped } untuk database Store Leader
+function extractLeaderRows(aoa) {
+  var hr = findHeaderRow(aoa);
+  var headers = (aoa[hr] || []).map(normHeader);
+  var iPc = findCol(headers, COLS.plantCode);
+  var iNm = findCol(headers, COLS.storeName, BAD_NAME_HINT);
+  if (iPc < 0) throw new Error('Kolom "Plant Code" / "SAP Code" tidak ditemukan di file.');
+  var iSl = findCol(headers, COLS.storeLeader);
+  var iPh = findCol(headers, COLS.phone);
+  var iCt = findCol(headers, COLS.city);
+  var iRg = findCol(headers, COLS.region);
+  var rows = [], skipped = 0;
+  for (var r = hr + 1; r < aoa.length; r++) {
+    var row = aoa[r] || [];
+    var pc = String(row[iPc] || '').toUpperCase().trim();
+    if (!pc) continue;
+    if (!looksLikePlantCode(pc)) { skipped++; continue; }
+    var region = iRg >= 0 ? String(row[iRg] || '').trim() : '';
+    if (/^\d+$/.test(region)) region = 'Region ' + region;          // "5" → "Region 5"
+    rows.push({
+      plantCode: pc,
+      storeName: iNm >= 0 ? String(row[iNm] || '').trim() : '',
+      storeLeader: iSl >= 0 ? String(row[iSl] || '').trim() : '',
+      phone: iPh >= 0 ? String(row[iPh] || '').trim() : '',
+      city: iCt >= 0 ? String(row[iCt] || '').trim() : '',
+      region: region
+    });
+  }
+  return { rows: rows, skipped: skipped };
 }
 
 function parseFile(input, kind) {
@@ -180,24 +235,8 @@ function parseFile(input, kind) {
       var skipped = 0;
       var rows = [];
       if (kind === 'sl') {
-        var iSl = findCol(headers, COLS.storeLeader);
-        var iPh = findCol(headers, COLS.phone);
-        var iCt = findCol(headers, COLS.city);
-        var iRg = findCol(headers, COLS.region);
-        for (var r = hr + 1; r < aoa.length; r++) {
-          var row = aoa[r] || [];
-          var pc = String(row[iPc] || '').toUpperCase().trim();
-          if (!pc) continue;
-          if (!looksLikePlantCode(pc)) { skipped++; continue; }
-          rows.push({
-            plantCode: pc,
-            storeName: iNm >= 0 ? String(row[iNm] || '').trim() : '',
-            storeLeader: iSl >= 0 ? String(row[iSl] || '').trim() : '',
-            phone: iPh >= 0 ? String(row[iPh] || '').trim() : '',
-            city: iCt >= 0 ? String(row[iCt] || '').trim() : '',
-            region: iRg >= 0 ? String(row[iRg] || '').trim() : ''
-          });
-        }
+        var ex = extractLeaderRows(aoa);
+        rows = ex.rows; skipped = ex.skipped;
         _slRows = rows;
         renderPreview('sl-prev', rows.slice(0, 50).map(function (o) {
           return [o.plantCode, o.storeName, o.storeLeader, o.phone, o.city];
@@ -239,13 +278,30 @@ function renderPreview(targetId, rows, headers, caption) {
   el(targetId).innerHTML = html;
 }
 
+function slMode() {
+  var r = document.querySelector('input[name="sl-mode"]:checked');
+  return r ? r.value : 'merge';
+}
+
 async function saveStoreLeaders() {
   if (!_slRows.length) return;
+  var mode = slMode();
+  if (mode === 'merge' && !_backendNew) {
+    // Apps Script lama tidak mengenal mode 'tambahkan' dan akan MENGGANTI SEMUA data — jangan dikirim.
+    setMsg('sl-msg', 'Apps Script belum diperbarui: mode "Tambahkan" belum didukung dan akan menghapus data lain. ' +
+      'Deploy Code.gs terbaru dulu (Extensions → Apps Script → Deploy → New version), lalu coba lagi.', false);
+    return;
+  }
+  if (mode === 'replace' && _slExisting > 0 &&
+      !confirm('Mode GANTI SEMUA akan menghapus ' + _slExisting + ' Store Leader yang ada sekarang dan menggantinya dengan ' +
+               _slRows.length + ' baris dari file ini.\n\nToko yang tidak ada di file akan kehilangan datanya. Lanjut?')) return;
   el('btn-sl').disabled = true;
   try {
-    var json = await post({ action: 'saveStoreLeaders', rows: _slRows });
+    var json = await post({ action: 'saveStoreLeaders', rows: _slRows, mode: mode });
     if (json.status !== 'success') throw new Error(json.message || 'Gagal menyimpan');
-    setMsg('sl-msg', json.count + ' Store Leader tersimpan di database.', true);
+    setMsg('sl-msg', json.mode === 'merge'
+      ? json.added + ' toko ditambah · ' + json.updated + ' diperbarui · total ' + json.total + ' Store Leader di database.'
+      : json.count + ' Store Leader tersimpan di database (semua data lama diganti).', true);
     _slRows = [];
     el('sl-file').value = '';
     loadSettings();

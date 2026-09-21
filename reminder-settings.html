@@ -21,6 +21,11 @@
     input.txt, textarea.txt { width:100%; padding:9px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:13px; font-family:var(--font); outline:none; box-sizing:border-box; }
     textarea.txt { min-height:96px; resize:vertical; line-height:1.5; }
     input.txt:focus, textarea.txt:focus { border-color:#7c3aed; }
+    .modes { display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 10px; }
+    .modes label { flex:1; min-width:230px; display:flex; gap:8px; align-items:flex-start; padding:10px 12px; border:1.5px solid var(--gray-200); border-radius:10px; cursor:pointer; font-size:13px; font-weight:700; background:#fff; }
+    .modes label small { display:block; font-weight:500; color:var(--gray-400); font-size:11.5px; margin-top:1px; }
+    .modes input { margin-top:3px; }
+    .modes label:has(input:checked) { border-color:#7c3aed; background:#f5f3ff; }
     .row2 { display:flex; gap:12px; flex-wrap:wrap; }
     .row2 > div { flex:1; min-width:160px; }
 
@@ -85,6 +90,21 @@
       <div id="tpl-msg"></div>
     </div>
 
+    <!-- TEMPLATE RAK SAMSUNG -->
+    <div class="card" id="rak-card">
+      <div class="card-h">🗄️ Template Pesan — Rak Aksesoris Samsung <span class="badge-pill" style="background:#ede9fe;color:#6d28d9">BARU</span></div>
+      <div class="card-d">Dipakai Auto Reminder tab <b>Rak Aksesoris Samsung</b>. Placeholder sama: <code>{nama_toko}</code> <code>{kode_toko}</code> <code>{store_leader}</code> <code>{city}</code> <code>{region}</code> <code>{campaign}</code> <code>{level}</code> <code>{periode}</code> (periode tampil sebagai mis. <i>September 2026</i>).</div>
+      <label class="fld">Nama Campaign</label>
+      <input type="text" class="txt" id="rak-campaign-name" placeholder="Rak Aksesoris Samsung">
+      <label class="fld">Level 1 — Gentle (reminder ke-1..2)</label>
+      <textarea class="txt" id="rak-tpl-l1"></textarea>
+      <label class="fld">Level 2 — Urgent (reminder ke-3..4)</label>
+      <textarea class="txt" id="rak-tpl-l2"></textarea>
+      <label class="fld">Level 3 — Escalate (reminder ke-5+)</label>
+      <textarea class="txt" id="rak-tpl-l3"></textarea>
+      <button class="btn-save" id="btn-rak-tpl" onclick="saveRakTemplates()">Simpan Template Rak</button>
+      <div id="rak-tpl-msg"></div>
+    </div>
     <!-- MASTER TOKO -->
     <div class="card">
       <div class="card-h">🗂️ Master Toko (Referensi Semua Toko)</div>
@@ -109,7 +129,11 @@
     <!-- STORE LEADER -->
     <div class="card">
       <div class="card-h">👤 Database Store Leader <span class="badge-pill" id="sl-count">—</span></div>
-      <div class="card-d">Upload Excel berisi kolom <b>Plant Code</b>, <b>Nama Toko</b>, <b>Store Leader</b>, <b>No HP</b> (opsional City, Region). Upload ulang = ganti semua (rotasi bulanan).</div>
+      <div class="card-d">Upload Excel berisi kolom <b>Plant Code</b> (atau <b>SAP Code</b>), <b>Nama Toko</b>, <b>Store Leader</b> (atau <b>SL / JSL</b>), <b>No HP</b> (atau <b>Contact</b>); opsional City, Region.</div>
+      <div class="modes">
+        <label><input type="radio" name="sl-mode" value="merge" checked><span>➕ Tambahkan / perbarui<small>Hanya Plant Code yang ada di file yang berubah. Toko lain <b>tidak dihapus</b>. Pakai ini untuk file Samsung.</small></span></label>
+        <label><input type="radio" name="sl-mode" value="replace"><span>♻️ Ganti semua<small>Hapus semua data lama, isi dengan file ini saja (rotasi bulanan file lengkap).</small></span></label>
+      </div>
       <label class="drop" id="sl-drop">
         <input type="file" id="sl-file" accept=".xlsx,.xls" onchange="parseFile(this,'sl')">
         📄 Klik untuk pilih file Excel Store Leader
@@ -135,6 +159,6 @@
   </div>
 
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/reminder-settings.js"></script>
+  <script src="assets/js/reminder-settings.js?v=3"></script>
 </body>
 </html>

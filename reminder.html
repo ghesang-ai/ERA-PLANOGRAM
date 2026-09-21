@@ -18,6 +18,11 @@
     .rmd-btn--blast:hover { background:#c2410c; }
     .rmd-btn:disabled { opacity:.5; cursor:not-allowed; }
 
+    .rmd-mods { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+    .rmd-mod  { padding:9px 16px; border-radius:10px; border:1.5px solid var(--gray-200); background:#fff; font:700 13px var(--font); color:var(--gray-600); cursor:pointer; display:flex; align-items:center; gap:8px; }
+    .rmd-mod:hover { border-color:#c4b5fd; }
+    .rmd-mod.active { background:#f5f3ff; border-color:#7c3aed; color:#6d28d9; box-shadow:0 2px 8px rgba(124,58,237,.15); }
+    .rmd-mod-new { font-size:9px; font-weight:800; background:#7c3aed; color:#fff; border-radius:4px; padding:2px 5px; letter-spacing:.5px; }
     .rmd-warn { background:#fffbeb; border:1px solid #fde68a; color:#92400e; border-radius:10px; padding:10px 14px; font-size:13px; margin-bottom:16px; }
     .rmd-warn a { color:#7c3aed; font-weight:700; }
 
@@ -77,10 +82,10 @@
 <body>
 
   <div class="rmd-header">
-    <a href="index.html" style="color:var(--blue);font-size:13px;text-decoration:none">← Dashboard</a>
+    <a href="index.html" id="rmd-back" style="color:var(--blue);font-size:13px;text-decoration:none">← Dashboard</a>
     <div>
       <div class="rmd-title">🤖 Auto Reminder — WhatsApp (Fonnte)</div>
-      <div class="rmd-sub">Status submit checklist LDU · periode <span id="rmd-period">—</span> · kampanye <span id="rmd-campaign">—</span></div>
+      <div class="rmd-sub"><span id="rmd-what">Status submit checklist LDU</span> · periode <span id="rmd-period">—</span> · kampanye <span id="rmd-campaign">—</span></div>
     </div>
     <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
       <button class="rmd-btn rmd-btn--primary" id="btn-scan" onclick="sendAllFiltered()">📣 Scan &amp; Kirim Semua</button>
@@ -91,6 +96,13 @@
   </div>
 
   <div class="rmd-body">
+
+    <div class="rmd-mods">
+      <button class="rmd-mod active" id="mod-ldu" onclick="setModule('ldu')">📱 LDU &amp; Wallbay</button>
+      <button class="rmd-mod" id="mod-rak" onclick="setModule('rak-samsung')">🗄️ Rak Aksesoris Samsung <span class="rmd-mod-new">BARU</span></button>
+    </div>
+
+    <div class="rmd-warn" id="rmd-leader-warn" style="display:none"></div>
 
     <div class="rmd-warn" id="rmd-token-warn" style="display:none">
       ⚠️ Token Fonnte belum diset — pengiriman WhatsApp akan gagal.
@@ -156,6 +168,6 @@
   </div>
 
   <script src="assets/js/config.js"></script>
-  <script src="assets/js/reminder.js"></script>
+  <script src="assets/js/reminder.js?v=2"></script>
 </body>
 </html>

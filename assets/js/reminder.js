@@ -14,6 +14,36 @@ var _sending   = false;
 
 var SEND_BATCH = 15;          // plant code per request (hindari timeout Apps Script)
 
+// ── Modul: 'ldu' (LDU & Wallbay) atau 'rak-samsung' (Rak Aksesoris Samsung) ──
+var _mod    = 'ldu';
+var _rakCfg = null;          // assets/data/rak-samsung.json (25 toko Samsung)
+var RAK_OLD_MSG = 'Apps Script belum diperbarui. Tempel Code.gs terbaru di Extensions → Apps Script, lalu Deploy → Manage deployments → New version.';
+var MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function isRak() { return _mod === 'rak-samsung'; }
+function monthNameId(m) {
+  var p = String(m || '').split('-');
+  return p.length === 2 ? MONTHS_ID[parseInt(p[1], 10) - 1] + ' ' + p[0] : String(m || '');
+}
+
+function setModule(m, silent) {
+  if (_sending) return;
+  _mod = m === 'rak-samsung' ? 'rak-samsung' : 'ldu';
+  document.getElementById('mod-ldu').classList.toggle('active', !isRak());
+  document.getElementById('mod-rak').classList.toggle('active', isRak());
+  document.getElementById('rmd-what').textContent = isRak() ? 'Status submit Rak Aksesoris Samsung' : 'Status submit checklist LDU';
+  document.getElementById('rmd-back').href = isRak() ? 'rak-dashboard.html' : 'index.html';
+  var brand = document.getElementById('rmd-filter-brand');
+  brand.style.display = isRak() ? 'none' : '';
+  if (isRak()) brand.value = '';
+  document.getElementById('rmd-filter-submit').value = 'belum';
+  document.getElementById('rmd-result-box').innerHTML = '';
+  var u = new URL(location.href);
+  if (isRak()) u.searchParams.set('modul', 'rak-samsung'); else u.searchParams.delete('modul');
+  history.replaceState(null, '', u.toString());
+  if (!silent) loadReminderData();
+}
+
 function escHtml(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -27,6 +57,54 @@ function fmtPhone(p) {
 }
 
 // ── Load ──
+async function fetchLduData() {
+  if (!Object.keys(_areas).length) {
+    try {
+      var ares = await fetch('assets/data/store-areas.json');
+      _areas = await ares.json();
+    } catch (e) { _areas = {}; }
+  }
+  var url = new URL(CONFIG.API_URL);
+  url.searchParams.set('action', 'getReminderData');
+  var json = await (await fetch(url.toString())).json();
+  if (json.status !== 'success') throw new Error(json.message || 'Gagal memuat data');
+  json.data = (json.data || []).map(function (r) {
+    if (!r.city && _areas[r.plantCode]) r.city = _areas[r.plantCode];
+    return r;
+  });
+  return json;
+}
+
+// Rak Samsung: daftar toko dari assets/data/rak-samsung.json, status submit + Store Leader dari server
+async function fetchRakData() {
+  if (!_rakCfg) _rakCfg = await (await fetch('assets/data/rak-samsung.json')).json();
+  var url = new URL(CONFIG.API_URL);
+  url.searchParams.set('action', 'getReminderData');
+  url.searchParams.set('campaign', 'rak_samsung');
+  url.searchParams.set('codes', Object.keys(_rakCfg.stores).join(','));
+  var json = await (await fetch(url.toString())).json();
+  if (json.status !== 'success') throw new Error(json.message || 'Gagal memuat data');
+  if (json.campaign !== 'rak_samsung') throw new Error(RAK_OLD_MSG);   // Apps Script lama menjawab dengan data LDU
+  json.data = (json.data || []).map(function (r) {
+    var st = _rakCfg.stores[r.plantCode] || {};
+    r.storeName = st.name || r.storeName || r.plantCode;
+    r.city = r.city || st.area || '';
+    r.brandToko = 'Samsung Store';
+    return r;
+  });
+  return json;
+}
+
+function updateLeaderWarn() {
+  var box = document.getElementById('rmd-leader-warn');
+  var miss = isRak() ? _rows.filter(function (r) { return !r.phoneOk; }).length : 0;
+  if (!miss) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = '⚠️ <b>' + miss + ' dari ' + _rows.length + ' toko Samsung</b> belum punya Store Leader / nomor HP di database, jadi belum bisa dikirimi WhatsApp. ' +
+    'Import file Store Leader Samsung di <a href="reminder-settings.html">Settings → Database Store Leader</a> ' +
+    'dengan mode <b>“Tambahkan / perbarui”</b> (data toko lain tetap aman).';
+}
+
 async function loadReminderData() {
   var tbody = document.getElementById('rmd-tbody');
   tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-icon">⏳</div>Memuat data...</td></tr>';
@@ -34,23 +112,9 @@ async function loadReminderData() {
   document.getElementById('rmd-check-all').checked = false;
 
   try {
-    if (!Object.keys(_areas).length) {
-      try {
-        var ares = await fetch('assets/data/store-areas.json');
-        _areas = await ares.json();
-      } catch (e) { _areas = {}; }
-    }
+    var json = isRak() ? await fetchRakData() : await fetchLduData();
 
-    var url = new URL(CONFIG.API_URL);
-    url.searchParams.set('action', 'getReminderData');
-    var res  = await fetch(url.toString());
-    var json = await res.json();
-    if (json.status !== 'success') throw new Error(json.message || 'Gagal memuat data');
-
-    _rows      = (json.data || []).map(function (r) {
-      if (!r.city && _areas[r.plantCode]) r.city = _areas[r.plantCode];
-      return r;
-    });
+    _rows      = json.data || [];
     _templates = json.templates || _templates;
     _campaign  = json.campaignName || '';
     _period    = json.activeMonth || '';
@@ -63,10 +127,12 @@ async function loadReminderData() {
     document.getElementById('rmd-token-warn').style.display = _hasToken ? 'none' : 'block';
 
     populateFilters();
+    updateLeaderWarn();
     renderRows();
     renderPreview();
   } catch (err) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-icon">⚠️</div>' + escHtml(err.message) + '</td></tr>';
+    document.getElementById('rmd-leader-warn').style.display = 'none';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-icon">⚠️</div>' + escHtml(err.message) + '</td></tr>';
   }
 }
 
@@ -183,7 +249,7 @@ function renderPreview() {
   var tpl = _previewLvl === 1 ? _templates.l1 : _previewLvl === 2 ? _templates.l2 : _templates.l3;
   var pending = _rows.filter(function (r) { return !r.submitted; });
   var sample = currentFiltered()[0] || pending[0] || _rows[0] || {
-    storeName: 'ERAFONE CONTOH', plantCode: 'E000', storeLeader: 'Budi', city: 'JAKARTA', region: 'Region 5'
+    storeName: isRak() ? 'SES CONTOH' : 'ERAFONE CONTOH', plantCode: isRak() ? 'S000' : 'E000', storeLeader: 'Budi', city: 'JAKARTA', region: 'Region 5'
   };
   var msg = renderTpl(tpl, {
     nama_toko: sample.storeName,
@@ -191,9 +257,9 @@ function renderPreview() {
     store_leader: sample.storeLeader || 'Store Leader',
     city: sample.city || '-',
     region: sample.region || 'Region 5',
-    campaign: _campaign || 'Compliance LDU',
+    campaign: _campaign || (isRak() ? 'Rak Aksesoris Samsung' : 'Compliance LDU'),
     level: 'Level ' + _previewLvl,
-    periode: _period || ''
+    periode: isRak() ? monthNameId(_period) : (_period || '')
   });
   document.getElementById('rmd-msg').textContent = msg || '(template kosong — atur di Settings)';
 }
@@ -237,7 +303,7 @@ async function doSend(pcs) {
       var res = await fetch(CONFIG.API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'sendReminder', plantCodes: chunk })
+        body: JSON.stringify(isRak() ? { action: 'sendReminder', campaign: 'rak_samsung', plantCodes: chunk } : { action: 'sendReminder', plantCodes: chunk })
       });
       var json = await res.json();
       if (json.status !== 'success') throw new Error(json.message || 'Gagal mengirim');
@@ -274,4 +340,8 @@ function renderResult(results) {
   document.getElementById('rmd-result-box').innerHTML = html;
 }
 
-document.addEventListener('DOMContentLoaded', loadReminderData);
+document.addEventListener('DOMContentLoaded', function () {
+  var m = new URLSearchParams(location.search).get('modul');
+  setModule(m === 'rak-samsung' ? 'rak-samsung' : 'ldu', true);
+  loadReminderData();
+});

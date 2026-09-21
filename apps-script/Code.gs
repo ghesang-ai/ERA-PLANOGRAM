@@ -1467,6 +1467,9 @@ function seedAgustus2026() {
 // Token Fonnte TIDAK disimpan di sheet — disimpan di Script Properties (key FONNTE_TOKEN).
 // ------------------------------------------------------------
 
+// Link form Store Leader untuk Rak Aksesoris Samsung (dipakai di template pesan default)
+const RAK_SUBMIT_URL = 'https://era-planogram.netlify.app/rak-samsung';
+
 const RMD_LEADER_SHEET = 'STORE_LEADER';
 const RMD_CLOSED_SHEET = 'CLOSED_STORE';
 const RMD_LOG_SHEET    = 'REMINDER_LOG';
@@ -1494,6 +1497,21 @@ function rmdDefaultConfig() {
       'Checklist LDU/Planogram periode {periode} masih BELUM submit setelah beberapa kali reminder. ' +
       'Isu ini dieskalasi ke Area Manager. Mohon submit segera.',
     campaign_name: 'Compliance LDU',
+    rak_campaign_name: 'Rak Aksesoris Samsung',
+    rak_template_l1:
+      'Halo {store_leader} — {nama_toko} ({kode_toko})\n\n' +
+      'Reminder dari Tim VMD: *Update Qty Display Acc & Foto Rak Aksesoris Samsung* periode {periode} belum di-submit.\n\n' +
+      'Mohon dilengkapi lewat link berikut ya:\n' + RAK_SUBMIT_URL + '\n\n' +
+      'Foto mode potret (3:4) langsung dari kamera dan GPS aktif. Terima kasih 🙏',
+    rak_template_l2:
+      '*URGENT — {nama_toko} ({kode_toko})*\n\n' +
+      'Store Anda *BELUM* submit Update Qty Display Acc & Foto Rak Aksesoris Samsung periode {periode}. ' +
+      'Mohon segera submit hari ini:\n' + RAK_SUBMIT_URL + '\n\nAbaikan pesan ini jika sudah submit.',
+    rak_template_l3:
+      '*ESCALATION NOTICE*\n' +
+      'Store *{nama_toko}* ({kode_toko}) — {city}\n\n' +
+      'Update Qty Display Acc & Foto Rak Aksesoris Samsung periode {periode} masih BELUM submit setelah beberapa kali reminder. ' +
+      'Isu ini dieskalasi ke Area Manager. Mohon submit segera:\n' + RAK_SUBMIT_URL,
     master_ss_id: '',
     master_sheet_name: '',
     master_header_row: ''
@@ -1723,6 +1741,7 @@ function rmdStoreUniverse(ss, cfg, localRows) {
 
 // ── GET: data untuk halaman Auto Reminder ──
 function getReminderData(params) {
+  if ((params.campaign || '') === 'rak_samsung') return getRakReminderData(params);
   var ss  = SpreadsheetApp.getActiveSpreadsheet();
   var cfg = rmdGetConfig(ss);
   var sub = rmdSubmittedSet();
@@ -1796,6 +1815,7 @@ function getReminderSettings() {
     status: 'success',
     templates: { l1: cfg.template_l1, l2: cfg.template_l2, l3: cfg.template_l3 },
     campaignName: cfg.campaign_name,
+    rak: { campaignName: cfg.rak_campaign_name, templates: { l1: cfg.rak_template_l1, l2: cfg.rak_template_l2, l3: cfg.rak_template_l3 } },
     master: { ssId: cfg.master_ss_id, sheetName: cfg.master_sheet_name, headerRow: cfg.master_header_row },
     hasToken: rmdHasToken(),
     tokenTail: rmdTokenTail(),
@@ -1844,6 +1864,12 @@ function saveReminderSettings(body) {
   if (t.l2 !== undefined) pairs.template_l2 = t.l2;
   if (t.l3 !== undefined) pairs.template_l3 = t.l3;
   if (body.campaignName !== undefined) pairs.campaign_name = body.campaignName;
+  var rk = body.rak || {};
+  var rt = rk.templates || {};
+  if (rt.l1 !== undefined) pairs.rak_template_l1 = rt.l1;
+  if (rt.l2 !== undefined) pairs.rak_template_l2 = rt.l2;
+  if (rt.l3 !== undefined) pairs.rak_template_l3 = rt.l3;
+  if (rk.campaignName !== undefined) pairs.rak_campaign_name = rk.campaignName;
   if (m.ssId       !== undefined) pairs.master_ss_id      = (m.ssId || '').toString().trim();
   if (m.sheetName  !== undefined) pairs.master_sheet_name = (m.sheetName || '').toString().trim();
   if (m.headerRow  !== undefined) pairs.master_header_row = (m.headerRow || '').toString().trim();
@@ -1851,31 +1877,64 @@ function saveReminderSettings(body) {
   return { status: 'success', saved: Object.keys(pairs).length };
 }
 
-// ── POST: upload database Store Leader (replace semua) ──
+// ── POST: upload database Store Leader ──
+// mode 'replace' (default, perilaku lama): ganti SEMUA baris.
+// mode 'merge': tambah / perbarui hanya Plant Code yang ada di file; baris lain TIDAK dihapus.
+//   Field kosong di file tidak menimpa nilai lama.
 function saveStoreLeaders(body) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = getOrCreateSheetWithHeaders(ss, RMD_LEADER_SHEET, RMD_LEADER_HEADERS);
-  if (sheet.getLastRow() > 1) {
-    sheet.getRange(2, 1, sheet.getLastRow() - 1, RMD_LEADER_HEADERS.length).clearContent();
-  }
+  var merge = (body.mode || '') === 'merge';
   var now = rmdNow();
-  var seen = {}, out = [];
+
+  // baris masuk yang valid (unik per Plant Code)
+  var seen = {}, incoming = [];
   (body.rows || []).forEach(function(r) {
     var pc = (r.plantCode || '').toString().toUpperCase().trim();
     if (!pc || seen[pc] || !rmdLooksLikePlantCode(pc)) return;
     seen[pc] = true;
-    out.push([
-      pc,
-      (r.storeName || '').toString().trim(),
-      (r.storeLeader || '').toString().trim(),
-      (r.phone || '').toString().trim(),
-      (r.city || '').toString().trim(),
-      (r.region || '').toString().trim(),
-      now
-    ]);
+    incoming.push({
+      pc: pc,
+      name:   (r.storeName || '').toString().trim(),
+      leader: (r.storeLeader || '').toString().trim(),
+      phone:  (r.phone || '').toString().trim(),
+      city:   (r.city || '').toString().trim(),
+      region: (r.region || '').toString().trim()
+    });
   });
+
+  var out = [], added = 0, updated = 0;
+  if (merge) {
+    var existing = rmdReadObjects(ss, RMD_LEADER_SHEET, RMD_LEADER_HEADERS);
+    var idx = {};
+    existing.forEach(function(o) {
+      var pc = (o.plant_code || '').toString().toUpperCase().trim();
+      if (!pc) return;
+      idx[pc] = out.length;
+      out.push([pc, (o.store_name || '').toString(), (o.store_leader || '').toString(), (o.phone || '').toString(),
+                (o.city || '').toString(), (o.region || '').toString(), (o.updated_at || '').toString()]);
+    });
+    incoming.forEach(function(n) {
+      if (idx[n.pc] !== undefined) {
+        var row = out[idx[n.pc]];
+        out[idx[n.pc]] = [n.pc, n.name || row[1], n.leader || row[2], n.phone || row[3], n.city || row[4], n.region || row[5], now];
+        updated++;
+      } else {
+        idx[n.pc] = out.length;
+        out.push([n.pc, n.name, n.leader, n.phone, n.city, n.region, now]);
+        added++;
+      }
+    });
+  } else {
+    incoming.forEach(function(n) { out.push([n.pc, n.name, n.leader, n.phone, n.city, n.region, now]); });
+    added = out.length;
+  }
+
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 1, sheet.getLastRow() - 1, RMD_LEADER_HEADERS.length).clearContent();
+  }
   if (out.length) sheet.getRange(2, 1, out.length, RMD_LEADER_HEADERS.length).setValues(out);
-  return { status: 'success', count: out.length };
+  return { status: 'success', mode: merge ? 'merge' : 'replace', count: incoming.length, added: added, updated: updated, total: out.length };
 }
 
 // ── POST: upload Closed Stores (replace semua) ──
@@ -1901,6 +1960,7 @@ function saveClosedStores(body) {
 
 // ── POST: kirim reminder WhatsApp lewat Fonnte ──
 function sendReminder(body) {
+  if ((body.campaign || '') === 'rak_samsung') return sendRakReminder(body);
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var token = rmdToken();
   if (!token) return { status: 'error', message: 'Token Fonnte belum diset. Buka Settings dulu.' };
@@ -1970,6 +2030,132 @@ function sendReminder(body) {
       rmdNow(), sub.activeMonth, pc, storeName, brandToko, city,
       rmdLevelLabel(level), phone, msg, ok ? 'sent' : 'failed', detail
     ]);
+    results.push({ plantCode: pc, storeName: storeName, level: level, phone: phone, ok: ok, detail: detail });
+  });
+
+  var okN = results.filter(function(r) { return r.ok; }).length;
+  return { status: 'success', sent: okN, failed: results.length - okN, results: results };
+}
+
+// ============================================================
+// AUTO REMINDER — RAK AKSESORIS SAMSUNG
+// Universe toko dikirim halaman (assets/data/rak-samsung.json → param `codes`); status submit dari sheet
+// RAK_SAMSUNG; Store Leader & HP dari STORE_LEADER yang sama dengan LDU. Hitungan reminder & level
+// dipisah dari LDU lewat kolom `period` di REMINDER_LOG = 'rak-samsung:yyyy-MM'.
+// ============================================================
+function rakPeriodKey(month) { return 'rak-samsung:' + month; }
+
+var RAK_MONTH_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function rakMonthName(m) {
+  var p = (m || '').split('-');
+  return p.length === 2 ? RAK_MONTH_ID[parseInt(p[1], 10) - 1] + ' ' + p[0] : (m || '');
+}
+
+// plant_code → true bila sudah ada baris RAK_SAMSUNG untuk bulan tsb
+function rakSubmittedSet(month) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(RAK_SHEET);
+  var m = {};
+  if (!sheet || sheet.getLastRow() < 2) return m;
+  sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues().forEach(function(r) {
+    if (rmdReadMonth(r[0]) !== month) return;
+    var pc = (r[1] || '').toString().toUpperCase().trim();
+    if (pc) m[pc] = true;
+  });
+  return m;
+}
+
+function rakCodesFromParam(raw) {
+  var seen = {}, out = [];
+  (Array.isArray(raw) ? raw : (raw || '').toString().split(',')).forEach(function(x) {
+    var pc = (x || '').toString().toUpperCase().trim();
+    if (pc && !seen[pc] && rmdLooksLikePlantCode(pc)) { seen[pc] = true; out.push(pc); }
+  });
+  return out.slice(0, 300);
+}
+
+// ── GET: data Auto Reminder untuk Rak Samsung. ?action=getReminderData&campaign=rak_samsung&codes=S015,S018,... ──
+function getRakReminderData(params) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var cfg = rmdGetConfig(ss);
+  var month = rakMonthNow();
+  var codes = rakCodesFromParam(params.codes);
+  var leaders = rmdLeaderMap(ss), closed = rmdClosedSet(ss);
+  var counts = rmdSentCounts(ss, rakPeriodKey(month));
+  var subm = rakSubmittedSet(month);
+
+  var data = [], pending = 0, done = 0;
+  codes.forEach(function(pc) {
+    if (closed[pc]) return;
+    var ld = leaders[pc] || {};
+    var phone = rmdNormalizePhone(ld.phone || '');
+    var isSub = !!subm[pc];
+    if (isSub) done++; else pending++;
+    var cnt = counts[pc] || 0;
+    data.push({
+      plantCode: pc, storeName: ld.storeName || '', brandToko: 'Samsung Store', city: ld.city || '', region: ld.region || '',
+      storeLeader: ld.storeLeader || '', phone: phone, phoneOk: !!phone,
+      submitted: isSub, reminderCount: cnt, level: rmdLevelFromCount(cnt)
+    });
+  });
+  data.sort(function(a, b) {
+    if (a.submitted !== b.submitted) return a.submitted ? 1 : -1;
+    return (b.level - a.level) || (a.plantCode < b.plantCode ? -1 : 1);
+  });
+
+  return {
+    status: 'success', campaign: 'rak_samsung', activeMonth: month, campaignName: cfg.rak_campaign_name,
+    hasToken: rmdHasToken(),
+    templates: { l1: cfg.rak_template_l1, l2: cfg.rak_template_l2, l3: cfg.rak_template_l3 },
+    count: data.length, pendingCount: pending, submittedCount: done, data: data
+  };
+}
+
+// ── POST: kirim reminder WhatsApp Rak Samsung. body: { action:'sendReminder', campaign:'rak_samsung', plantCodes:[...] } ──
+function sendRakReminder(body) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var token = rmdToken();
+  if (!token) return { status: 'error', message: 'Token Fonnte belum diset. Buka Settings dulu.' };
+
+  var cfg = rmdGetConfig(ss);
+  var month = rakMonthNow();
+  var key = rakPeriodKey(month);
+  var leaders = rmdLeaderMap(ss), closed = rmdClosedSet(ss);
+  var counts = rmdSentCounts(ss, key);
+  var subm = rakSubmittedSet(month);
+  var logSheet = getOrCreateSheetWithHeaders(ss, RMD_LOG_SHEET, RMD_LOG_HEADERS);
+
+  var results = [];
+  rakCodesFromParam(body.plantCodes).forEach(function(pc) {
+    if (!/^S\d{3}$/.test(pc)) { results.push({ plantCode: pc, ok: false, detail: 'Bukan toko Samsung Store (kode S###)' }); return; }
+    if (subm[pc])   { results.push({ plantCode: pc, ok: false, detail: 'Sudah submit periode ini' }); return; }
+    if (closed[pc]) { results.push({ plantCode: pc, ok: false, detail: 'Toko tutup' }); return; }
+    var ld = leaders[pc];
+    if (!ld)        { results.push({ plantCode: pc, ok: false, detail: 'Store Leader belum ada di database (import di Settings)' }); return; }
+    var storeName = ld.storeName || pc;
+    var phone = rmdNormalizePhone(ld.phone || '');
+    if (!phone)     { results.push({ plantCode: pc, storeName: storeName, ok: false, detail: 'Nomor HP tidak ada / invalid' }); return; }
+
+    var cnt = counts[pc] || 0, level = rmdLevelFromCount(cnt);
+    var tpl = level === 1 ? cfg.rak_template_l1 : level === 2 ? cfg.rak_template_l2 : cfg.rak_template_l3;
+    var msg = rmdRenderTemplate(tpl, {
+      nama_toko: storeName, kode_toko: pc, store_leader: ld.storeLeader || '', city: ld.city || '',
+      region: ld.region || '', campaign: cfg.rak_campaign_name || '', level: rmdLevelLabel(level), periode: rakMonthName(month)
+    });
+
+    var ok = false, detail = '';
+    try {
+      var resp = UrlFetchApp.fetch(FONNTE_ENDPOINT, {
+        method: 'post', muteHttpExceptions: true, headers: { 'Authorization': token },
+        payload: { target: phone, message: msg, countryCode: '62' }
+      });
+      var code = resp.getResponseCode(), txt = resp.getContentText(), pj = {};
+      try { pj = JSON.parse(txt); } catch (e) {}
+      ok = (code === 200) && (pj.status === true || pj.status === 'true' || (pj.status === undefined));
+      detail = (pj.reason || pj.detail || (pj.id ? 'id ' + pj.id : '') || txt || ('HTTP ' + code)).toString().slice(0, 300);
+    } catch (err) { detail = 'Fetch error: ' + err.message; }
+
+    if (ok) counts[pc] = cnt + 1;
+    logSheet.appendRow([rmdNow(), key, pc, storeName, 'Samsung Store', ld.city || '', rmdLevelLabel(level), phone, msg, ok ? 'sent' : 'failed', detail]);
     results.push({ plantCode: pc, storeName: storeName, level: level, phone: phone, ok: ok, detail: detail });
   });
 
