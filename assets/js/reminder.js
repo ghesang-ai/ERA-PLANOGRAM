@@ -11,6 +11,8 @@ var _submittedCount = 0;
 var _selected  = {};          // plantCode -> true
 var _previewLvl = 1;
 var _sending   = false;
+var _loadSeq   = 0;           // penanda pemuatan terbaru: jawaban dari pemuatan lama (mis. pindah tab saat masih loading) diabaikan
+var _rowsMod   = '';          // modul pemilik data _rows saat ini ('ldu' | 'foto-ldu' | 'rak-samsung')
 
 var SEND_BATCH = 15;          // plant code per request (hindari timeout Apps Script)
 
@@ -117,15 +119,19 @@ function updateLeaderWarn() {
 }
 
 async function loadReminderData() {
+  var seq = ++_loadSeq, modAtStart = _mod;
+  _rowsMod = '';                                     // sampai data tab ini selesai dimuat, tombol kirim diblokir
   var tbody = document.getElementById('rmd-tbody');
   tbody.innerHTML = '<tr><td colspan="9" class="empty-state"><div class="empty-icon">⏳</div>Memuat data...</td></tr>';
   _selected = {};
   document.getElementById('rmd-check-all').checked = false;
 
   try {
-    var json = isRak() ? await fetchRakData() : await fetchLduData(isFoto() ? 'foto_ldu' : '');
+    var json = modAtStart === 'rak-samsung' ? await fetchRakData() : await fetchLduData(modAtStart === 'foto-ldu' ? 'foto_ldu' : '');
+    if (seq !== _loadSeq) return;                    // ada pemuatan yang lebih baru (mis. Anda pindah tab) — abaikan jawaban ini
 
     _rows      = json.data || [];
+    _rowsMod   = modAtStart;
     _templates = json.templates || _templates;
     _campaign  = json.campaignName || '';
     _period    = json.activeMonth || '';
@@ -142,6 +148,7 @@ async function loadReminderData() {
     renderRows();
     renderPreview();
   } catch (err) {
+    if (seq !== _loadSeq) return;
     document.getElementById('rmd-leader-warn').style.display = 'none';
     tbody.innerHTML = '<tr><td colspan="10" class="empty-state"><div class="empty-icon">⚠️</div>' + escHtml(err.message) + '</td></tr>';
   }
@@ -284,6 +291,7 @@ function sendSelected() {
 }
 
 function sendAllFiltered() {
+  if (_rowsMod !== _mod) { alert('Data tab ini belum selesai dimuat. Tunggu sebentar lalu coba lagi.'); return; }
   var pcs = currentFiltered()
     .filter(function (r) { return r.phoneOk && !r.submitted; })
     .map(function (r) { return r.plantCode; });
@@ -297,6 +305,11 @@ function sendOne(pc) {
 
 function confirmAndSend(pcs, label) {
   if (_sending) return;
+  // Data di layar harus milik tab yang sedang aktif; kalau tidak (masih memuat), jangan kirim dengan kampanye yang salah.
+  if (_rowsMod !== _mod) { alert('Data tab ini belum selesai dimuat. Tunggu sebentar lalu coba lagi.'); return; }
+  var valid = {}; _rows.forEach(function (r) { valid[r.plantCode] = true; });
+  pcs = pcs.filter(function (pc) { return valid[pc]; });
+  if (!pcs.length) { alert('Tidak ada toko valid untuk dikirim.'); return; }
   if (!_hasToken && !confirm('Token Fonnte belum diset — pesan kemungkinan besar GAGAL. Lanjut coba?')) return;
   if (!confirm(label + ': kirim WhatsApp ke ' + pcs.length + ' toko sekarang?')) return;
   doSend(pcs);

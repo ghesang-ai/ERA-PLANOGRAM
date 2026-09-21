@@ -1684,7 +1684,10 @@ function rmdSentCounts(ss, period) {
   if (last < 2) return m;
   var vals = sheet.getRange(2, 1, last - 1, RMD_LOG_HEADERS.length).getValues();
   vals.forEach(function(r) {
-    if ((r[1] || '').toString().trim() !== period) return;         // period
+    // Sheet mengubah teks "2026-09" di kolom period menjadi tanggal → baca sebagai bulan (Asia/Jakarta),
+    // kalau tidak hitungan reminder LDU selalu 0 dan level tidak pernah naik. Kunci teks ("rak-samsung:…") tetap apa adanya.
+    var per = (r[1] instanceof Date) ? rmdReadMonth(r[1]) : (r[1] || '').toString().trim();
+    if (per !== period) return;                                    // period
     if ((r[9] || '').toString().trim().toLowerCase() !== 'sent') return; // fonnte_status
     var pc = (r[2] || '').toString().toUpperCase().trim();
     if (pc) m[pc] = (m[pc] || 0) + 1;
